@@ -746,10 +746,10 @@ const ITEMS_DATA = {
   kit_bomba: {
     id: 'kit_bomba',
     name: 'KIT BOMBA',
-    description: 'Componentes para montar uma bomba poderosa. Muito perigoso!',
+    description: 'Kit de desarmamento. Pode desarmar uma bomba armada antes que exploda!',
     attackPower: 0,
     defensePower: 0,
-    weight: 5,
+    weight: 3,
     canFly: false,
     isUsable: true,
     singleUse: true
@@ -823,8 +823,8 @@ const ITEMS_DATA = {
   bomba: {
     id: 'bomba',
     name: 'BOMBA',
-    description: 'Uma bomba ativada e pronta para explodir. CUIDADO!',
-    attackPower: 50,
+    description: 'Uma bomba poderosa. Ao usar, você a arma com um timer de 3 turnos. MATA TODOS no local quando explode!',
+    attackPower: 0,
     defensePower: 0,
     weight: 6,
     canFly: false,
@@ -1000,7 +1000,10 @@ const GameState = {
   demonSummoned: false,
 
   // Escudo de força do Teto do MASP (removido pelo Feiticeiro)
-  forceShieldDown: false
+  forceShieldDown: false,
+
+  // Bomba armada { location: string, turnsLeft: number }
+  armedBomb: null
 };
 
 // ============================================================================
@@ -1181,61 +1184,68 @@ const ItemUseHandlers = {
   },
 
   kit_bomba: function() {
-    // Transforma em bomba
-    const idx = GameState.playerInventory.indexOf('kit_bomba');
-    if (idx > -1) {
-      GameState.playerInventory.splice(idx, 1);
-      GameState.playerInventory.push('bomba');
+    // Desarmar bomba se houver uma armada no local
+    if (!GameState.armedBomb) {
+      return {
+        success: false,
+        message: 'Não há nenhuma bomba armada para desarmar!',
+        consumed: false
+      };
     }
+    
+    if (GameState.armedBomb.location !== GameState.playerLocation) {
+      return {
+        success: false,
+        message: `A bomba está armada em ${GameState.rooms[GameState.armedBomb.location].name}, não aqui!`,
+        consumed: false
+      };
+    }
+    
+    // Desarmar
+    GameState.armedBomb = null;
+    
+    const idx = GameState.playerInventory.indexOf('kit_bomba');
+    if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    
+    // A bomba desarmada volta ao chão
+    GameState.items.bomba.location = GameState.playerLocation;
     
     return {
       success: true,
-      message: 'Você montou a BOMBA! Ela está pronta para usar.',
+      message: 'Você desarmou a BOMBA com sucesso! Ela está desativada no chão.',
       consumed: true
     };
   },
 
   bomba: function() {
-    // Causa dano a todos os inimigos na sala
+    // Armar a bomba no local atual com timer de 3 turnos
     const playerRoom = GameState.playerLocation;
-    let totalDamage = 0;
-    let targets = [];
     
-    Object.values(GameState.characters).forEach(char => {
-      if (char.id !== 'player' && char.location === playerRoom && char.isAlive && !char.isAlly) {
-        const damage = 50;
-        char.hp -= damage;
-        if (char.hp <= 0) {
-          char.hp = 0;
-          char.isAlive = false;
-        }
-        totalDamage += damage;
-        targets.push(char.name);
-      }
-    });
-
-    // Dano colateral ao jogador
-    const player = GameState.characters.player;
-    const selfDamage = 15;
-    player.hp -= selfDamage;
+    if (GameState.armedBomb) {
+      return {
+        success: false,
+        message: 'Já existe uma bomba armada! Desarme-a primeiro com o KIT BOMBA.',
+        consumed: false
+      };
+    }
     
-    // Remover bomba
+    // Remover bomba do inventário
     const idx = GameState.playerInventory.indexOf('bomba');
     if (idx > -1) GameState.playerInventory.splice(idx, 1);
     
-    if (targets.length > 0) {
-      return {
-        success: true,
-        message: `BOOM! A explosão causou 50 de dano em ${targets.join(', ')}! Você sofreu ${selfDamage} de dano colateral.`,
-        consumed: true
-      };
-    } else {
-      return {
-        success: true,
-        message: `BOOM! A bomba explodiu, mas não havia inimigos por perto. Você sofreu ${selfDamage} de dano colateral.`,
-        consumed: true
-      };
-    }
+    // Armar a bomba
+    GameState.armedBomb = {
+      location: playerRoom,
+      turnsLeft: 3
+    };
+    
+    Log.add('⚠️ BOMBA ARMADA! Ela vai explodir em 3 turnos! SAIA DAQUI!', 'danger');
+    
+    return {
+      success: true,
+      message: `Você armou a BOMBA em ${GameState.rooms[playerRoom].name}! Timer: 3 turnos. CORRA!`,
+      consumed: true
+    };
   },
 
   livro: function() {
@@ -1697,9 +1707,52 @@ const Events = {
     }
     
     // Processar eventos
+    this.processBombTimer();
     this.processWitchWord();
     this.processNPCMovement();
     this.processNPCAttacks();
+  },
+
+  // Processar timer da bomba
+  processBombTimer: function() {
+    if (!GameState.armedBomb) return;
+    
+    GameState.armedBomb.turnsLeft--;
+    
+    if (GameState.armedBomb.turnsLeft > 0) {
+      Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s) para explodir em ${GameState.rooms[GameState.armedBomb.location].name}!`, 'warning');
+      return;
+    }
+    
+    // EXPLOSÃO!
+    const bombLocation = GameState.armedBomb.location;
+    const roomName = GameState.rooms[bombLocation].name;
+    const victims = [];
+    
+    // Matar TODOS os personagens no local (incluindo player e aliados)
+    Object.values(GameState.characters).forEach(char => {
+      if (char.location === bombLocation && char.isAlive) {
+        char.hp = 0;
+        char.isAlive = false;
+        victims.push(char.name);
+      }
+    });
+    
+    // Destruir TODOS os itens no local
+    Object.values(GameState.items).forEach(item => {
+      if (item.location === bombLocation) {
+        item.location = null;
+        item.isDestroyed = true;
+      }
+    });
+    
+    GameState.armedBomb = null;
+    
+    if (victims.length > 0) {
+      Log.add(`💥 BOOM!!! A bomba explodiu em ${roomName}! Vítimas: ${victims.join(', ')}. Tudo foi destruído!`, 'danger');
+    } else {
+      Log.add(`💥 BOOM!!! A bomba explodiu em ${roomName}! A área foi completamente destruída!`, 'danger');
+    }
   },
 
   // Bruxa fala palavra mágica
@@ -2072,6 +2125,8 @@ const Game = {
     GameState.playerDefenseBonus = 0;
     GameState.playerDefenseBonusTurns = 0;
     GameState.demonSummoned = false;
+    GameState.forceShieldDown = false;
+    GameState.armedBomb = null;
     
     // Gerar palavra mágica do demônio
     GameState.demonMagicWord = Utils.randomChoice(MAGIC_WORDS);
