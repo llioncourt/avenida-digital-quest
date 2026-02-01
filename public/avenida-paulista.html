@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avenida Paulista - Adventure</title>
+  <style>
+    /* ========== RESET & BASE ========== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a25;
+      --text-primary: #e8e8f0;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
+      --accent-gold: #d4a846;
+      --accent-gold-dim: #8a6d2e;
+      --accent-red: #c94040;
+      --accent-green: #40a060;
+      --accent-blue: #4080c0;
+      --accent-purple: #8040a0;
+      --border-color: #2a2a35;
+      --shadow: 0 4px 20px rgba(0,0,0,0.5);
+      --radius: 8px;
+      --font-mono: 'Courier New', Courier, monospace;
+      --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    /* ========== LAYOUT ========== */
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+      gap: 1rem;
+    }
+
+    /* ========== HEADER ========== */
+    #header {
+      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    #game-title {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--accent-gold);
+      text-shadow: 0 0 10px rgba(212, 168, 70, 0.3);
+      letter-spacing: 2px;
+    }
+
+    #stats {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+    }
+
+    .stat-value {
+      font-weight: bold;
+      padding: 0.2rem 0.5rem;
+      background: var(--bg-primary);
+      border-radius: 4px;
+    }
+
+    #time-display { color: var(--accent-gold); }
+    #hp-display { color: var(--accent-green); }
+    #hp-display.danger { color: var(--accent-red); }
+    #weight-display { color: var(--accent-blue); }
+
+    /* ========== MAIN CONTENT ========== */
+    #main-content {
+      display: flex;
+      gap: 1rem;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ========== GAME PANEL ========== */
+    #game-panel {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    #location-panel {
+      flex-shrink: 0;
+    }
+
+    #location-name {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: var(--accent-gold);
+      margin-bottom: 0.5rem;
+      font-family: var(--font-mono);
+    }
+
+    #location-description {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.3rem;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--accent-gold-dim);
+      border-color: var(--accent-gold);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-exit {
+      background: linear-gradient(135deg, #1a2a1a, #0a150a);
+      border-color: var(--accent-green);
+    }
+
+    .btn-exit:hover {
+      background: var(--accent-green);
+      color: #000;
+    }
+
+    .btn-item {
+      background: linear-gradient(135deg, #2a2a1a, #1a1a0a);
+      border-color: var(--accent-gold-dim);
+    }
+
+    .btn-item:hover {
+      background: var(--accent-gold);
+      color: #000;
+    }
+
+    .btn-character {
+      background: linear-gradient(135deg, #2a1a2a, #1a0a1a);
+      border-color: var(--accent-purple);
+    }
+
+    .btn-character:hover {
+      background: var(--accent-purple);
+      color: #fff;
+    }
+
+    .btn-character.ally {
+      border-color: var(--accent-green);
+      background: linear-gradient(135deg, #1a2a1a, #0a150a);
+    }
+
+    .btn-character.hostile {
+      border-color: var(--accent-red);
+      background: linear-gradient(135deg, #2a1a1a, #1a0a0a);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #2a1a1a, #1a0a0a);
+      border-color: var(--accent-red);
+    }
+
+    .btn-danger:hover {
+      background: var(--accent-red);
+      color: #fff;
+    }
+
+    /* ========== INVENTORY PANEL ========== */
+    #inventory-panel {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    #inventory-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .inventory-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+    }
+
+    .inventory-item-name {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent-gold);
+    }
+
+    .inventory-item-weight {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .inventory-actions {
+      display: flex;
+      gap: 0.3rem;
+    }
+
+    .btn-small {
+      font-size: 0.7rem;
+      padding: 0.3rem 0.5rem;
+    }
+
+    /* ========== LOG PANEL ========== */
+    #log-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 280px;
+      max-width: 350px;
+    }
+
+    #log-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+      background: var(--bg-primary);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-time {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .log-action { color: var(--accent-blue); }
+    .log-success { color: var(--accent-green); }
+    .log-danger { color: var(--accent-red); }
+    .log-warning { color: var(--accent-gold); }
+    .log-info { color: var(--text-secondary); }
+    .log-magic { color: var(--accent-purple); font-style: italic; }
+
+    #command-input-container {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    #command-input {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    #command-input:focus {
+      outline: none;
+      border-color: var(--accent-gold);
+    }
+
+    #action-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ========== MODAL ========== */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #modal-overlay.active {
+      display: flex;
+    }
+
+    #modal {
+      background: var(--bg-secondary);
+      border: 2px solid var(--accent-gold);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 0 50px rgba(212, 168, 70, 0.3);
+    }
+
+    #modal h2 {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      color: var(--accent-gold);
+      margin-bottom: 1rem;
+    }
+
+    #modal p {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    #modal .btn {
+      margin: 0.5rem;
+    }
+
+    /* ========== SPEAK MODAL ========== */
+    #speak-modal {
+      display: none;
+    }
+
+    #speak-modal.active {
+      display: flex;
+    }
+
+    #speak-input {
+      width: 100%;
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      text-align: center;
+    }
+
+    /* ========== CHARACTER MODAL ========== */
+    #character-modal-content {
+      text-align: left;
+    }
+
+    #character-modal-content .character-stats {
+      background: var(--bg-tertiary);
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin: 1rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 800px) {
+      #main-content {
+        flex-direction: column;
+      }
+      
+      #log-panel {
+        max-width: none;
+        max-height: 250px;
+      }
+
+      #game-title {
+        font-size: 1.2rem;
+      }
+
+      #stats {
+        font-size: 0.85rem;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* ========== WITCH COUNTER ========== */
+    #witch-indicator {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+
+    .witch-orb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--accent-purple);
+      transition: all 0.3s ease;
+    }
+
+    .witch-orb.active {
+      background: var(--accent-purple);
+      box-shadow: 0 0 10px var(--accent-purple);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- HEADER -->
+    <header id="header">
+      <h1 id="game-title">⚔ AVENIDA PAULISTA ⚔</h1>
+      <div id="stats">
+        <div class="stat">
+          <span class="stat-label">🕐</span>
+          <span class="stat-value" id="time-display">17:00</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">❤️</span>
+          <span class="stat-value" id="hp-display">100/100</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">⚖️</span>
+          <span class="stat-value" id="weight-display">0/50</span>
+        </div>
+        <div class="stat" title="Palavras mágicas da Bruxa">
+          <span class="stat-label">🔮</span>
+          <div id="witch-indicator">
+            <div class="witch-orb"></div>
+            <div class="witch-orb"></div>
+            <div class="witch-orb"></div>
+            <div class="witch-orb"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-content">
+      <!-- GAME PANEL -->
+      <div id="game-panel">
+        <div class="panel" id="location-panel">
+          <h2 id="location-name">Carregando...</h2>
+          <p id="location-description"></p>
+          
+          <div id="exits-section">
+            <h3 class="section-title">📍 Saídas</h3>
+            <div class="button-group" id="exits-container"></div>
+          </div>
+
+          <div id="items-section">
+            <h3 class="section-title">📦 Itens no local</h3>
+            <div class="button-group" id="items-container"></div>
+          </div>
+
+          <div id="characters-section">
+            <h3 class="section-title">👥 Personagens</h3>
+            <div class="button-group" id="characters-container"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="inventory-panel">
+          <h3 class="section-title">🎒 Inventário</h3>
+          <div id="inventory-list"></div>
+        </div>
+      </div>
+
+      <!-- LOG PANEL -->
+      <aside class="panel" id="log-panel">
+        <h3 class="section-title">📜 Log</h3>
+        <div id="log-container"></div>
+        <div id="command-input-container">
+          <input type="text" id="command-input" placeholder="Digite um comando..." autocomplete="off">
+          <button class="btn" onclick="Game.processCommand()">▶</button>
+        </div>
+        <div id="action-buttons">
+          <button class="btn" onclick="Game.openSpeakModal()">💬 Falar</button>
+          <button class="btn btn-danger" onclick="Game.confirmRestart()">🔄 Reiniciar</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- MODAL OVERLAY -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <h2 id="modal-title">Título</h2>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- SPEAK MODAL -->
+  <div id="modal-overlay" id="speak-modal-overlay" class="speak-modal-overlay">
+    <div id="modal" class="speak-modal-box">
+      <h2>💬 Falar Palavra</h2>
+      <p>Digite a palavra que deseja falar:</p>
+      <input type="text" id="speak-input" placeholder="Digite aqui..." autocomplete="off">
+      <div>
+        <button class="btn" onclick="Game.executeSpeakCommand()">Falar</button>
+        <button class="btn" onclick="Game.closeSpeakModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============================================================================
+// DATA - Definições de salas, itens e personagens
+// ============================================================================
+
+const ROOMS_DATA = {
+  tunel: {
+    id: 'tunel',
+    name: 'Túnel',
+    description: 'Um túnel escuro e úmido sob a Avenida Paulista. O eco dos seus passos ressoa nas paredes de concreto. Há um cheiro de mofo e o som distante de água pingando.',
+    exits: { 'Nove de Julho Norte': 'nove_julho_norte', 'Nove de Julho Sul': 'nove_julho_sul' },
+    requiresFlight: false
+  },
+  nove_julho_norte: {
+    id: 'nove_julho_norte',
+    name: 'Nove de Julho Norte',
+    description: 'A parte norte da movimentada Avenida Nove de Julho. Prédios comerciais se erguem de ambos os lados. O trânsito está estranhamente silencioso hoje.',
+    exits: { 'Distrito Italiano': 'distrito_italiano', 'MASP': 'masp', 'Túnel': 'tunel' },
+    requiresFlight: false
+  },
+  nove_julho_sul: {
+    id: 'nove_julho_sul',
+    name: 'Nove de Julho Sul',
+    description: 'O trecho sul da Nove de Julho. Lojas e restaurantes alinham as calçadas. Uma estranha névoa paira no ar.',
+    exits: { 'Túnel': 'tunel', 'Avenida Santos': 'avenida_santos', 'Avenida Brigadeiro': 'avenida_brigadeiro' },
+    requiresFlight: false
+  },
+  avenida_brigadeiro: {
+    id: 'avenida_brigadeiro',
+    name: 'Avenida Brigadeiro',
+    description: 'Uma avenida larga e arborizada. Os edifícios aqui são mais antigos, com uma arquitetura elegante do início do século XX.',
+    exits: { 'Distrito Italiano': 'distrito_italiano', 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Nove de Julho Sul': 'nove_julho_sul' },
+    requiresFlight: false
+  },
+  avenida_santos: {
+    id: 'avenida_santos',
+    name: 'Avenida Santos',
+    description: 'Uma rua comercial movimentada. Vitrines exibem produtos variados, mas todas as lojas parecem abandonadas.',
+    exits: { 'Nove de Julho Sul': 'nove_julho_sul', 'Rua Augusta': 'rua_augusta' },
+    requiresFlight: false
+  },
+  rua_augusta: {
+    id: 'rua_augusta',
+    name: 'Rua Augusta',
+    description: 'A famosa Rua Augusta, conhecida por sua vida noturna. Grafites coloridos cobrem as paredes. O ar tem um cheiro de liberdade e rebeldia.',
+    exits: { 'Shopping': 'shopping', 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Cinema': 'cinema', 'Avenida Santos': 'avenida_santos' },
+    requiresFlight: false
+  },
+  shopping: {
+    id: 'shopping',
+    name: 'Shopping',
+    description: 'Um shopping center moderno com vários andares. As escadas rolantes estão paradas e as luzes piscam intermitentemente.',
+    exits: { 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Rua Augusta': 'rua_augusta' },
+    requiresFlight: false
+  },
+  avenida_paulista_oeste: {
+    id: 'avenida_paulista_oeste',
+    name: 'Avenida Paulista Oeste',
+    description: 'O trecho oeste da icônica Avenida Paulista. Arranha-céus de vidro refletem o céu alaranjado do fim de tarde.',
+    exits: { 'Rua Augusta': 'rua_augusta', 'Shopping': 'shopping', 'Avenida Paulista Leste': 'avenida_paulista_leste', 'MASP': 'masp' },
+    requiresFlight: false
+  },
+  avenida_paulista_leste: {
+    id: 'avenida_paulista_leste',
+    name: 'Avenida Paulista Leste',
+    description: 'O trecho leste da Avenida Paulista. Bancos e empresas ocupam edifícios imponentes. O silêncio é perturbador.',
+    exits: { 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Avenida Brigadeiro': 'avenida_brigadeiro', 'Colégio': 'colegio', 'MASP': 'masp' },
+    requiresFlight: false
+  },
+  masp: {
+    id: 'masp',
+    name: 'MASP',
+    description: 'O Museu de Arte de São Paulo, com sua arquitetura suspensa icônica. Os pilares vermelhos sustentam a estrutura sobre o vão livre. Você sente uma energia estranha vindo do teto.',
+    exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Nove de Julho Norte': 'nove_julho_norte', 'Teto do MASP': 'teto_masp' },
+    requiresFlight: false
+  },
+  distrito_italiano: {
+    id: 'distrito_italiano',
+    name: 'Distrito Italiano',
+    description: 'O charmoso bairro italiano de São Paulo. O aroma de massas e molhos ainda paira no ar, mesmo com as cantinas fechadas.',
+    exits: { 'Livraria': 'livraria', 'Nove de Julho Norte': 'nove_julho_norte', 'Avenida Brigadeiro': 'avenida_brigadeiro' },
+    requiresFlight: false
+  },
+  teto_masp: {
+    id: 'teto_masp',
+    name: 'Teto do MASP',
+    description: 'O topo do MASP. Daqui você tem uma vista panorâmica de toda a Avenida Paulista. O vento é forte e você sente uma presença maligna. Símbolos arcanos estão desenhados no chão.',
+    exits: {},
+    requiresFlight: true
+  },
+  colegio: {
+    id: 'colegio',
+    name: 'Colégio',
+    description: 'Um antigo colégio tradicional. Os corredores vazios ecoam com memórias de estudantes. Uma escada leva a uma antena no topo.',
+    exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Antena': 'antena' },
+    requiresFlight: false
+  },
+  livraria: {
+    id: 'livraria',
+    name: 'Livraria',
+    description: 'Uma livraria antiga e empoeirada. Estantes repletas de livros raros chegam até o teto. O cheiro de papel velho é reconfortante.',
+    exits: { 'Distrito Italiano': 'distrito_italiano' },
+    requiresFlight: false
+  },
+  antena: {
+    id: 'antena',
+    name: 'Antena',
+    description: 'Uma torre de antena no topo do colégio. Daqui você pode ver o céu da cidade se estendendo ao infinito. Pássaros estranhos circulam no ar.',
+    exits: { 'Colégio': 'colegio', 'Céu da Cidade': 'ceu_cidade' },
+    requiresFlight: false
+  },
+  ceu_cidade: {
+    id: 'ceu_cidade',
+    name: 'Céu da Cidade',
+    description: 'Você flutua no céu sobre São Paulo! As luzes da cidade brilham abaixo como estrelas terrestres. O vento carrega sussurros misteriosos.',
+    exits: { 'Teto do MASP': 'teto_masp', 'Avenida Santos': 'avenida_santos', 'Rua Augusta': 'rua_augusta', 'Nove de Julho Sul': 'nove_julho_sul' },
+    requiresFlight: true
+  },
+  cinema: {
+    id: 'cinema',
+    name: 'Cinema',
+    description: 'Um cinema antigo com poltronas de veludo vermelho. A tela está escura, mas você jura ter visto algo se mover nas sombras.',
+    exits: { 'Rua Augusta': 'rua_augusta' },
+    requiresFlight: false
+  }
+};
+
+const ITEMS_DATA = {
+  espada: {
+    id: 'espada',
+    name: 'ESPADA',
+    description: 'Uma espada afiada de aço toledano. Brilha com um brilho sobrenatural.',
+    attackPower: 15,
+    defensePower: 2,
+    weight: 8,
+    canFly: false,
+    isUsable: false,
+    singleUse: false
+  },
+  escudo: {
+    id: 'escudo',
+    name: 'ESCUDO',
+    description: 'Um escudo resistente com emblemas antigos gravados.',
+    attackPower: 0,
+    defensePower: 12,
+    weight: 10,
+    canFly: false,
+    isUsable: false,
+    singleUse: false
+  },
+  kit_saude: {
+    id: 'kit_saude',
+    name: 'KIT SAÚDE',
+    description: 'Um kit de primeiros socorros completo. Restaura sua vitalidade.',
+    attackPower: 0,
+    defensePower: 0,
+    weight: 3,
+    canFly: false,
+    isUsable: true,
+    singleUse: true
+  },
+  kit_bomba: {
+    id: 'kit_bomba',
+    name: 'KIT BOMBA',
+    description: 'Componentes para montar uma bomba poderosa. Muito perigoso!',
+    attackPower: 0,
+    defensePower: 0,
+    weight: 5,
+    canFly: false,
+    isUsable: true,
+    singleUse: true
+  },
+  livro: {
+    id: 'livro',
+    name: 'LIVRO',
+    description: 'Um livro antigo de encantamentos. Parece conter segredos arcanos.',
+    attackPower: 0,
+    defensePower: 0,
+    weight: 2,
+    canFly: false,
+    isUsable: true,
+    singleUse: false
+  },
+  asa_delta: {
+    id: 'asa_delta',
+    name: 'ASA DELTA',
+    description: 'Uma asa delta leve e resistente. Permite voar pelos céus da cidade.',
+    attackPower: 0,
+    defensePower: 0,
+    weight: 12,
+    canFly: true,
+    isUsable: false,
+    singleUse: false
+  },
+  cera_magica: {
+    id: 'cera_magica',
+    name: 'CERA MÁGICA',
+    description: 'Uma cera encantada que endurece sua pele temporariamente.',
+    attackPower: 0,
+    defensePower: 0,
+    weight: 1,
+    canFly: false,
+    isUsable: true,
+    singleUse: true
+  },
+  seta_mortal: {
+    id: 'seta_mortal',
+    name: 'SETA MORTAL',
+    description: 'Uma seta envenenada capaz de causar dano devastador.',
+    attackPower: 40,
+    defensePower: 0,
+    weight: 1,
+    canFly: false,
+    isUsable: true,
+    singleUse: true
+  },
+  mascara_gas: {
+    id: 'mascara_gas',
+    name: 'MÁSCARA GÁS',
+    description: 'Protege contra gases tóxicos e venenos aéreos.',
+    attackPower: 0,
+    defensePower: 5,
+    weight: 2,
+    canFly: false,
+    isUsable: false,
+    singleUse: false
+  },
+  hipnodisco: {
+    id: 'hipnodisco',
+    name: 'HIPNODISCO',
+    description: 'Um disco hipnótico giratório. Pode confundir inimigos.',
+    attackPower: 0,
+    defensePower: 0,
+    weight: 2,
+    canFly: false,
+    isUsable: true,
+    singleUse: false
+  },
+  bomba: {
+    id: 'bomba',
+    name: 'BOMBA',
+    description: 'Uma bomba ativada e pronta para explodir. CUIDADO!',
+    attackPower: 50,
+    defensePower: 0,
+    weight: 6,
+    canFly: false,
+    isUsable: true,
+    singleUse: true
+  }
+};
+
+const CHARACTERS_DATA = {
+  player: {
+    id: 'player',
+    name: 'JOGADOR',
+    description: 'Você, o herói que deve salvar São Paulo da Bruxa.',
+    attackPower: 10,
+    defensePower: 5,
+    hp: 100,
+    maxHp: 100,
+    maxWeight: 50,
+    canFly: false,
+    isAlive: true,
+    isAlly: true,
+    lastBoss: false
+  },
+  feiticeiro: {
+    id: 'feiticeiro',
+    name: 'FEITICEIRO',
+    description: 'Um mago misterioso preso no túnel. Possui conhecimentos arcanos que podem ser úteis.',
+    attackPower: 12,
+    defensePower: 8,
+    hp: 60,
+    maxHp: 60,
+    maxWeight: 20,
+    canFly: false,
+    isAlive: true,
+    isAlly: true,
+    lastBoss: false
+  },
+  aguia: {
+    id: 'aguia',
+    name: 'ÁGUIA',
+    description: 'Uma águia gigante com olhos penetrantes. Seus ataques vêm do céu.',
+    attackPower: 18,
+    defensePower: 4,
+    hp: 45,
+    maxHp: 45,
+    maxWeight: 10,
+    canFly: true,
+    isAlive: true,
+    isAlly: false,
+    lastBoss: false
+  },
+  bombardeador: {
+    id: 'bombardeador',
+    name: 'BOMBARDEADOR',
+    description: 'Um ser estranho que lança bombas de gás tóxico. Use máscara!',
+    attackPower: 20,
+    defensePower: 6,
+    hp: 50,
+    maxHp: 50,
+    maxWeight: 30,
+    canFly: false,
+    isAlive: true,
+    isAlly: false,
+    lastBoss: false,
+    usesGas: true
+  },
+  bruxa: {
+    id: 'bruxa',
+    name: 'BRUXA',
+    description: 'A terrível Bruxa do MASP! Ela está tentando abrir um portal dimensional com palavras mágicas.',
+    attackPower: 25,
+    defensePower: 15,
+    hp: 120,
+    maxHp: 120,
+    maxWeight: 20,
+    canFly: true,
+    isAlive: true,
+    isAlly: false,
+    lastBoss: true
+  },
+  demonio: {
+    id: 'demonio',
+    name: 'DEMÔNIO',
+    description: 'Um demônio invocado pela Bruxa. Extremamente poderoso, mas pode ser convertido com a palavra certa.',
+    attackPower: 35,
+    defensePower: 20,
+    hp: 80,
+    maxHp: 80,
+    maxWeight: 0,
+    canFly: true,
+    isAlive: true,
+    isAlly: false,
+    lastBoss: false,
+    isSummoned: false
+  },
+  coruja: {
+    id: 'coruja',
+    name: 'CORUJA',
+    description: 'Uma coruja sábia da noite. Seus olhos brilham na escuridão.',
+    attackPower: 8,
+    defensePower: 3,
+    hp: 30,
+    maxHp: 30,
+    maxWeight: 5,
+    canFly: true,
+    isAlive: true,
+    isAlly: false,
+    lastBoss: false
+  },
+  cachorro: {
+    id: 'cachorro',
+    name: 'CACHORRO CARAMELO',
+    description: 'O famoso vira-lata caramelo brasileiro. Leal e corajoso!',
+    attackPower: 6,
+    defensePower: 2,
+    hp: 35,
+    maxHp: 35,
+    maxWeight: 8,
+    canFly: false,
+    isAlive: true,
+    isAlly: true,
+    lastBoss: false
+  }
+};
+
+// Palavras mágicas possíveis para o demônio
+const MAGIC_WORDS = [
+  'ABRAXAS', 'ASTAROTH', 'BELPHEGOR', 'CADUCEUS', 'DRACONIS',
+  'ENIGMA', 'FATUM', 'GRIMORIUM', 'HEXAPLEX', 'INFERNUS',
+  'KRONOS', 'LEVIATHAN', 'MORDECAI', 'NEFERTUM', 'OBSCURUM',
+  'PANDORA', 'QUINTESSENTIA', 'RUNEMASTER', 'SALAMANDRA', 'THAUMIEL'
+];
+
+// ============================================================================
+// GAME STATE
+// ============================================================================
+
+const GameState = {
+  // Tempo (minutos desde 00:00)
+  time: 17 * 60, // 17:00
+
+  // Contador de palavras da bruxa (0-4)
+  witchWords: 0,
+  lastWitchWordTime: 0,
+  witchWordCooldown: 15, // minutos mínimos entre palavras
+
+  // Palavra mágica do demônio
+  demonMagicWord: '',
+
+  // Estado do jogo
+  gameOver: false,
+  victory: false,
+
+  // Efeitos temporários do jogador
+  playerDefenseBonus: 0,
+  playerDefenseBonusTurns: 0,
+
+  // Seed para debug (opcional)
+  seed: 0,
+
+  // Salas, personagens e itens (clonados dos dados)
+  rooms: {},
+  characters: {},
+  items: {},
+
+  // Inventário do jogador (lista de ids)
+  playerInventory: [],
+
+  // Localização do jogador
+  playerLocation: 'masp',
+
+  // Se o demônio foi invocado
+  demonSummoned: false
+};
+
+// ============================================================================
+// UTILS - Funções utilitárias
+// ============================================================================
+
+const Utils = {
+  // Gerador de números pseudo-aleatórios com seed
+  random: function() {
+    GameState.seed = (GameState.seed * 1103515245 + 12345) & 0x7fffffff;
+    return GameState.seed / 0x7fffffff;
+  },
+
+  // Número aleatório entre min e max (inclusive)
+  randomInt: function(min, max) {
+    return Math.floor(this.random() * (max - min + 1)) + min;
+  },
+
+  // Escolher item aleatório de array
+  randomChoice: function(arr) {
+    return arr[Math.floor(this.random() * arr.length)];
+  },
+
+  // Embaralhar array
+  shuffle: function(arr) {
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(this.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  },
+
+  // Formatar tempo (minutos para HH:MM)
+  formatTime: function(minutes) {
+    const h = Math.floor(minutes / 60) % 24;
+    const m = minutes % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  },
+
+  // Clonar objeto profundamente
+  deepClone: function(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  }
+};
+
+// ============================================================================
+// RULES - Regras e validações do jogo
+// ============================================================================
+
+const Rules = {
+  // Verificar se jogador pode voar
+  canPlayerFly: function() {
+    const player = GameState.characters.player;
+    if (player.canFly) return true;
+    
+    // Verificar se tem asa delta no inventário
+    return GameState.playerInventory.includes('asa_delta');
+  },
+
+  // Verificar se pode ir para uma sala
+  canMoveTo: function(roomId) {
+    const room = GameState.rooms[roomId];
+    if (!room) return false;
+    
+    if (room.requiresFlight) {
+      return this.canPlayerFly();
+    }
+    return true;
+  },
+
+  // Calcular peso total do inventário
+  getInventoryWeight: function() {
+    return GameState.playerInventory.reduce((total, itemId) => {
+      const item = GameState.items[itemId];
+      return total + (item ? item.weight : 0);
+    }, 0);
+  },
+
+  // Verificar se pode pegar item
+  canPickupItem: function(itemId) {
+    const item = GameState.items[itemId];
+    if (!item) return false;
+    
+    const currentWeight = this.getInventoryWeight();
+    const player = GameState.characters.player;
+    
+    return (currentWeight + item.weight) <= player.maxWeight;
+  },
+
+  // Calcular poder de ataque total do jogador
+  getPlayerAttackPower: function() {
+    const player = GameState.characters.player;
+    let attack = player.attackPower;
+    
+    // Adicionar bônus de itens
+    GameState.playerInventory.forEach(itemId => {
+      const item = GameState.items[itemId];
+      if (item) attack += item.attackPower;
+    });
+    
+    return attack;
+  },
+
+  // Calcular poder de defesa total do jogador
+  getPlayerDefensePower: function() {
+    const player = GameState.characters.player;
+    let defense = player.defensePower;
+    
+    // Adicionar bônus de itens
+    GameState.playerInventory.forEach(itemId => {
+      const item = GameState.items[itemId];
+      if (item) defense += item.defensePower;
+    });
+    
+    // Adicionar bônus temporário
+    defense += GameState.playerDefenseBonus;
+    
+    return defense;
+  },
+
+  // Verificar se jogador tem máscara de gás
+  hasGasMask: function() {
+    return GameState.playerInventory.includes('mascara_gas');
+  },
+
+  // Verificar condições de fim de jogo
+  checkGameOver: function() {
+    const player = GameState.characters.player;
+    const witch = GameState.characters.bruxa;
+    
+    // Derrota: jogador morreu
+    if (player.hp <= 0) {
+      GameState.gameOver = true;
+      GameState.victory = false;
+      return { ended: true, victory: false, reason: 'Você foi derrotado! A escuridão consome São Paulo...' };
+    }
+    
+    // Derrota: bruxa completou o portal
+    if (GameState.witchWords >= 4) {
+      GameState.gameOver = true;
+      GameState.victory = false;
+      return { ended: true, victory: false, reason: 'A Bruxa completou o ritual! O portal dimensional se abre e criaturas das trevas invadem a cidade!' };
+    }
+    
+    // Vitória: bruxa derrotada
+    if (witch.hp <= 0) {
+      GameState.gameOver = true;
+      GameState.victory = true;
+      return { ended: true, victory: true, reason: 'VITÓRIA! Você derrotou a Bruxa e salvou São Paulo!' };
+    }
+    
+    return { ended: false };
+  }
+};
+
+// ============================================================================
+// ITEM USE HANDLERS - Efeitos de uso de itens
+// ============================================================================
+
+const ItemUseHandlers = {
+  kit_saude: function() {
+    const player = GameState.characters.player;
+    const healAmount = 40;
+    const oldHp = player.hp;
+    player.hp = Math.min(player.maxHp, player.hp + healAmount);
+    const healed = player.hp - oldHp;
+    
+    // Remover item (single use)
+    const idx = GameState.playerInventory.indexOf('kit_saude');
+    if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    
+    return {
+      success: true,
+      message: `Você usou o KIT SAÚDE e recuperou ${healed} HP!`,
+      consumed: true
+    };
+  },
+
+  kit_bomba: function() {
+    // Transforma em bomba
+    const idx = GameState.playerInventory.indexOf('kit_bomba');
+    if (idx > -1) {
+      GameState.playerInventory.splice(idx, 1);
+      GameState.playerInventory.push('bomba');
+    }
+    
+    return {
+      success: true,
+      message: 'Você montou a BOMBA! Ela está pronta para usar.',
+      consumed: true
+    };
+  },
+
+  bomba: function() {
+    // Causa dano a todos os inimigos na sala
+    const playerRoom = GameState.playerLocation;
+    let totalDamage = 0;
+    let targets = [];
+    
+    Object.values(GameState.characters).forEach(char => {
+      if (char.id !== 'player' && char.location === playerRoom && char.isAlive && !char.isAlly) {
+        const damage = 50;
+        char.hp -= damage;
+        if (char.hp <= 0) {
+          char.hp = 0;
+          char.isAlive = false;
+        }
+        totalDamage += damage;
+        targets.push(char.name);
+      }
+    });
+
+    // Dano colateral ao jogador
+    const player = GameState.characters.player;
+    const selfDamage = 15;
+    player.hp -= selfDamage;
+    
+    // Remover bomba
+    const idx = GameState.playerInventory.indexOf('bomba');
+    if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    
+    if (targets.length > 0) {
+      return {
+        success: true,
+        message: `BOOM! A explosão causou 50 de dano em ${targets.join(', ')}! Você sofreu ${selfDamage} de dano colateral.`,
+        consumed: true
+      };
+    } else {
+      return {
+        success: true,
+        message: `BOOM! A bomba explodiu, mas não havia inimigos por perto. Você sofreu ${selfDamage} de dano colateral.`,
+        consumed: true
+      };
+    }
+  },
+
+  livro: function() {
+    return {
+      success: true,
+      message: `Você lê o livro antigo... Entre os encantamentos, você encontra a palavra mágica de conversão: "${GameState.demonMagicWord}". Use-a para converter o Demônio!`,
+      consumed: false
+    };
+  },
+
+  cera_magica: function() {
+    GameState.playerDefenseBonus = 10;
+    GameState.playerDefenseBonusTurns = 5;
+    
+    const idx = GameState.playerInventory.indexOf('cera_magica');
+    if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    
+    return {
+      success: true,
+      message: 'Você aplicou a CERA MÁGICA! Sua defesa aumentou em 10 pelos próximos 5 turnos.',
+      consumed: true
+    };
+  },
+
+  seta_mortal: function() {
+    // Precisa de um alvo
+    const playerRoom = GameState.playerLocation;
+    const enemies = Object.values(GameState.characters).filter(
+      c => c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly
+    );
+    
+    if (enemies.length === 0) {
+      return {
+        success: false,
+        message: 'Não há inimigos aqui para usar a SETA MORTAL!',
+        consumed: false
+      };
+    }
+    
+    // Ataca o primeiro inimigo (ou o mais forte)
+    const target = enemies.reduce((a, b) => a.hp > b.hp ? a : b);
+    const damage = 40;
+    target.hp -= damage;
+    if (target.hp <= 0) {
+      target.hp = 0;
+      target.isAlive = false;
+    }
+    
+    const idx = GameState.playerInventory.indexOf('seta_mortal');
+    if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    
+    const status = target.isAlive ? `(HP restante: ${target.hp})` : '(MORTO!)';
+    return {
+      success: true,
+      message: `A SETA MORTAL acerta ${target.name} causando ${damage} de dano! ${status}`,
+      consumed: true
+    };
+  },
+
+  hipnodisco: function() {
+    const playerRoom = GameState.playerLocation;
+    const enemies = Object.values(GameState.characters).filter(
+      c => c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly
+    );
+    
+    if (enemies.length === 0) {
+      return {
+        success: false,
+        message: 'Não há inimigos aqui para hipnotizar!',
+        consumed: false
+      };
+    }
+    
+    // 50% de chance de converter temporariamente
+    const target = Utils.randomChoice(enemies);
+    if (Utils.random() < 0.5) {
+      target.isAlly = true;
+      return {
+        success: true,
+        message: `O HIPNODISCO gira... ${target.name} está hipnotizado e agora é seu aliado temporário!`,
+        consumed: false
+      };
+    } else {
+      return {
+        success: true,
+        message: `O HIPNODISCO gira... mas ${target.name} resistiu à hipnose!`,
+        consumed: false
+      };
+    }
+  }
+};
+
+// ============================================================================
+// ACTIONS - Ações do jogo
+// ============================================================================
+
+const Actions = {
+  // Mover para uma sala
+  moveTo: function(roomId) {
+    if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+    
+    const currentRoom = GameState.rooms[GameState.playerLocation];
+    const targetRoom = GameState.rooms[roomId];
+    
+    if (!targetRoom) {
+      return { success: false, message: 'Sala não encontrada!' };
+    }
+    
+    // Verificar se é uma saída válida
+    const exits = Object.values(currentRoom.exits);
+    if (!exits.includes(roomId)) {
+      return { success: false, message: 'Você não pode ir para lá daqui!' };
+    }
+    
+    // Verificar requisito de voo
+    if (!Rules.canMoveTo(roomId)) {
+      return { success: false, message: 'Você precisa poder voar para acessar este local! Encontre a ASA DELTA.' };
+    }
+    
+    GameState.playerLocation = roomId;
+    return { 
+      success: true, 
+      message: `Você foi para ${targetRoom.name}.`,
+      advanceTime: true
+    };
+  },
+
+  // Pegar item
+  pickupItem: function(itemId) {
+    if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+    
+    const item = GameState.items[itemId];
+    if (!item) {
+      return { success: false, message: 'Item não encontrado!' };
+    }
+    
+    if (item.location !== GameState.playerLocation) {
+      return { success: false, message: 'Este item não está aqui!' };
+    }
+    
+    if (!Rules.canPickupItem(itemId)) {
+      return { success: false, message: `Você não pode carregar mais peso! (${item.name}: ${item.weight}kg)` };
+    }
+    
+    item.location = null;
+    GameState.playerInventory.push(itemId);
+    
+    return {
+      success: true,
+      message: `Você pegou ${item.name}.`,
+      advanceTime: true
+    };
+  },
+
+  // Largar item
+  dropItem: function(itemId) {
+    if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+    
+    const idx = GameState.playerInventory.indexOf(itemId);
+    if (idx === -1) {
+      return { success: false, message: 'Você não tem este item!' };
+    }
+    
+    GameState.playerInventory.splice(idx, 1);
+    GameState.items[itemId].location = GameState.playerLocation;
+    
+    return {
+      success: true,
+      message: `Você largou ${GameState.items[itemId].name}.`,
+      advanceTime: true
+    };
+  },
+
+  // Usar item
+  useItem: function(itemId) {
+    if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+    
+    if (!GameState.playerInventory.includes(itemId)) {
+      return { success: false, message: 'Você não tem este item!' };
+    }
+    
+    const item = GameState.items[itemId];
+    if (!item.isUsable) {
+      return { success: false, message: `${item.name} não pode ser usado ativamente.` };
+    }
+    
+    const handler = ItemUseHandlers[itemId];
+    if (!handler) {
+      return { success: false, message: 'Este item não tem efeito definido!' };
+    }
+    
+    const result = handler();
+    result.advanceTime = result.success;
+    return result;
+  },
+
+  // Atacar personagem
+  attack: function(characterId) {
+    if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+    
+    const target = GameState.characters[characterId];
+    if (!target) {
+      return { success: false, message: 'Personagem não encontrado!' };
+    }
+    
+    if (target.location !== GameState.playerLocation) {
+      return { success: false, message: 'Este personagem não está aqui!' };
+    }
+    
+    if (!target.isAlive) {
+      return { success: false, message: `${target.name} já está morto!` };
+    }
+    
+    if (target.isAlly) {
+      return { success: false, message: `${target.name} é seu aliado! Você não pode atacá-lo.` };
+    }
+    
+    // Calcular dano
+    const attackPower = Rules.getPlayerAttackPower();
+    const damage = Math.max(1, attackPower - target.defensePower);
+    
+    target.hp -= damage;
+    if (target.hp <= 0) {
+      target.hp = 0;
+      target.isAlive = false;
+    }
+    
+    const status = target.isAlive ? `(HP restante: ${target.hp})` : '(DERROTADO!)';
+    
+    // Verificar se atacou a bruxa (pode invocar demônio)
+    if (target.id === 'bruxa' && target.isAlive && !GameState.demonSummoned) {
+      GameState.demonSummoned = true;
+      const demon = GameState.characters.demonio;
+      demon.location = target.location;
+      demon.isSummoned = true;
+      
+      return {
+        success: true,
+        message: `Você atacou ${target.name} causando ${damage} de dano! ${status} A BRUXA invoca o DEMÔNIO para protegê-la!`,
+        advanceTime: true
+      };
+    }
+    
+    return {
+      success: true,
+      message: `Você atacou ${target.name} causando ${damage} de dano! ${status}`,
+      advanceTime: true
+    };
+  },
+
+  // Falar palavra
+  speak: function(word) {
+    if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+    
+    word = word.toUpperCase().trim();
+    
+    if (!word) {
+      return { success: false, message: 'Você precisa dizer uma palavra!' };
+    }
+    
+    // Verificar se demônio está presente
+    const demon = GameState.characters.demonio;
+    if (demon.location === GameState.playerLocation && demon.isAlive && demon.isSummoned) {
+      if (word === GameState.demonMagicWord) {
+        demon.isAlly = true;
+        return {
+          success: true,
+          message: `Você pronuncia "${word}"... O DEMÔNIO estremece e seus olhos brilham! Ele foi CONVERTIDO e agora é seu aliado!`,
+          advanceTime: true
+        };
+      }
+    }
+    
+    return {
+      success: true,
+      message: `Você diz "${word}"... Nada acontece.`,
+      advanceTime: true
+    };
+  }
+};
+
+// ============================================================================
+// EVENTS - Sistema de eventos e IA
+// ============================================================================
+
+const Events = {
+  // Avançar tempo
+  advanceTime: function() {
+    GameState.time += 5;
+    
+    // Processar bônus temporários
+    if (GameState.playerDefenseBonusTurns > 0) {
+      GameState.playerDefenseBonusTurns--;
+      if (GameState.playerDefenseBonusTurns === 0) {
+        GameState.playerDefenseBonus = 0;
+        Log.add('O efeito da CERA MÁGICA acabou.', 'info');
+      }
+    }
+    
+    // Processar eventos
+    this.processWitchWord();
+    this.processNPCMovement();
+    this.processNPCAttacks();
+  },
+
+  // Bruxa fala palavra mágica
+  processWitchWord: function() {
+    if (GameState.witchWords >= 4) return;
+    
+    const witch = GameState.characters.bruxa;
+    if (!witch.isAlive) return;
+    
+    // Cooldown entre palavras
+    const timeSinceLast = GameState.time - GameState.lastWitchWordTime;
+    if (timeSinceLast < GameState.witchWordCooldown) return;
+    
+    // Chance de falar (aumenta com o tempo)
+    const baseChance = 0.15;
+    const timeBonus = (GameState.time - 17 * 60) / 180; // Aumenta ao longo do tempo
+    const chance = Math.min(0.4, baseChance + timeBonus);
+    
+    if (Utils.random() < chance) {
+      GameState.witchWords++;
+      GameState.lastWitchWordTime = GameState.time;
+      
+      const messages = [
+        'O ar estremece... você sente uma energia arcana se acumulando no MASP!',
+        'Um trovão ecoa pelo céu... a Bruxa continua seu ritual!',
+        'Símbolos brilhantes aparecem no céu acima do MASP!',
+        'O portal está quase completo! A energia mágica atinge níveis críticos!'
+      ];
+      
+      Log.add(messages[GameState.witchWords - 1], 'magic');
+    }
+  },
+
+  // Movimento dos NPCs
+  processNPCMovement: function() {
+    Object.values(GameState.characters).forEach(char => {
+      if (char.id === 'player') return;
+      if (!char.isAlive) return;
+      if (!char.location) return;
+      
+      // Feiticeiro fica preso até 18:00
+      if (char.id === 'feiticeiro' && GameState.time < 18 * 60) return;
+      
+      // Bruxa fica no teto do MASP
+      if (char.id === 'bruxa') return;
+      
+      // Demônio só existe se invocado
+      if (char.id === 'demonio' && !char.isSummoned) return;
+      
+      // 30% de chance de mover
+      if (Utils.random() < 0.3) {
+        const currentRoom = GameState.rooms[char.location];
+        if (!currentRoom) return;
+        
+        const exits = Object.values(currentRoom.exits);
+        if (exits.length === 0) return;
+        
+        // Filtrar saídas que o personagem pode acessar
+        const validExits = exits.filter(exitId => {
+          const targetRoom = GameState.rooms[exitId];
+          if (targetRoom.requiresFlight && !char.canFly) return false;
+          return true;
+        });
+        
+        if (validExits.length > 0) {
+          char.location = Utils.randomChoice(validExits);
+        }
+      }
+    });
+  },
+
+  // Ataques dos NPCs
+  processNPCAttacks: function() {
+    const playerRoom = GameState.playerLocation;
+    const player = GameState.characters.player;
+    
+    Object.values(GameState.characters).forEach(char => {
+      if (char.id === 'player') return;
+      if (!char.isAlive) return;
+      if (char.isAlly) return;
+      if (char.location !== playerRoom) return;
+      
+      // 40% de chance de atacar
+      if (Utils.random() < 0.4) {
+        let damage = Math.max(1, char.attackPower - Rules.getPlayerDefensePower());
+        
+        // Bombardeador usa gás
+        if (char.usesGas) {
+          if (Rules.hasGasMask()) {
+            Log.add(`${char.name} lança gás tóxico, mas sua MÁSCARA GÁS te protege!`, 'success');
+            return;
+          } else {
+            damage += 10;
+            Log.add(`${char.name} lança gás tóxico! Você precisa de uma MÁSCARA GÁS!`, 'danger');
+          }
+        }
+        
+        player.hp -= damage;
+        if (player.hp < 0) player.hp = 0;
+        
+        Log.add(`${char.name} te ataca causando ${damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
+      }
+    });
+  }
+};
+
+// ============================================================================
+// LOG - Sistema de mensagens
+// ============================================================================
+
+const Log = {
+  entries: [],
+  
+  add: function(message, type = 'info') {
+    const time = Utils.formatTime(GameState.time);
+    this.entries.push({ time, message, type });
+    this.render();
+  },
+  
+  clear: function() {
+    this.entries = [];
+    this.render();
+  },
+  
+  render: function() {
+    const container = document.getElementById('log-container');
+    container.innerHTML = this.entries.map(entry => 
+      `<div class="log-entry">
+        <span class="log-time">[${entry.time}]</span>
+        <span class="log-${entry.type}">${entry.message}</span>
+      </div>`
+    ).join('');
+    container.scrollTop = container.scrollHeight;
+  }
+};
+
+// ============================================================================
+// RENDER - Atualização da interface
+// ============================================================================
+
+const Render = {
+  update: function() {
+    this.updateHeader();
+    this.updateLocation();
+    this.updateExits();
+    this.updateItems();
+    this.updateCharacters();
+    this.updateInventory();
+    this.updateWitchIndicator();
+  },
+
+  updateHeader: function() {
+    document.getElementById('time-display').textContent = Utils.formatTime(GameState.time);
+    
+    const player = GameState.characters.player;
+    const hpDisplay = document.getElementById('hp-display');
+    hpDisplay.textContent = `${player.hp}/${player.maxHp}`;
+    hpDisplay.className = player.hp <= 30 ? 'stat-value danger' : 'stat-value';
+    
+    const weight = Rules.getInventoryWeight();
+    document.getElementById('weight-display').textContent = `${weight}/${player.maxWeight}`;
+  },
+
+  updateLocation: function() {
+    const room = GameState.rooms[GameState.playerLocation];
+    document.getElementById('location-name').textContent = room.name;
+    document.getElementById('location-description').textContent = room.description;
+  },
+
+  updateExits: function() {
+    const room = GameState.rooms[GameState.playerLocation];
+    const container = document.getElementById('exits-container');
+    
+    const exits = Object.entries(room.exits);
+    if (exits.length === 0) {
+      container.innerHTML = '<span style="color: var(--text-muted)">Não há saídas visíveis...</span>';
+      return;
+    }
+    
+    container.innerHTML = exits.map(([label, roomId]) => {
+      const targetRoom = GameState.rooms[roomId];
+      const needsFlight = targetRoom.requiresFlight;
+      const canGo = Rules.canMoveTo(roomId);
+      const icon = needsFlight ? '🦅 ' : '🚶 ';
+      const disabled = canGo ? '' : 'style="opacity: 0.5; cursor: not-allowed;"';
+      return `<button class="btn btn-exit" onclick="Game.move('${roomId}')" ${disabled}>${icon}${label}</button>`;
+    }).join('');
+  },
+
+  updateItems: function() {
+    const container = document.getElementById('items-container');
+    const items = Object.values(GameState.items).filter(
+      item => item.location === GameState.playerLocation
+    );
+    
+    if (items.length === 0) {
+      container.innerHTML = '<span style="color: var(--text-muted)">Nenhum item aqui.</span>';
+      return;
+    }
+    
+    container.innerHTML = items.map(item => 
+      `<button class="btn btn-item" onclick="Game.pickup('${item.id}')" title="${item.description} (${item.weight}kg)">
+        ${item.name}
+      </button>`
+    ).join('');
+  },
+
+  updateCharacters: function() {
+    const container = document.getElementById('characters-container');
+    const chars = Object.values(GameState.characters).filter(
+      char => char.id !== 'player' && 
+              char.location === GameState.playerLocation && 
+              char.isAlive &&
+              (char.id !== 'demonio' || char.isSummoned)
+    );
+    
+    if (chars.length === 0) {
+      container.innerHTML = '<span style="color: var(--text-muted)">Ninguém aqui.</span>';
+      return;
+    }
+    
+    container.innerHTML = chars.map(char => {
+      const allyClass = char.isAlly ? 'ally' : 'hostile';
+      const icon = char.isAlly ? '🤝' : '⚔️';
+      return `<button class="btn btn-character ${allyClass}" onclick="Game.showCharacter('${char.id}')" title="${char.description}">
+        ${icon} ${char.name} (HP: ${char.hp})
+      </button>`;
+    }).join('');
+  },
+
+  updateInventory: function() {
+    const container = document.getElementById('inventory-list');
+    
+    if (GameState.playerInventory.length === 0) {
+      container.innerHTML = '<span style="color: var(--text-muted)">Inventário vazio.</span>';
+      return;
+    }
+    
+    container.innerHTML = GameState.playerInventory.map(itemId => {
+      const item = GameState.items[itemId];
+      const useBtn = item.isUsable ? 
+        `<button class="btn btn-small" onclick="Game.use('${item.id}')">Usar</button>` : '';
+      return `<div class="inventory-item">
+        <div>
+          <span class="inventory-item-name">${item.name}</span>
+          <span class="inventory-item-weight">(${item.weight}kg)</span>
+        </div>
+        <div class="inventory-actions">
+          ${useBtn}
+          <button class="btn btn-small" onclick="Game.drop('${item.id}')">Largar</button>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  updateWitchIndicator: function() {
+    const orbs = document.querySelectorAll('.witch-orb');
+    orbs.forEach((orb, i) => {
+      if (i < GameState.witchWords) {
+        orb.classList.add('active');
+      } else {
+        orb.classList.remove('active');
+      }
+    });
+  }
+};
+
+// ============================================================================
+// MODALS - Sistema de modais
+// ============================================================================
+
+const Modals = {
+  show: function(title, content) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-content').innerHTML = content;
+    document.getElementById('modal-overlay').classList.add('active');
+  },
+
+  hide: function() {
+    document.getElementById('modal-overlay').classList.remove('active');
+  },
+
+  showGameOver: function(reason) {
+    const isVictory = GameState.victory;
+    const title = isVictory ? '🏆 VITÓRIA!' : '💀 FIM DE JOGO';
+    const content = `
+      <p>${reason}</p>
+      <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-muted)">
+        Tempo final: ${Utils.formatTime(GameState.time)}
+      </p>
+      <button class="btn" onclick="Game.restart()">Jogar Novamente</button>
+    `;
+    this.show(title, content);
+  },
+
+  showCharacter: function(charId) {
+    const char = GameState.characters[charId];
+    const allyText = char.isAlly ? '(Aliado)' : '(Hostil)';
+    const content = `
+      <div id="character-modal-content">
+        <p>${char.description}</p>
+        <div class="character-stats">
+          <div>❤️ HP: ${char.hp}/${char.maxHp}</div>
+          <div>⚔️ Ataque: ${char.attackPower}</div>
+          <div>🛡️ Defesa: ${char.defensePower}</div>
+          <div>Status: ${allyText}</div>
+        </div>
+        ${!char.isAlly ? `<button class="btn btn-danger" onclick="Game.attack('${char.id}'); Modals.hide();">Atacar</button>` : ''}
+        <button class="btn" onclick="Modals.hide()">Fechar</button>
+      </div>
+    `;
+    this.show(char.name, content);
+  }
+};
+
+// ============================================================================
+// GAME - Controlador principal
+// ============================================================================
+
+const Game = {
+  // Inicializar jogo
+  init: function() {
+    // Gerar seed
+    GameState.seed = Date.now();
+    
+    // Clonar dados
+    GameState.rooms = Utils.deepClone(ROOMS_DATA);
+    GameState.characters = Utils.deepClone(CHARACTERS_DATA);
+    GameState.items = Utils.deepClone(ITEMS_DATA);
+    
+    // Reset do estado
+    GameState.time = 17 * 60;
+    GameState.witchWords = 0;
+    GameState.lastWitchWordTime = 0;
+    GameState.gameOver = false;
+    GameState.victory = false;
+    GameState.playerInventory = [];
+    GameState.playerDefenseBonus = 0;
+    GameState.playerDefenseBonusTurns = 0;
+    GameState.demonSummoned = false;
+    
+    // Gerar palavra mágica do demônio
+    GameState.demonMagicWord = Utils.randomChoice(MAGIC_WORDS);
+    
+    // Posicionar entidades
+    this.setupPositions();
+    
+    // Limpar log
+    Log.clear();
+    Log.add('Bem-vindo à Avenida Paulista!', 'success');
+    Log.add('A Bruxa está no topo do MASP tentando abrir um portal dimensional.', 'warning');
+    Log.add('Você deve derrotá-la antes que ela complete o ritual!', 'info');
+    
+    // Atualizar UI
+    Render.update();
+  },
+
+  // Posicionar personagens e itens
+  setupPositions: function() {
+    // Salas disponíveis para randomização (exceto teto_masp)
+    const availableRooms = Object.keys(GameState.rooms).filter(r => r !== 'teto_masp');
+    
+    // Posições fixas
+    GameState.characters.player.location = 'masp';
+    GameState.playerLocation = 'masp';
+    
+    GameState.characters.bruxa.location = 'teto_masp';
+    GameState.characters.feiticeiro.location = 'tunel';
+    GameState.characters.demonio.location = null; // Não começa no mapa
+    GameState.characters.demonio.isSummoned = false;
+    
+    // LIVRO sempre na LIVRARIA
+    GameState.items.livro.location = 'livraria';
+    
+    // Randomizar outros personagens
+    ['aguia', 'bombardeador', 'coruja', 'cachorro'].forEach(charId => {
+      GameState.characters[charId].location = Utils.randomChoice(availableRooms);
+    });
+    
+    // Randomizar outros itens (exceto livro e não no teto)
+    const itemsToPlace = Object.keys(GameState.items).filter(i => i !== 'livro');
+    itemsToPlace.forEach(itemId => {
+      GameState.items[itemId].location = Utils.randomChoice(availableRooms);
+    });
+  },
+
+  // Processar resultado de ação
+  processAction: function(result) {
+    if (result.message) {
+      const type = result.success ? 'action' : 'warning';
+      Log.add(result.message, type);
+    }
+    
+    if (result.success && result.advanceTime) {
+      Events.advanceTime();
+    }
+    
+    // Verificar fim de jogo
+    const gameCheck = Rules.checkGameOver();
+    if (gameCheck.ended) {
+      Modals.showGameOver(gameCheck.reason);
+    }
+    
+    Render.update();
+  },
+
+  // Ações do jogador
+  move: function(roomId) {
+    this.processAction(Actions.moveTo(roomId));
+  },
+
+  pickup: function(itemId) {
+    this.processAction(Actions.pickupItem(itemId));
+  },
+
+  drop: function(itemId) {
+    this.processAction(Actions.dropItem(itemId));
+  },
+
+  use: function(itemId) {
+    this.processAction(Actions.useItem(itemId));
+  },
+
+  attack: function(charId) {
+    this.processAction(Actions.attack(charId));
+  },
+
+  speak: function(word) {
+    this.processAction(Actions.speak(word));
+  },
+
+  showCharacter: function(charId) {
+    Modals.showCharacter(charId);
+  },
+
+  // Modal de falar
+  openSpeakModal: function() {
+    const speakOverlay = document.querySelectorAll('#modal-overlay')[1];
+    if (speakOverlay) {
+      speakOverlay.classList.add('active');
+      document.getElementById('speak-input').focus();
+    }
+  },
+
+  closeSpeakModal: function() {
+    const speakOverlay = document.querySelectorAll('#modal-overlay')[1];
+    if (speakOverlay) {
+      speakOverlay.classList.remove('active');
+      document.getElementById('speak-input').value = '';
+    }
+  },
+
+  executeSpeakCommand: function() {
+    const input = document.getElementById('speak-input');
+    const word = input.value.trim();
+    if (word) {
+      this.speak(word);
+    }
+    this.closeSpeakModal();
+  },
+
+  // Processar comando de texto
+  processCommand: function() {
+    const input = document.getElementById('command-input');
+    const cmd = input.value.trim().toUpperCase();
+    input.value = '';
+    
+    if (!cmd) return;
+    
+    // Comandos de texto
+    if (cmd.startsWith('FALAR ')) {
+      this.speak(cmd.substring(6));
+    } else if (cmd.startsWith('PEGAR ')) {
+      const itemName = cmd.substring(6);
+      const item = Object.values(GameState.items).find(
+        i => i.name.toUpperCase() === itemName && i.location === GameState.playerLocation
+      );
+      if (item) this.pickup(item.id);
+      else Log.add(`Item "${itemName}" não encontrado aqui.`, 'warning');
+    } else if (cmd.startsWith('USAR ')) {
+      const itemName = cmd.substring(5);
+      const item = Object.values(GameState.items).find(
+        i => i.name.toUpperCase() === itemName && GameState.playerInventory.includes(i.id)
+      );
+      if (item) this.use(item.id);
+      else Log.add(`Você não tem "${itemName}".`, 'warning');
+    } else if (cmd.startsWith('LARGAR ')) {
+      const itemName = cmd.substring(7);
+      const item = Object.values(GameState.items).find(
+        i => i.name.toUpperCase() === itemName && GameState.playerInventory.includes(i.id)
+      );
+      if (item) this.drop(item.id);
+      else Log.add(`Você não tem "${itemName}".`, 'warning');
+    } else if (cmd.startsWith('ATACAR ')) {
+      const charName = cmd.substring(7);
+      const char = Object.values(GameState.characters).find(
+        c => c.name.toUpperCase() === charName && c.location === GameState.playerLocation && c.isAlive
+      );
+      if (char) this.attack(char.id);
+      else Log.add(`"${charName}" não está aqui.`, 'warning');
+    } else if (cmd.startsWith('IR ')) {
+      const roomName = cmd.substring(3);
+      const room = GameState.rooms[GameState.playerLocation];
+      const exit = Object.entries(room.exits).find(
+        ([label]) => label.toUpperCase() === roomName
+      );
+      if (exit) this.move(exit[1]);
+      else Log.add(`Saída "${roomName}" não encontrada.`, 'warning');
+    } else if (cmd === 'AJUDA' || cmd === 'HELP') {
+      Log.add('Comandos: IR [saída], PEGAR [item], LARGAR [item], USAR [item], ATACAR [personagem], FALAR [palavra]', 'info');
+    } else {
+      Log.add(`Comando não reconhecido: "${cmd}". Digite AJUDA para ver os comandos.`, 'warning');
+    }
+    
+    Render.update();
+  },
+
+  // Confirmar reinício
+  confirmRestart: function() {
+    if (GameState.gameOver || confirm('Tem certeza que deseja reiniciar o jogo?')) {
+      this.restart();
+    }
+  },
+
+  // Reiniciar jogo
+  restart: function() {
+    Modals.hide();
+    this.init();
+  }
+};
+
+// ============================================================================
+// INICIALIZAÇÃO
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+  Game.init();
+  
+  // Enter no input de comando
+  document.getElementById('command-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      Game.processCommand();
+    }
+  });
+  
+  // Enter no input de falar
+  document.getElementById('speak-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      Game.executeSpeakCommand();
+    }
+  });
+  
+  // Fechar modal ao clicar fora
+  document.querySelectorAll('#modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) {
+        Modals.hide();
+        Game.closeSpeakModal();
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
