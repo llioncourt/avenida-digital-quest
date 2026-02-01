@@ -3638,6 +3638,20 @@ const MinimapController = {
         const roomEl = document.querySelector(`[data-room-id="${this.dragTarget}"]`);
         if (roomEl) {
           roomEl.classList.remove('dragging');
+          
+          // Verificar se foi um tap (toque rápido sem arrastar) para navegar
+          if (e.changedTouches && e.changedTouches.length > 0) {
+            const touch = e.changedTouches[0];
+            const deltaX = Math.abs(touch.clientX - this.startX);
+            const deltaY = Math.abs(touch.clientY - this.startY);
+            
+            // Se moveu menos de 10px, considerar como tap (navegar)
+            if (deltaX < 10 && deltaY < 10) {
+              if (roomEl.classList.contains('valid-exit')) {
+                Game.move(this.dragTarget);
+              }
+            }
+          }
         }
         this.savePositions();
       }
