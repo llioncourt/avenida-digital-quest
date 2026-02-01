@@ -731,6 +731,9 @@
             <div class="witch-orb"></div>
           </div>
         </div>
+        <button id="sound-toggle" onclick="SoundSystem.toggle()" title="Ligar/Desligar som" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
+          🔊
+        </button>
       </div>
     </header>
 
@@ -1190,6 +1193,282 @@ const MAGIC_WORDS = [
 ];
 
 // ============================================================================
+// SOUND SYSTEM - Web Audio API
+// ============================================================================
+
+const SoundSystem = {
+  audioCtx: null,
+  enabled: true,
+  masterVolume: 0.3,
+  
+  init: function() {
+    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  },
+  
+  resume: function() {
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+  },
+  
+  toggle: function() {
+    this.enabled = !this.enabled;
+    const btn = document.getElementById('sound-toggle');
+    if (btn) {
+      btn.textContent = this.enabled ? '🔊' : '🔇';
+    }
+  },
+  
+  // Criar oscilador básico
+  createOsc: function(type, freq, duration, volume = 0.3) {
+    if (!this.enabled || !this.audioCtx) return null;
+    this.resume();
+    
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+    
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = volume * this.masterVolume;
+    
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    
+    return { osc, gain, ctx: this.audioCtx };
+  },
+  
+  // Criar ruído branco
+  createNoise: function(duration, volume = 0.2) {
+    if (!this.enabled || !this.audioCtx) return null;
+    this.resume();
+    
+    const bufferSize = this.audioCtx.sampleRate * duration;
+    const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = this.audioCtx.createBufferSource();
+    const gain = this.audioCtx.createGain();
+    noise.buffer = buffer;
+    gain.gain.value = volume * this.masterVolume;
+    
+    noise.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    
+    return { noise, gain, ctx: this.audioCtx };
+  },
+  
+  // === SONS DO JOGO ===
+  
+  playAttack: function() {
+    const result = this.createOsc('sawtooth', 400, 0.15);
+    if (!result) return;
+    const { osc, gain, ctx } = result;
+    
+    const now = ctx.currentTime;
+    osc.frequency.linearRampToValueAtTime(100, now + 0.15);
+    gain.gain.linearRampToValueAtTime(0, now + 0.15);
+    
+    osc.start(now);
+    osc.stop(now + 0.15);
+  },
+  
+  playHit: function() {
+    // Ruído de impacto
+    const noise = this.createNoise(0.1, 0.3);
+    if (noise) {
+      const now = noise.ctx.currentTime;
+      noise.gain.gain.linearRampToValueAtTime(0, now + 0.1);
+      noise.noise.start(now);
+      noise.noise.stop(now + 0.1);
+    }
+    
+    // Tom grave
+    const result = this.createOsc('sine', 80, 0.2, 0.4);
+    if (result) {
+      const { osc, gain, ctx } = result;
+      const now = ctx.currentTime;
+      gain.gain.linearRampToValueAtTime(0, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+  },
+  
+  playDeath: function() {
+    const result = this.createOsc('sine', 400, 1.0, 0.3);
+    if (!result) return;
+    const { osc, gain, ctx } = result;
+    
+    const now = ctx.currentTime;
+    osc.frequency.linearRampToValueAtTime(50, now + 1.0);
+    gain.gain.setValueAtTime(0.3 * this.masterVolume, now);
+    gain.gain.linearRampToValueAtTime(0, now + 1.0);
+    
+    osc.start(now);
+    osc.stop(now + 1.0);
+  },
+  
+  playMove: function() {
+    const noise = this.createNoise(0.05, 0.1);
+    if (!noise) return;
+    
+    const now = noise.ctx.currentTime;
+    noise.gain.gain.linearRampToValueAtTime(0, now + 0.05);
+    noise.noise.start(now);
+    noise.noise.stop(now + 0.05);
+  },
+  
+  playPickup: function() {
+    const result = this.createOsc('sine', 300, 0.15);
+    if (!result) return;
+    const { osc, gain, ctx } = result;
+    
+    const now = ctx.currentTime;
+    osc.frequency.linearRampToValueAtTime(600, now + 0.1);
+    gain.gain.linearRampToValueAtTime(0, now + 0.15);
+    
+    osc.start(now);
+    osc.stop(now + 0.15);
+  },
+  
+  playUseItem: function() {
+    const result = this.createOsc('triangle', 400, 0.3);
+    if (!result) return;
+    const { osc, gain, ctx } = result;
+    
+    const now = ctx.currentTime;
+    // Vibrato
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 15;
+    lfoGain.gain.value = 50;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    
+    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+    
+    lfo.start(now);
+    osc.start(now);
+    lfo.stop(now + 0.3);
+    osc.stop(now + 0.3);
+  },
+  
+  playExplosion: function() {
+    // Ruído de explosão
+    const noise = this.createNoise(0.8, 0.5);
+    if (noise) {
+      const now = noise.ctx.currentTime;
+      noise.gain.gain.linearRampToValueAtTime(0, now + 0.8);
+      noise.noise.start(now);
+      noise.noise.stop(now + 0.8);
+    }
+    
+    // Baixo grave
+    const result = this.createOsc('sine', 60, 0.5, 0.5);
+    if (result) {
+      const { osc, gain, ctx } = result;
+      const now = ctx.currentTime;
+      osc.frequency.linearRampToValueAtTime(20, now + 0.5);
+      gain.gain.linearRampToValueAtTime(0, now + 0.5);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    }
+  },
+  
+  playHeal: function() {
+    const notes = [400, 500, 600, 800];
+    const self = this;
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        const result = self.createOsc('sine', freq, 0.2);
+        if (result) {
+          const { osc, gain, ctx } = result;
+          const now = ctx.currentTime;
+          gain.gain.linearRampToValueAtTime(0, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        }
+      }, i * 80);
+    });
+  },
+  
+  playVictory: function() {
+    const melody = [523, 659, 784, 1047]; // C5, E5, G5, C6
+    const self = this;
+    melody.forEach((freq, i) => {
+      setTimeout(() => {
+        const result = self.createOsc('square', freq, 0.3, 0.2);
+        if (result) {
+          const { osc, gain, ctx } = result;
+          const now = ctx.currentTime;
+          gain.gain.linearRampToValueAtTime(0, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        }
+      }, i * 150);
+    });
+  },
+  
+  playEnemyDefeat: function() {
+    const notes = [600, 800, 1000];
+    const self = this;
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        const result = self.createOsc('triangle', freq, 0.15);
+        if (result) {
+          const { osc, gain, ctx } = result;
+          const now = ctx.currentTime;
+          gain.gain.linearRampToValueAtTime(0, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        }
+      }, i * 60);
+    });
+  },
+  
+  playDarkMagic: function() {
+    const result = this.createOsc('square', 100, 0.5, 0.2);
+    if (!result) return;
+    const { osc, gain, ctx } = result;
+    
+    const now = ctx.currentTime;
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.linearRampToValueAtTime(150, now + 0.25);
+    osc.frequency.linearRampToValueAtTime(80, now + 0.5);
+    gain.gain.linearRampToValueAtTime(0, now + 0.5);
+    
+    osc.start(now);
+    osc.stop(now + 0.5);
+  },
+  
+  playBombTick: function() {
+    const result = this.createOsc('sine', 800, 0.05, 0.3);
+    if (!result) return;
+    const { osc, gain, ctx } = result;
+    
+    const now = ctx.currentTime;
+    gain.gain.linearRampToValueAtTime(0, now + 0.05);
+    osc.start(now);
+    osc.stop(now + 0.05);
+  },
+  
+  playError: function() {
+    const result = this.createOsc('square', 200, 0.2, 0.2);
+    if (!result) return;
+    const { osc, gain, ctx } = result;
+    
+    const now = ctx.currentTime;
+    osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+    gain.gain.linearRampToValueAtTime(0, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+};
+
+// ============================================================================
 // GAME STATE
 // ============================================================================
 
@@ -1370,6 +1649,7 @@ const Rules = {
     if (player.hp <= 0) {
       GameState.gameOver = true;
       GameState.victory = false;
+      SoundSystem.playDeath();
       return { ended: true, victory: false, reason: 'Você foi derrotado! A escuridão consome São Paulo...' };
     }
     
@@ -1377,6 +1657,7 @@ const Rules = {
     if (GameState.witchWords >= 4) {
       GameState.gameOver = true;
       GameState.victory = false;
+      SoundSystem.playDeath();
       return { ended: true, victory: false, reason: 'A Bruxa completou o ritual! O portal dimensional se abre e criaturas das trevas invadem a cidade!' };
     }
     
@@ -1384,6 +1665,7 @@ const Rules = {
     if (witch.hp <= 0) {
       GameState.gameOver = true;
       GameState.victory = true;
+      SoundSystem.playVictory();
       return { ended: true, victory: true, reason: 'VITÓRIA! Você derrotou a Bruxa e salvou São Paulo!' };
     }
     
@@ -1402,6 +1684,9 @@ const ItemUseHandlers = {
     const oldHp = player.hp;
     player.hp = Math.min(player.maxHp, player.hp + healAmount);
     const healed = player.hp - oldHp;
+    
+    // Som de cura
+    SoundSystem.playHeal();
     
     // NÃO remove - é reutilizável!
     
@@ -1733,6 +2018,7 @@ const Actions = {
     }
     
     GameState.playerLocation = roomId;
+    SoundSystem.playMove();
     return { 
       success: true, 
       message: `Você foi para ${targetRoom.name}.`,
@@ -1759,6 +2045,8 @@ const Actions = {
     
     item.location = null;
     GameState.playerInventory.push(itemId);
+    
+    SoundSystem.playPickup();
     
     return {
       success: true,
@@ -1834,10 +2122,15 @@ const Actions = {
     const attackPower = Rules.getPlayerAttackPower();
     const damage = Math.max(1, attackPower - target.defensePower);
     
+    // Som de ataque
+    SoundSystem.playAttack();
+    
     target.hp -= damage;
     if (target.hp <= 0) {
       target.hp = 0;
       target.isAlive = false;
+      // Som de derrota de inimigo
+      SoundSystem.playEnemyDefeat();
     }
     
     const status = target.isAlive ? `(HP restante: ${target.hp})` : '(DERROTADO!)';
@@ -1928,6 +2221,7 @@ const Events = {
     GameState.armedBomb.turnsLeft--;
     
     if (GameState.armedBomb.turnsLeft > 0) {
+      SoundSystem.playBombTick();
       Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s) para explodir em ${GameState.rooms[GameState.armedBomb.location].name}!`, 'warning');
       return;
     }
@@ -1956,6 +2250,9 @@ const Events = {
     
     GameState.armedBomb = null;
     
+    // Som de explosão
+    SoundSystem.playExplosion();
+    
     if (victims.length > 0) {
       Log.add(`💥 BOOM!!! A bomba explodiu em ${roomName}! Vítimas: ${victims.join(', ')}. Tudo foi destruído!`, 'danger');
     } else {
@@ -1982,6 +2279,9 @@ const Events = {
     if (Utils.random() < chance) {
       GameState.witchWords++;
       GameState.lastWitchWordTime = GameState.time;
+      
+      // Som de magia negra
+      SoundSystem.playDarkMagic();
       
       const messages = [
         'O ar estremece... você sente uma energia arcana se acumulando no MASP!',
@@ -2097,6 +2397,9 @@ const Events = {
           player.hp = 0;
           player.isAlive = false;
         }
+        
+        // Som de receber dano
+        SoundSystem.playHit();
         
         Log.add(`${char.name} te ataca causando ${damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
       }
@@ -2573,6 +2876,9 @@ const Modals = {
 const Game = {
   // Inicializar jogo
   init: function() {
+    // Inicializar sistema de som
+    SoundSystem.init();
+    
     // Gerar seed
     GameState.seed = Date.now();
     
