@@ -289,19 +289,21 @@
     }
 
     #log-container {
-      flex: 1;
+      flex: 0.5;
+      min-height: 120px;
+      max-height: 180px;
       overflow-y: auto;
       padding: 0.5rem;
       background: var(--bg-primary);
       border-radius: var(--radius);
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       font-family: var(--font-mono);
-      font-size: 0.85rem;
-      line-height: 1.6;
+      font-size: 0.8rem;
+      line-height: 1.5;
     }
 
     .log-entry {
-      padding: 0.3rem 0;
+      padding: 0.2rem 0;
       border-bottom: 1px solid var(--border-color);
     }
 
@@ -311,7 +313,7 @@
 
     .log-time {
       color: var(--text-muted);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
     }
 
     .log-action { color: var(--accent-blue); }
@@ -320,6 +322,125 @@
     .log-warning { color: var(--accent-gold); }
     .log-info { color: var(--text-secondary); }
     .log-magic { color: var(--accent-purple); font-style: italic; }
+
+    /* ========== MINIMAP ========== */
+    #minimap-container {
+      flex: 1;
+      min-height: 200px;
+      background: var(--bg-primary);
+      border-radius: var(--radius);
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #minimap-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    #minimap {
+      position: relative;
+      width: 100%;
+      height: calc(100% - 20px);
+    }
+
+    .map-room {
+      position: absolute;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 0.6rem;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      text-align: center;
+      cursor: default;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60px;
+    }
+
+    .map-room.current {
+      background: linear-gradient(135deg, var(--accent-gold-dim), #5a4a1e);
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+      box-shadow: 0 0 8px rgba(212, 168, 70, 0.4);
+      z-index: 10;
+    }
+
+    .map-room.has-enemy {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 4px rgba(201, 64, 64, 0.3);
+    }
+
+    .map-room.has-ally {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 4px rgba(64, 160, 96, 0.3);
+    }
+
+    .map-room.has-both {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 4px rgba(128, 64, 160, 0.3);
+    }
+
+    .map-connection {
+      position: absolute;
+      background: var(--border-color);
+      transform-origin: left center;
+      height: 1px;
+      z-index: 1;
+    }
+
+    .map-legend {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+      font-size: 0.55rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .legend-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.player { background: var(--accent-gold); }
+    .legend-dot.enemy { background: var(--accent-red); }
+    .legend-dot.ally { background: var(--accent-green); }
+
+    .map-entity-indicator {
+      position: absolute;
+      bottom: -3px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 1px;
+    }
+
+    .entity-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+    }
+
+    .entity-dot.enemy { background: var(--accent-red); }
+    .entity-dot.ally { background: var(--accent-green); }
 
     #command-input-container {
       display: flex;
@@ -553,6 +674,18 @@
       <aside class="panel" id="log-panel">
         <h3 class="section-title">📜 Log</h3>
         <div id="log-container"></div>
+        
+        <!-- MINIMAP -->
+        <div id="minimap-container">
+          <div id="minimap-title">🗺️ MAPA</div>
+          <div id="minimap"></div>
+          <div class="map-legend">
+            <div class="legend-item"><div class="legend-dot player"></div>Você</div>
+            <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
+            <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
+          </div>
+        </div>
+        
         <div id="action-buttons">
           <button class="btn" onclick="Game.openSpeakModal()">💬 Falar</button>
         </div>
@@ -735,24 +868,24 @@ const ITEMS_DATA = {
   kit_saude: {
     id: 'kit_saude',
     name: 'KIT SAÚDE',
-    description: 'Um kit de primeiros socorros completo. Restaura sua vitalidade.',
+    description: 'Um kit de primeiros socorros completo. Restaura sua vitalidade. Reutilizável!',
     attackPower: 0,
     defensePower: 0,
     weight: 3,
     canFly: false,
     isUsable: true,
-    singleUse: true
+    singleUse: false
   },
   kit_bomba: {
     id: 'kit_bomba',
     name: 'KIT BOMBA',
-    description: 'Kit de desarmamento. Pode desarmar uma bomba armada antes que exploda!',
+    description: 'Kit de desarmamento. Pode desarmar uma bomba armada antes que exploda! Reutilizável!',
     attackPower: 0,
     defensePower: 0,
     weight: 3,
     canFly: false,
     isUsable: true,
-    singleUse: true
+    singleUse: false
   },
   livro: {
     id: 'livro',
@@ -823,13 +956,14 @@ const ITEMS_DATA = {
   bomba: {
     id: 'bomba',
     name: 'BOMBA',
-    description: 'Uma bomba poderosa. Ao usar, você a arma com um timer de 3 turnos. MATA TODOS no local quando explode!',
+    description: 'Uma bomba poderosa. Ao usar, você a arma com um timer de 10-20 turnos. MATA TODOS no local quando explode!',
     attackPower: 0,
     defensePower: 0,
     weight: 6,
     canFly: false,
     isUsable: true,
-    singleUse: true
+    singleUse: true,
+    startsInWorld: false // Não começa no mundo - criada pelo Bombardeador
   }
 };
 
@@ -879,7 +1013,7 @@ const CHARACTERS_DATA = {
   bombardeador: {
     id: 'bombardeador',
     name: 'BOMBARDEADOR',
-    description: 'Um ser estranho que lança bombas de gás tóxico. Use máscara!',
+    description: 'Um ser estranho que lança bombas de gás tóxico e fabrica BOMBAS. Use máscara!',
     attackPower: 20,
     defensePower: 6,
     hp: 50,
@@ -889,7 +1023,10 @@ const CHARACTERS_DATA = {
     isAlive: true,
     isAlly: false,
     lastBoss: false,
-    usesGas: true
+    usesGas: true,
+    canCreateBombs: true,
+    lastBombCreation: 0, // Turno da última bomba criada
+    bombCooldown: 60 // Cooldown em minutos entre bombas
   },
   bruxa: {
     id: 'bruxa',
@@ -1172,14 +1309,12 @@ const ItemUseHandlers = {
     player.hp = Math.min(player.maxHp, player.hp + healAmount);
     const healed = player.hp - oldHp;
     
-    // Remover item (single use)
-    const idx = GameState.playerInventory.indexOf('kit_saude');
-    if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    // NÃO remove - é reutilizável!
     
     return {
       success: true,
       message: `Você usou o KIT SAÚDE e recuperou ${healed} HP!`,
-      consumed: true
+      consumed: false
     };
   },
 
@@ -1204,8 +1339,7 @@ const ItemUseHandlers = {
     // Desarmar
     GameState.armedBomb = null;
     
-    const idx = GameState.playerInventory.indexOf('kit_bomba');
-    if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    // NÃO remove kit bomba - é reutilizável!
     
     // A bomba desarmada volta ao chão
     GameState.items.bomba.location = GameState.playerLocation;
@@ -1213,12 +1347,12 @@ const ItemUseHandlers = {
     return {
       success: true,
       message: 'Você desarmou a BOMBA com sucesso! Ela está desativada no chão.',
-      consumed: true
+      consumed: false
     };
   },
 
   bomba: function() {
-    // Armar a bomba no local atual com timer de 3 turnos
+    // Armar a bomba no local atual com timer aleatório de 10-20 turnos
     const playerRoom = GameState.playerLocation;
     
     if (GameState.armedBomb) {
@@ -1233,17 +1367,20 @@ const ItemUseHandlers = {
     const idx = GameState.playerInventory.indexOf('bomba');
     if (idx > -1) GameState.playerInventory.splice(idx, 1);
     
+    // Timer aleatório entre 10 e 20 turnos
+    const timerTurns = Utils.randomInt(10, 20);
+    
     // Armar a bomba
     GameState.armedBomb = {
       location: playerRoom,
-      turnsLeft: 3
+      turnsLeft: timerTurns
     };
     
-    Log.add('⚠️ BOMBA ARMADA! Ela vai explodir em 3 turnos! SAIA DAQUI!', 'danger');
+    Log.add(`⚠️ BOMBA ARMADA! Ela vai explodir em ${timerTurns} turnos! SAIA DAQUI!`, 'danger');
     
     return {
       success: true,
-      message: `Você armou a BOMBA em ${GameState.rooms[playerRoom].name}! Timer: 3 turnos. CORRA!`,
+      message: `Você armou a BOMBA em ${GameState.rooms[playerRoom].name}! Timer: ${timerTurns} turnos. CORRA!`,
       consumed: true
     };
   },
@@ -1710,6 +1847,7 @@ const Events = {
     this.processBombTimer();
     this.processWitchWord();
     this.processNPCMovement();
+    this.processBombardeadorBombs();
     this.processNPCAttacks();
   },
 
@@ -1824,6 +1962,34 @@ const Events = {
     });
   },
 
+  // Bombardeador cria bombas
+  processBombardeadorBombs: function() {
+    const bombardeador = GameState.characters.bombardeador;
+    if (!bombardeador.isAlive || bombardeador.isAlly) return;
+    if (!bombardeador.canCreateBombs) return;
+    
+    // Checar cooldown
+    const timeSinceLast = GameState.time - bombardeador.lastBombCreation;
+    if (timeSinceLast < bombardeador.bombCooldown) return;
+    
+    // Não criar se já existe uma bomba no mundo (armada ou não)
+    const bombaItem = GameState.items.bomba;
+    if (GameState.armedBomb || bombaItem.location || GameState.playerInventory.includes('bomba')) {
+      return;
+    }
+    
+    // Pequena chance de criar bomba (5%)
+    if (Utils.random() < 0.05) {
+      // Criar bomba na localização do bombardeador
+      bombaItem.location = bombardeador.location;
+      bombaItem.isDestroyed = false;
+      bombardeador.lastBombCreation = GameState.time;
+      
+      const roomName = GameState.rooms[bombardeador.location].name;
+      Log.add(`💣 O BOMBARDEADOR criou uma BOMBA em ${roomName}!`, 'warning');
+    }
+  },
+
   // Ataques dos NPCs
   processNPCAttacks: function() {
     const playerRoom = GameState.playerLocation;
@@ -1902,6 +2068,7 @@ const Render = {
     this.updateCharacters();
     this.updateInventory();
     this.updateWitchIndicator();
+    this.updateMinimap();
   },
 
   updateHeader: function() {
@@ -2017,6 +2184,174 @@ const Render = {
         orb.classList.remove('active');
       }
     });
+  },
+
+  // Minimapa dinâmico
+  updateMinimap: function() {
+    const container = document.getElementById('minimap');
+    if (!container) return;
+    
+    // Definir layout do mapa baseado nas salas
+    const roomPositions = this.calculateRoomPositions();
+    
+    // Limpar mapa
+    container.innerHTML = '';
+    
+    // Desenhar conexões primeiro (para ficarem atrás)
+    const drawnConnections = new Set();
+    Object.entries(GameState.rooms).forEach(([roomId, room]) => {
+      const pos = roomPositions[roomId];
+      if (!pos) return;
+      
+      Object.values(room.exits).forEach(exitId => {
+        const exitPos = roomPositions[exitId];
+        if (!exitPos) return;
+        
+        // Evitar desenhar conexão duplicada
+        const connectionKey = [roomId, exitId].sort().join('-');
+        if (drawnConnections.has(connectionKey)) return;
+        drawnConnections.add(connectionKey);
+        
+        const connection = document.createElement('div');
+        connection.className = 'map-connection';
+        
+        // Calcular linha entre os dois pontos
+        const x1 = pos.x + 25;
+        const y1 = pos.y + 10;
+        const x2 = exitPos.x + 25;
+        const y2 = exitPos.y + 10;
+        
+        const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+        
+        connection.style.left = x1 + 'px';
+        connection.style.top = y1 + 'px';
+        connection.style.width = length + 'px';
+        connection.style.transform = `rotate(${angle}deg)`;
+        
+        container.appendChild(connection);
+      });
+    });
+    
+    // Desenhar salas
+    Object.entries(GameState.rooms).forEach(([roomId, room]) => {
+      const pos = roomPositions[roomId];
+      if (!pos) return;
+      
+      const roomEl = document.createElement('div');
+      roomEl.className = 'map-room';
+      roomEl.style.left = pos.x + 'px';
+      roomEl.style.top = pos.y + 'px';
+      
+      // Verificar se é a sala atual
+      if (roomId === GameState.playerLocation) {
+        roomEl.classList.add('current');
+      }
+      
+      // Verificar entidades na sala
+      const enemies = Object.values(GameState.characters).filter(
+        c => c.id !== 'player' && c.location === roomId && c.isAlive && !c.isAlly &&
+        (c.id !== 'demonio' || c.isSummoned)
+      );
+      const allies = Object.values(GameState.characters).filter(
+        c => c.id !== 'player' && c.location === roomId && c.isAlive && c.isAlly
+      );
+      
+      if (enemies.length > 0 && allies.length > 0) {
+        roomEl.classList.add('has-both');
+      } else if (enemies.length > 0) {
+        roomEl.classList.add('has-enemy');
+      } else if (allies.length > 0) {
+        roomEl.classList.add('has-ally');
+      }
+      
+      // Nome abreviado da sala
+      const shortName = this.getShortRoomName(room.name);
+      roomEl.textContent = shortName;
+      roomEl.title = room.name;
+      
+      // Indicadores de entidades
+      if (enemies.length > 0 || allies.length > 0) {
+        const indicators = document.createElement('div');
+        indicators.className = 'map-entity-indicator';
+        
+        enemies.forEach(() => {
+          const dot = document.createElement('div');
+          dot.className = 'entity-dot enemy';
+          indicators.appendChild(dot);
+        });
+        
+        allies.forEach(() => {
+          const dot = document.createElement('div');
+          dot.className = 'entity-dot ally';
+          indicators.appendChild(dot);
+        });
+        
+        roomEl.appendChild(indicators);
+      }
+      
+      container.appendChild(roomEl);
+    });
+  },
+
+  // Calcular posições das salas dinamicamente
+  calculateRoomPositions: function() {
+    // Layout manual otimizado para o mapa da Avenida Paulista
+    // Baseado na estrutura das salas do jogo
+    return {
+      // Centro - MASP
+      'masp': { x: 120, y: 70 },
+      'teto_masp': { x: 120, y: 20 },
+      
+      // Linha principal horizontal
+      'avenida_paulista_oeste': { x: 50, y: 70 },
+      'avenida_paulista_leste': { x: 190, y: 70 },
+      
+      // Ramo esquerdo (Augusta/Shopping)
+      'rua_augusta': { x: 10, y: 110 },
+      'shopping': { x: 10, y: 70 },
+      'cinema': { x: 10, y: 150 },
+      
+      // Ramo direito (Brigadeiro/Colégio)
+      'avenida_brigadeiro': { x: 230, y: 110 },
+      'colegio': { x: 230, y: 70 },
+      'antena': { x: 260, y: 30 },
+      'ceu_cidade': { x: 200, y: 10 },
+      
+      // Linha vertical (Nove de Julho)
+      'nove_julho_norte': { x: 120, y: 110 },
+      'nove_julho_sul': { x: 80, y: 150 },
+      'tunel': { x: 120, y: 150 },
+      
+      // Ramos inferiores
+      'distrito_italiano': { x: 160, y: 150 },
+      'livraria': { x: 200, y: 170 },
+      'avenida_santos': { x: 40, y: 170 },
+    };
+  },
+
+  // Nome curto para o mapa
+  getShortRoomName: function(name) {
+    const shortcuts = {
+      'Túnel': 'TUN',
+      'Nove de Julho Norte': '9JN',
+      'Nove de Julho Sul': '9JS',
+      'Avenida Brigadeiro': 'BRIG',
+      'Avenida Santos': 'SANT',
+      'Rua Augusta': 'AUG',
+      'Shopping': 'SHOP',
+      'Avenida Paulista Oeste': 'PLO',
+      'Avenida Paulista Leste': 'PLE',
+      'MASP': 'MASP',
+      'Distrito Italiano': 'ITAL',
+      'Teto do MASP': 'TETO',
+      'Colégio': 'COL',
+      'Livraria': 'LIV',
+      'Antena': 'ANT',
+      'Céu da Cidade': 'CÉU',
+      'Cinema': 'CIN'
+    };
+    return shortcuts[name] || name.substring(0, 4).toUpperCase();
   }
 };
 
@@ -2166,11 +2501,15 @@ const Game = {
       GameState.characters[charId].location = Utils.randomChoice(availableRooms);
     });
     
-    // Randomizar outros itens (exceto livro e não no teto)
-    const itemsToPlace = Object.keys(GameState.items).filter(i => i !== 'livro');
+    // Randomizar outros itens (exceto livro e bomba que não começa no mundo)
+    const itemsToPlace = Object.keys(GameState.items).filter(i => i !== 'livro' && i !== 'bomba');
     itemsToPlace.forEach(itemId => {
       GameState.items[itemId].location = Utils.randomChoice(availableRooms);
     });
+    
+    // Bomba começa sem localização (criada pelo Bombardeador)
+    GameState.items.bomba.location = null;
+    GameState.items.bomba.isDestroyed = false;
   },
 
   // Processar resultado de ação
