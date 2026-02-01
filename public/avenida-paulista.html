@@ -670,7 +670,8 @@ const ROOMS_DATA = {
     name: 'Teto do MASP',
     description: 'O topo do MASP. Daqui você tem uma vista panorâmica de toda a Avenida Paulista. O vento é forte e você sente uma presença maligna. Símbolos arcanos estão desenhados no chão.',
     exits: {},
-    requiresFlight: true
+    requiresFlight: false,
+    requiresForceShieldDown: true  // Precisa que o Feiticeiro remova o escudo
   },
   colegio: {
     id: 'colegio',
@@ -689,16 +690,17 @@ const ROOMS_DATA = {
   antena: {
     id: 'antena',
     name: 'Antena',
-    description: 'Uma torre de antena no topo do colégio. Daqui você pode ver o céu da cidade se estendendo ao infinito. Pássaros estranhos circulam no ar.',
-    exits: { 'Colégio': 'colegio', 'Céu da Cidade': 'ceu_cidade' },
-    requiresFlight: false
+    description: 'Uma torre de antena no topo do colégio. Daqui você pode ver o céu da cidade se estendendo ao infinito. Você poderia PULAR para o Céu da Cidade... se tiver como planar.',
+    exits: { 'Colégio': 'colegio', 'Pular para o Céu': 'ceu_cidade' },
+    requiresFlight: false,
+    hasDeadlyJump: true  // Pular sem asa delta = morte
   },
   ceu_cidade: {
     id: 'ceu_cidade',
     name: 'Céu da Cidade',
     description: 'Você flutua no céu sobre São Paulo! As luzes da cidade brilham abaixo como estrelas terrestres. O vento carrega sussurros misteriosos.',
     exits: { 'Teto do MASP': 'teto_masp', 'Avenida Santos': 'avenida_santos', 'Rua Augusta': 'rua_augusta', 'Nove de Julho Sul': 'nove_julho_sul' },
-    requiresFlight: true
+    requiresFlight: false  // Já está voando, não precisa de check
   },
   cinema: {
     id: 'cinema',
@@ -997,7 +999,10 @@ const GameState = {
   playerLocation: 'masp',
 
   // Se o demônio foi invocado
-  demonSummoned: false
+  demonSummoned: false,
+
+  // Escudo de força do Teto do MASP (removido pelo Feiticeiro)
+  forceShieldDown: false
 };
 
 // ============================================================================
@@ -1295,7 +1300,18 @@ const ItemUseHandlers = {
   hipnodisco: function() {
     const playerRoom = GameState.playerLocation;
     
-    // Primeiro tenta em inimigos
+    // CASO ESPECIAL: Feiticeiro presente e escudo ainda ativo
+    const feiticeiro = GameState.characters.feiticeiro;
+    if (feiticeiro.location === playerRoom && feiticeiro.isAlive && !GameState.forceShieldDown) {
+      GameState.forceShieldDown = true;
+      return {
+        success: true,
+        message: 'O HIPNODISCO gira diante do FEITICEIRO... Seus olhos brilham! "Eu conheço esse artefato! Em troca da sua magia, vou remover o ESCUDO DE FORÇA que protege o Teto do MASP!" O Feiticeiro conjura um feitiço e o escudo se dissipa!',
+        consumed: false
+      };
+    }
+    
+    // Primeiro tenta em inimigos (não aliados)
     const enemies = Object.values(GameState.characters).filter(
       c => c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly
     );
@@ -1306,6 +1322,14 @@ const ItemUseHandlers = {
     );
     
     if (enemies.length === 0 && itemsOnGround.length === 0) {
+      // Caso o feiticeiro esteja aqui mas o escudo já foi removido
+      if (feiticeiro.location === playerRoom && feiticeiro.isAlive) {
+        return {
+          success: false,
+          message: 'O Feiticeiro balança a cabeça: "Já fiz minha parte, o escudo foi removido!"',
+          consumed: false
+        };
+      }
       return {
         success: false,
         message: 'Não há inimigos ou objetos aqui para hipnotizar!',
@@ -1399,8 +1423,39 @@ const Actions = {
       return { success: false, message: 'Você não pode ir para lá daqui!' };
     }
     
-    // Verificar requisito de voo
-    if (!Rules.canMoveTo(roomId)) {
+    // PULO MORTAL: Pular da Antena sem Asa Delta = morte!
+    if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
+      if (!Rules.canPlayerFly()) {
+        // MORTE!
+        const player = GameState.characters.player;
+        player.hp = 0;
+        player.isAlive = false;
+        GameState.playerLocation = roomId; // Cai no céu antes de morrer
+        return {
+          success: true,
+          message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
+          advanceTime: true
+        };
+      } else {
+        GameState.playerLocation = roomId;
+        return {
+          success: true,
+          message: 'Você salta da Antena e a ASA DELTA te carrega pelos céus de São Paulo!',
+          advanceTime: true
+        };
+      }
+    }
+    
+    // ESCUDO DE FORÇA: Teto do MASP bloqueado até Feiticeiro remover
+    if (targetRoom.requiresForceShieldDown && !GameState.forceShieldDown) {
+      return { 
+        success: false, 
+        message: 'Um ESCUDO DE FORÇA mágico bloqueia a entrada! O Feiticeiro poderia ajudar a removê-lo...' 
+      };
+    }
+    
+    // Verificar requisito de voo (para outras salas)
+    if (targetRoom.requiresFlight && !Rules.canPlayerFly()) {
       return { success: false, message: 'Você precisa poder voar para acessar este local! Encontre a ASA DELTA.' };
     }
     
