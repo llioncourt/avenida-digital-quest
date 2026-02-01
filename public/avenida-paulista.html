@@ -2386,7 +2386,7 @@ const Render = {
           roomEl.classList.add('valid-exit');
           roomEl.title = room.name + ' (clique para ir)';
           roomEl.onclick = () => {
-            Game.processAction(Actions.move(roomId));
+            Game.move(roomId);
           };
         }
       }
