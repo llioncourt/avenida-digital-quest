@@ -682,6 +682,16 @@
       background: var(--accent-purple);
       box-shadow: 0 0 10px var(--accent-purple);
     }
+
+    @keyframes bomb-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    #bomb-stat .stat-value {
+      background: rgba(201, 64, 64, 0.2);
+      border: 1px solid var(--accent-red);
+    }
   </style>
 </head>
 <body>
@@ -710,6 +720,10 @@
             <div class="witch-orb"></div>
             <div class="witch-orb"></div>
           </div>
+        </div>
+        <div class="stat" id="bomb-stat" title="Bomba armada" style="display: none;">
+          <span class="stat-label">💣</span>
+          <span class="stat-value" id="bomb-display" style="color: var(--accent-red); animation: bomb-blink 0.5s ease-in-out infinite;">--</span>
         </div>
       </div>
     </header>
@@ -2210,6 +2224,19 @@ const Render = {
     
     const weight = Rules.getInventoryWeight();
     document.getElementById('weight-display').textContent = `${weight}/${player.maxWeight}`;
+    
+    // Indicador de bomba
+    const bombStat = document.getElementById('bomb-stat');
+    const bombDisplay = document.getElementById('bomb-display');
+    if (GameState.armedBomb) {
+      bombStat.style.display = 'flex';
+      const roomName = GameState.rooms[GameState.armedBomb.location].name;
+      bombDisplay.textContent = `${GameState.armedBomb.turnsLeft}`;
+      bombDisplay.title = `Bomba em ${roomName} - ${GameState.armedBomb.turnsLeft} turno(s)`;
+    } else {
+      bombStat.style.display = 'none';
+    }
+  },
   },
 
   updateLocation: function() {
