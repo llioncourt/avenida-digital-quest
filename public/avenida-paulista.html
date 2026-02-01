@@ -3631,6 +3631,9 @@ const Game = {
     // Inicializar sistema de som
     SoundSystem.init();
     
+    // Parar música anterior antes de reinicializar (evita múltiplas instâncias)
+    MusicSystem.stop();
+    
     // Inicializar sistema de música (carrega MIDI em background)
     MusicSystem.init();
     
