@@ -555,7 +555,6 @@
         <div id="log-container"></div>
         <div id="action-buttons">
           <button class="btn" onclick="Game.openSpeakModal()">💬 Falar</button>
-          <button class="btn btn-danger" onclick="Game.confirmRestart()">🔄 Reiniciar</button>
         </div>
       </aside>
     </main>
@@ -1986,12 +1985,44 @@ const Modals = {
   showGameOver: function(reason) {
     const isVictory = GameState.victory;
     const title = isVictory ? '🏆 VITÓRIA!' : '💀 FIM DE JOGO';
+    const player = GameState.characters.player;
+    const witch = GameState.characters.bruxa;
+    
+    // Construir resumo
+    const timeElapsed = GameState.time - (17 * 60);
+    const hoursPlayed = Math.floor(timeElapsed / 60);
+    const minutesPlayed = timeElapsed % 60;
+    
+    const enemiesDefeated = Object.values(GameState.characters).filter(
+      c => c.id !== 'player' && !c.isAlive && !c.isAlly
+    ).length;
+    
+    const alliesGained = Object.values(GameState.characters).filter(
+      c => c.id !== 'player' && c.isAlly && c.isAlive
+    ).length;
+    
+    const itemsCollected = GameState.playerInventory.length;
+    
+    const summaryStats = `
+      <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius); margin: 1rem 0; text-align: left;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-family: var(--font-mono); font-size: 0.85rem;">
+          <div>⏱️ Tempo jogado:</div><div>${hoursPlayed}h ${minutesPlayed}min</div>
+          <div>🕐 Hora final:</div><div>${Utils.formatTime(GameState.time)}</div>
+          <div>❤️ HP restante:</div><div>${player.hp}/${player.maxHp}</div>
+          <div>💀 Inimigos derrotados:</div><div>${enemiesDefeated}</div>
+          <div>🤝 Aliados conquistados:</div><div>${alliesGained}</div>
+          <div>🎒 Itens no inventário:</div><div>${itemsCollected}</div>
+          <div>🔮 Palavras da Bruxa:</div><div>${GameState.witchWords}/4</div>
+        </div>
+      </div>
+    `;
+    
     const content = `
-      <p>${reason}</p>
-      <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-muted)">
-        Tempo final: ${Utils.formatTime(GameState.time)}
-      </p>
-      <button class="btn" onclick="Game.restart()">Jogar Novamente</button>
+      <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${reason}</p>
+      ${summaryStats}
+      <button class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="margin-top: 1rem;">
+        🔄 Jogar Novamente
+      </button>
     `;
     this.show(title, content);
   },
