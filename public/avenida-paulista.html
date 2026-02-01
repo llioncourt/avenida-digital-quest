@@ -799,8 +799,8 @@
         <button id="sound-toggle" onclick="SoundSystem.toggle()" title="Ligar/Desligar som" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
           🔊
         </button>
-        <button id="music-toggle" onclick="MusicSystem.toggle()" title="Ligar música de fundo" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
-          🔕
+        <button id="music-toggle" onclick="MusicSystem.toggle()" title="Desligar música de fundo" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
+          🎵
         </button>
       </div>
     </header>
@@ -1632,6 +1632,9 @@ const MusicSystem = {
       this.duration = lastNote ? lastNote.t + lastNote.d : 0;
       this.isLoaded = true;
       console.log(`MusicSystem: Loaded ${notes.length} notes, duration: ${this.duration.toFixed(2)}s`);
+      
+      // Iniciar música automaticamente após carregar
+      this.start();
     } catch (err) {
       console.error('MusicSystem: Failed to load MIDI', err);
     }
