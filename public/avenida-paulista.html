@@ -669,9 +669,8 @@ const ROOMS_DATA = {
     id: 'teto_masp',
     name: 'Teto do MASP',
     description: 'O topo do MASP. Daqui você tem uma vista panorâmica de toda a Avenida Paulista. O vento é forte e você sente uma presença maligna. Símbolos arcanos estão desenhados no chão.',
-    exits: {},
-    requiresFlight: false,
-    requiresForceShieldDown: true  // Precisa que o Feiticeiro remova o escudo
+    exits: { 'Céu da Cidade': 'ceu_cidade' },  // Saída pelo céu (voando)
+    requiresFlight: false
   },
   colegio: {
     id: 'colegio',
@@ -1476,11 +1475,11 @@ const Actions = {
       }
     }
     
-    // ESCUDO DE FORÇA: Teto do MASP bloqueado até Feiticeiro remover
-    if (targetRoom.requiresForceShieldDown && !GameState.forceShieldDown) {
+    // ESCUDO DE FORÇA: Teto do MASP bloqueado quando vindo do MASP (à pé)
+    if (roomId === 'teto_masp' && GameState.playerLocation === 'masp' && !GameState.forceShieldDown) {
       return { 
         success: false, 
-        message: 'Um ESCUDO DE FORÇA mágico bloqueia a entrada! O Feiticeiro poderia ajudar a removê-lo...' 
+        message: 'Um ESCUDO DE FORÇA mágico bloqueia a subida! O Feiticeiro poderia ajudar a removê-lo...' 
       };
     }
     
