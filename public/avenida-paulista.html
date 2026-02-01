@@ -813,13 +813,13 @@ const ITEMS_DATA = {
   hipnodisco: {
     id: 'hipnodisco',
     name: 'HIPNODISCO',
-    description: 'Um disco hipnótico giratório. Pode confundir inimigos.',
+    description: 'Um disco hipnótico giratório. Pode hipnotizar inimigos, dar vida a objetos ou convencer o Feiticeiro. Uso único!',
     attackPower: 0,
     defensePower: 0,
     weight: 2,
     canFly: false,
     isUsable: true,
-    singleUse: false
+    singleUse: true
   },
   bomba: {
     id: 'bomba',
@@ -1326,68 +1326,92 @@ const ItemUseHandlers = {
     };
   },
 
-  hipnodisco: function() {
+  hipnodisco: function(targetId) {
     const playerRoom = GameState.playerLocation;
     
-    // CASO ESPECIAL: Feiticeiro presente e escudo ainda ativo
+    // Coletar todos os alvos possíveis
+    const targets = [];
+    
+    // Feiticeiro (se escudo ainda ativo)
     const feiticeiro = GameState.characters.feiticeiro;
     if (feiticeiro.location === playerRoom && feiticeiro.isAlive && !GameState.forceShieldDown) {
-      GameState.forceShieldDown = true;
-      return {
-        success: true,
-        message: 'O HIPNODISCO gira diante do FEITICEIRO... Seus olhos brilham! "Eu conheço esse artefato! Em troca da sua magia, vou remover o ESCUDO DE FORÇA que protege o Teto do MASP!" O Feiticeiro conjura um feitiço e o escudo se dissipa!',
-        consumed: false
-      };
+      targets.push({ type: 'feiticeiro', id: 'feiticeiro', name: '🧙 FEITICEIRO (remover escudo)' });
     }
     
-    // Primeiro tenta em inimigos (não aliados)
-    const enemies = Object.values(GameState.characters).filter(
-      c => c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly
-    );
+    // Inimigos (não aliados)
+    Object.values(GameState.characters).forEach(c => {
+      if (c.id !== 'player' && c.id !== 'feiticeiro' && c.location === playerRoom && c.isAlive && !c.isAlly) {
+        targets.push({ type: 'enemy', id: c.id, name: `⚔️ ${c.name} (hipnotizar)` });
+      }
+    });
     
-    // Depois tenta em itens no chão (criar vida!)
-    const itemsOnGround = Object.values(GameState.items).filter(
-      item => item.location === playerRoom && !item.isAnimated
-    );
+    // Itens no chão
+    Object.values(GameState.items).forEach(item => {
+      if (item.location === playerRoom && !item.isAnimated) {
+        targets.push({ type: 'item', id: item.id, name: `📦 ${item.name} (dar vida)` });
+      }
+    });
     
-    if (enemies.length === 0 && itemsOnGround.length === 0) {
-      // Caso o feiticeiro esteja aqui mas o escudo já foi removido
-      if (feiticeiro.location === playerRoom && feiticeiro.isAlive) {
+    // Se não foi passado um alvo, retorna pedindo seleção
+    if (!targetId) {
+      if (targets.length === 0) {
         return {
           success: false,
-          message: 'O Feiticeiro balança a cabeça: "Já fiz minha parte, o escudo foi removido!"',
+          message: 'Não há alvos aqui para usar o HIPNODISCO!',
           consumed: false
         };
       }
       return {
         success: false,
-        message: 'Não há inimigos ou objetos aqui para hipnotizar!',
+        message: 'SELECT_HIPNO_TARGET',
+        selectableTargets: targets,
         consumed: false
       };
     }
     
-    // Se há inimigos, tenta hipnotizar um
-    if (enemies.length > 0 && (itemsOnGround.length === 0 || Utils.random() < 0.6)) {
-      const target = Utils.randomChoice(enemies);
-      if (Utils.random() < 0.5) {
-        target.isAlly = true;
+    // Função para consumir o hipnodisco
+    const consumeHipnodisco = () => {
+      const idx = GameState.playerInventory.indexOf('hipnodisco');
+      if (idx > -1) GameState.playerInventory.splice(idx, 1);
+    };
+    
+    // CASO: Feiticeiro
+    if (targetId === 'feiticeiro') {
+      if (feiticeiro.location === playerRoom && feiticeiro.isAlive && !GameState.forceShieldDown) {
+        GameState.forceShieldDown = true;
+        consumeHipnodisco();
         return {
           success: true,
-          message: `O HIPNODISCO gira... ${target.name} está hipnotizado e agora é seu aliado!`,
-          consumed: false
-        };
-      } else {
-        return {
-          success: true,
-          message: `O HIPNODISCO gira... mas ${target.name} resistiu à hipnose!`,
-          consumed: false
+          message: 'O HIPNODISCO gira diante do FEITICEIRO... Seus olhos brilham! "Eu conheço esse artefato! Em troca da sua magia, vou remover o ESCUDO DE FORÇA que protege o Teto do MASP!" O Feiticeiro conjura um feitiço e o escudo se dissipa!',
+          consumed: true
         };
       }
     }
     
-    // Dar vida a um objeto! Ele vira um aliado
-    if (itemsOnGround.length > 0) {
-      const item = Utils.randomChoice(itemsOnGround);
+    // CASO: Inimigo
+    const enemy = GameState.characters[targetId];
+    if (enemy && enemy.location === playerRoom && enemy.isAlive && !enemy.isAlly) {
+      consumeHipnodisco();
+      if (Utils.random() < 0.6) {
+        enemy.isAlly = true;
+        return {
+          success: true,
+          message: `O HIPNODISCO gira... ${enemy.name} está hipnotizado e agora é seu aliado!`,
+          consumed: true
+        };
+      } else {
+        return {
+          success: true,
+          message: `O HIPNODISCO gira... mas ${enemy.name} resistiu à hipnose! O disco se quebra.`,
+          consumed: true
+        };
+      }
+    }
+    
+    // CASO: Item (dar vida)
+    const item = GameState.items[targetId];
+    if (item && item.location === playerRoom && !item.isAnimated) {
+      consumeHipnodisco();
       
       // Criar um novo personagem baseado no item
       const animatedId = 'animated_' + item.id + '_' + Date.now();
@@ -1408,23 +1432,20 @@ const ItemUseHandlers = {
         isAnimatedObject: true
       };
       
-      // Adicionar ao estado
       GameState.characters[animatedId] = animatedChar;
-      
-      // Marcar item como animado (remove do chão)
       item.location = null;
       item.isAnimated = true;
       
       return {
         success: true,
         message: `O HIPNODISCO gira sobre ${item.name}... O objeto treme, levita e GANHA VIDA! ${animatedChar.name} agora é seu aliado!`,
-        consumed: false
+        consumed: true
       };
     }
     
     return {
       success: false,
-      message: 'O HIPNODISCO gira, mas nada acontece...',
+      message: 'Alvo inválido para o HIPNODISCO.',
       consumed: false
     };
   }
@@ -2091,16 +2112,40 @@ const Game = {
     this.processAction(Actions.dropItem(itemId));
   },
 
-  use: function(itemId, targetItemId) {
-    const result = Actions.useItem(itemId, targetItemId);
+  use: function(itemId, targetId) {
+    const result = Actions.useItem(itemId, targetId);
     
-    // Caso especial: precisa selecionar um item
+    // Caso especial: precisa selecionar um item (Cera Mágica)
     if (result.message === 'SELECT_ITEM' && result.selectableItems) {
       this.openItemSelectModal(itemId, result.selectableItems);
       return;
     }
     
+    // Caso especial: precisa selecionar um alvo (Hipnodisco)
+    if (result.message === 'SELECT_HIPNO_TARGET' && result.selectableTargets) {
+      this.openHipnoSelectModal(result.selectableTargets);
+      return;
+    }
+    
     this.processAction(result);
+  },
+
+  // Modal de seleção de alvo para Hipnodisco
+  openHipnoSelectModal: function(targets) {
+    const targetButtons = targets.map(t => {
+      return `<button class="btn btn-item" onclick="Game.useWithTarget('hipnodisco', '${t.id}'); Modals.hide();">
+        ${t.name}
+      </button>`;
+    }).join('');
+    
+    const content = `
+      <p>Escolha um alvo para o HIPNODISCO (uso único!):</p>
+      <div class="button-group" style="margin-top: 1rem; flex-direction: column; align-items: stretch;">
+        ${targetButtons}
+      </div>
+      <button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>
+    `;
+    Modals.show('💫 HIPNODISCO', content);
   },
 
   // Modal de seleção de item (para Cera Mágica)
