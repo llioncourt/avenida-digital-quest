@@ -905,7 +905,7 @@ const ROOMS_DATA = {
     name: 'Céu da Cidade',
     description: 'Você flutua no céu sobre São Paulo! As luzes da cidade brilham abaixo como estrelas terrestres. O vento carrega sussurros misteriosos.',
     exits: { 'Teto do MASP': 'teto_masp', 'Avenida Santos': 'avenida_santos', 'Rua Augusta': 'rua_augusta', 'Nove de Julho Sul': 'nove_julho_sul' },
-    requiresFlight: false  // Já está voando, não precisa de check
+    requiresFlight: true  // Precisa voar para chegar aqui
   },
   cinema: {
     id: 'cinema',
@@ -2001,7 +2001,10 @@ const Events = {
         // Filtrar saídas que o personagem pode acessar
         const validExits = exits.filter(exitId => {
           const targetRoom = GameState.rooms[exitId];
+          // Personagem não pode voar e sala requer voo
           if (targetRoom.requiresFlight && !char.canFly) return false;
+          // Escudo de força bloqueia acesso ao teto do MASP
+          if (exitId === 'teto_masp' && !GameState.forceShieldDown) return false;
           return true;
         });
         
@@ -2088,9 +2091,13 @@ const Events = {
       if (!ally.isAlly) return;
       if (!ally.location) return;
       
-      // Encontrar inimigos na mesma sala
+      // Encontrar inimigos na mesma sala (Bruxa protegida pelo escudo de força)
       const enemiesInRoom = Object.values(GameState.characters).filter(
-        c => c.id !== 'player' && c.location === ally.location && c.isAlive && !c.isAlly
+        c => c.id !== 'player' && 
+             c.location === ally.location && 
+             c.isAlive && 
+             !c.isAlly &&
+             !(c.id === 'bruxa' && !GameState.forceShieldDown)
       );
       
       if (enemiesInRoom.length === 0) return;
