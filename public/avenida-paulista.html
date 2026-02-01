@@ -2512,7 +2512,7 @@ const Modals = {
           <div>🛡️ Defesa: ${char.defensePower}</div>
           <div>Status: ${allyText}</div>
         </div>
-        ${!char.isAlly ? `<button class="btn btn-danger" onclick="Game.attack('${char.id}'); Modals.hide();">Atacar</button>` : ''}
+        ${!char.isAlly ? `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>` : ''}
         <button class="btn" onclick="Modals.hide()">Fechar</button>
       </div>
     `;
@@ -2715,6 +2715,14 @@ const Game = {
 
   attack: function(charId) {
     this.processAction(Actions.attack(charId));
+  },
+
+  attackAndClose: function(charId) {
+    this.processAction(Actions.attack(charId));
+    // Só fecha o modal se o jogo NÃO acabou (game over mostra seu próprio modal)
+    if (!GameState.gameOver) {
+      Modals.hide();
+    }
   },
 
   speak: function(word) {
