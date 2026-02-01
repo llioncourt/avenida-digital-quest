@@ -1388,24 +1388,16 @@ const ItemUseHandlers = {
       }
     }
     
-    // CASO: Inimigo
+    // CASO: Inimigo - sempre funciona
     const enemy = GameState.characters[targetId];
     if (enemy && enemy.location === playerRoom && enemy.isAlive && !enemy.isAlly) {
       consumeHipnodisco();
-      if (Utils.random() < 0.6) {
-        enemy.isAlly = true;
-        return {
-          success: true,
-          message: `O HIPNODISCO gira... ${enemy.name} está hipnotizado e agora é seu aliado!`,
-          consumed: true
-        };
-      } else {
-        return {
-          success: true,
-          message: `O HIPNODISCO gira... mas ${enemy.name} resistiu à hipnose! O disco se quebra.`,
-          consumed: true
-        };
-      }
+      enemy.isAlly = true;
+      return {
+        success: true,
+        message: `O HIPNODISCO gira... ${enemy.name} está hipnotizado e agora é seu aliado!`,
+        consumed: true
+      };
     }
     
     // CASO: Item (dar vida)
@@ -2267,9 +2259,20 @@ const Game = {
 
   // Confirmar reinício
   confirmRestart: function() {
-    if (GameState.gameOver || confirm('Tem certeza que deseja reiniciar o jogo?')) {
+    if (GameState.gameOver) {
       this.restart();
+      return;
     }
+    
+    const content = `
+      <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Tem certeza que deseja reiniciar o jogo?</p>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Todo o progresso será perdido e um novo jogo começará.</p>
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <button class="btn btn-danger" onclick="Game.restart()">🔄 Sim, Reiniciar</button>
+        <button class="btn" onclick="Modals.hide()">Cancelar</button>
+      </div>
+    `;
+    Modals.show('⚠️ Reiniciar Jogo', content);
   },
 
   // Reiniciar jogo
