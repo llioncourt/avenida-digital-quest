@@ -2064,11 +2064,12 @@ const Events = {
     }
   },
 
-  // Ataques dos NPCs
+  // Ataques dos NPCs (inimigos atacam player, aliados atacam inimigos)
   processNPCAttacks: function() {
     const playerRoom = GameState.playerLocation;
     const player = GameState.characters.player;
     
+    // Inimigos atacam o jogador
     Object.values(GameState.characters).forEach(char => {
       if (char.id === 'player') return;
       if (!char.isAlive) return;
@@ -2096,8 +2097,62 @@ const Events = {
         Log.add(`${char.name} te ataca causando ${damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
       }
     });
+    
+    // Aliados atacam inimigos na mesma sala
+    this.processAllyAttacks();
+  },
+
+  // Aliados atacam inimigos
+  processAllyAttacks: function() {
+    const allies = Object.values(GameState.characters).filter(
+      c => c.id !== 'player' && c.isAlive && c.isAlly
+    );
+    
+    allies.forEach(ally => {
+      // Encontrar inimigos na mesma sala do aliado
+      const enemiesInRoom = Object.values(GameState.characters).filter(
+        c => c.id !== 'player' && 
+             c.location === ally.location && 
+             c.isAlive && 
+             !c.isAlly &&
+             (c.id !== 'demonio' || c.isSummoned)
+      );
+      
+      if (enemiesInRoom.length === 0) return;
+      
+      // 50% de chance de atacar
+      if (Utils.random() < 0.5) {
+        // Escolher alvo aleatório
+        const target = Utils.randomChoice(enemiesInRoom);
+        
+        // Calcular dano
+        const damage = Math.max(1, ally.attackPower - target.defensePower);
+        target.hp -= damage;
+        
+        if (target.hp <= 0) {
+          target.hp = 0;
+          target.isAlive = false;
+          Log.add(`🤝 ${ally.name} atacou ${target.name} causando ${damage} de dano e o DERROTOU!`, 'success');
+        } else {
+          Log.add(`🤝 ${ally.name} atacou ${target.name} causando ${damage} de dano! (HP: ${target.hp})`, 'action');
+        }
+        
+        // Inimigo pode contra-atacar (30% de chance)
+        if (target.isAlive && Utils.random() < 0.3) {
+          const counterDamage = Math.max(1, target.attackPower - ally.defensePower);
+          ally.hp -= counterDamage;
+          
+          if (ally.hp <= 0) {
+            ally.hp = 0;
+            ally.isAlive = false;
+            Log.add(`💔 ${target.name} contra-atacou e DERROTOU ${ally.name}!`, 'danger');
+          } else {
+            Log.add(`⚔️ ${target.name} contra-atacou ${ally.name}! (HP: ${ally.hp})`, 'warning');
+          }
+        }
+      }
+    });
   }
-};
 
 // ============================================================================
 // LOG - Sistema de mensagens
