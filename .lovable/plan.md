@@ -1,89 +1,56 @@
 
-# Plano: Corrigir Movimentacao de NPCs e Escudo da Bruxa
+# Plano: Corrigir Clique no Minimapa
 
-## Problemas Identificados
+## Problema Identificado
 
-### 1. Cachorro no Ceu da Cidade
-O Cachorro tem `canFly: false`, mas conseguiu chegar no "Ceu da Cidade" porque:
+O clique no minimapa nao funciona porque o codigo esta chamando uma funcao que NAO EXISTE:
 
-- A sala `ceu_cidade` tem `requiresFlight: false` (deveria ser `true`)
-- A funcao `processNPCMovement` verifica `requiresFlight`, mas como a sala esta configurada como `false`, a verificacao nao bloqueia nada
+```javascript
+// Linha 2389 - ERRADO
+roomEl.onclick = () => {
+  Game.processAction(Actions.move(roomId));  // Actions.move NAO EXISTE!
+};
+```
 
-### 2. Ataque com Escudo Ativo
-O escudo de forca (`forceShieldDown`) so bloqueia o PLAYER de entrar no Teto do MASP. Os aliados:
-
-- Podem entrar no Teto do MASP livremente (NPCs ignoram o escudo)
-- Podem atacar a Bruxa mesmo com o escudo ativo (nenhuma verificacao em `processAllyAttacks`)
-
----
+A estrutura correta e:
+- `Actions.moveTo(roomId)` - retorna o resultado da acao (linha 1686)
+- `Game.move(roomId)` - wrapper que chama `processAction(Actions.moveTo())` (linha 2670)
 
 ## Solucao
 
-### Alteracao 1 - Adicionar `requiresFlight: true` apenas no Ceu da Cidade
+### Arquivo: `public/avenida-paulista.html`
 
-**Arquivo:** `public/avenida-paulista.html`
+**Linha 2389:** Corrigir a chamada para usar `Actions.moveTo` em vez de `Actions.move`:
 
-**Linha ~908:** Alterar apenas a sala `ceu_cidade`:
-
+De:
 ```javascript
-ceu_cidade: {
-  id: 'ceu_cidade',
-  name: 'Ceu da Cidade',
-  ...
-  requiresFlight: true  // Mudar de false para true
-}
+roomEl.onclick = () => {
+  Game.processAction(Actions.move(roomId));
+};
 ```
 
-**Nota:** O Teto do MASP permanece com `requiresFlight: false` - nao precisa voar para chegar la.
-
-### Alteracao 2 - Bloquear NPCs de entrar no Teto do MASP quando escudo ativo
-
-**Arquivo:** `public/avenida-paulista.html`
-
-**Funcao `processNPCMovement` (~linha 2001-2006):** Adicionar verificacao do escudo de forca:
-
+Para:
 ```javascript
-const validExits = exits.filter(exitId => {
-  const targetRoom = GameState.rooms[exitId];
-  // Personagem nao pode voar e sala requer voo
-  if (targetRoom.requiresFlight && !char.canFly) return false;
-  // Escudo de forca bloqueia acesso ao teto do MASP
-  if (exitId === 'teto_masp' && !GameState.forceShieldDown) return false;
-  return true;
-});
+roomEl.onclick = () => {
+  Game.processAction(Actions.moveTo(roomId));
+};
 ```
 
-### Alteracao 3 - Aliados nao atacam Bruxa enquanto escudo ativo
-
-**Arquivo:** `public/avenida-paulista.html`
-
-**Funcao `processAllyAttacks` (~linha 2092-2096):** Filtrar a Bruxa enquanto escudo ativo:
-
+Alternativa (mais limpa):
 ```javascript
-const enemiesInRoom = Object.values(GameState.characters).filter(
-  c => c.id !== 'player' && 
-       c.location === ally.location && 
-       c.isAlive && 
-       !c.isAlly &&
-       // Bruxa protegida pelo escudo de forca
-       !(c.id === 'bruxa' && !GameState.forceShieldDown)
-);
+roomEl.onclick = () => {
+  Game.move(roomId);
+};
 ```
 
----
-
-## Resumo das Alteracoes
+## Resumo
 
 | Local | Alteracao |
 |-------|-----------|
-| Linha ~908 | `ceu_cidade.requiresFlight = true` |
-| Funcao `processNPCMovement` | Bloquear NPCs de entrar no `teto_masp` se escudo ativo |
-| Funcao `processAllyAttacks` | Nao atacar Bruxa se escudo ativo |
+| Linha 2389 | Trocar `Actions.move` por `Actions.moveTo` (ou `Game.move`) |
 
 ## Resultado Esperado
 
-1. Cachorro e outros NPCs sem voo nao podem mais ir para o Ceu da Cidade
-2. O Teto do MASP continua acessivel a pe (nao precisa voar)
-3. Nenhum NPC (inimigo ou aliado) pode entrar no Teto do MASP enquanto o escudo estiver ativo
-4. Aliados nao atacam a Bruxa enquanto o escudo de forca estiver ativo
-5. Apos o Feiticeiro remover o escudo, aliados poderao ir ao Teto e atacar a Bruxa
+1. Clicar em uma sala azul no minimapa move o jogador para la
+2. A acao avanca o turno normalmente
+3. O minimapa atualiza mostrando as novas saidas validas
