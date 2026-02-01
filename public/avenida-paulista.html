@@ -553,10 +553,6 @@
       <aside class="panel" id="log-panel">
         <h3 class="section-title">📜 Log</h3>
         <div id="log-container"></div>
-        <div id="command-input-container">
-          <input type="text" id="command-input" placeholder="Digite um comando..." autocomplete="off">
-          <button class="btn" onclick="Game.processCommand()">▶</button>
-        </div>
         <div id="action-buttons">
           <button class="btn" onclick="Game.openSpeakModal()">💬 Falar</button>
           <button class="btn btn-danger" onclick="Game.confirmRestart()">🔄 Reiniciar</button>
@@ -935,7 +931,7 @@ const CHARACTERS_DATA = {
     maxWeight: 5,
     canFly: true,
     isAlive: true,
-    isAlly: false,
+    isAlly: true,
     lastBoss: false
   },
   cachorro: {
