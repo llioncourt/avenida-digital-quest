@@ -1,56 +1,87 @@
 
-# Plano: Corrigir Clique no Minimapa
+# Plano: Remover Highlight de Salas com NPCs, Manter Apenas Bolinhas
 
-## Problema Identificado
+## Problema Atual
 
-O clique no minimapa nao funciona porque o codigo esta chamando uma funcao que NAO EXISTE:
+As salas com inimigos, aliados ou ambos têm:
+- Borda colorida (vermelha, verde ou roxa)
+- Box-shadow colorido
+- Bolinha indicadora no canto superior direito
 
-```javascript
-// Linha 2389 - ERRADO
-roomEl.onclick = () => {
-  Game.processAction(Actions.move(roomId));  // Actions.move NAO EXISTE!
-};
-```
+O usuário quer manter **apenas as bolinhas** e deixar o highlight azul das saídas válidas visível.
 
-A estrutura correta e:
-- `Actions.moveTo(roomId)` - retorna o resultado da acao (linha 1686)
-- `Game.move(roomId)` - wrapper que chama `processAction(Actions.moveTo())` (linha 2670)
+---
 
-## Solucao
+## Solução
 
 ### Arquivo: `public/avenida-paulista.html`
 
-**Linha 2389:** Corrigir a chamada para usar `Actions.moveTo` em vez de `Actions.move`:
+**Linhas 431-434:** Remover estilos de borda/sombra de `.map-room.has-enemy`:
 
 De:
-```javascript
-roomEl.onclick = () => {
-  Game.processAction(Actions.move(roomId));
-};
+```css
+.map-room.has-enemy {
+  border-color: rgba(201, 64, 64, 0.8);
+  box-shadow: 0 0 12px rgba(201, 64, 64, 0.4);
+}
 ```
 
 Para:
-```javascript
-roomEl.onclick = () => {
-  Game.processAction(Actions.moveTo(roomId));
-};
+```css
+.map-room.has-enemy {
+  /* Apenas bolinha ::after, sem highlight no quadrado */
+}
 ```
 
-Alternativa (mais limpa):
-```javascript
-roomEl.onclick = () => {
-  Game.move(roomId);
-};
+**Linhas 453-456:** Remover estilos de borda/sombra de `.map-room.has-ally`:
+
+De:
+```css
+.map-room.has-ally {
+  border-color: rgba(64, 160, 96, 0.8);
+  box-shadow: 0 0 12px rgba(64, 160, 96, 0.3);
+}
 ```
 
-## Resumo
+Para:
+```css
+.map-room.has-ally {
+  /* Apenas bolinha ::after, sem highlight no quadrado */
+}
+```
 
-| Local | Alteracao |
-|-------|-----------|
-| Linha 2389 | Trocar `Actions.move` por `Actions.moveTo` (ou `Game.move`) |
+**Linhas 469-472:** Remover estilos de borda/sombra de `.map-room.has-both`:
+
+De:
+```css
+.map-room.has-both {
+  border-color: rgba(128, 64, 160, 0.8);
+  box-shadow: 0 0 12px rgba(128, 64, 160, 0.4);
+}
+```
+
+Para:
+```css
+.map-room.has-both {
+  /* Apenas bolinha ::after, sem highlight no quadrado */
+}
+```
+
+---
+
+## Resumo das Alterações
+
+| Classe | Alteração |
+|--------|-----------|
+| `.map-room.has-enemy` | Remover `border-color` e `box-shadow` |
+| `.map-room.has-ally` | Remover `border-color` e `box-shadow` |
+| `.map-room.has-both` | Remover `border-color` e `box-shadow` |
+
+Os pseudo-elementos `::after` (bolinhas) permanecem inalterados.
 
 ## Resultado Esperado
 
-1. Clicar em uma sala azul no minimapa move o jogador para la
-2. A acao avanca o turno normalmente
-3. O minimapa atualiza mostrando as novas saidas validas
+1. Salas com inimigos, aliados ou ambos mostram apenas a bolinha indicadora
+2. O quadrado da sala não tem mais borda/sombra colorida
+3. Saídas válidas continuam com highlight azul visível
+4. Se uma saída válida tiver um NPC, ela terá o highlight azul E a bolinha correspondente
