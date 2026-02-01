@@ -1044,12 +1044,12 @@ const ITEMS_DATA = {
   bomba: {
     id: 'bomba',
     name: 'BOMBA',
-    description: 'Uma bomba poderosa. Ao usar, você a arma com um timer de 10-20 turnos. MATA TODOS no local quando explode!',
+    description: 'Uma bomba armada pelo BOMBARDEADOR! Não pode ser usada pelo jogador. Use KIT BOMBA para desarmá-la!',
     attackPower: 0,
     defensePower: 0,
     weight: 6,
     canFly: false,
-    isUsable: true,
+    isUsable: false, // Jogador não pode usar
     singleUse: true,
     startsInWorld: false // Não começa no mundo - criada pelo Bombardeador
   }
@@ -1440,36 +1440,11 @@ const ItemUseHandlers = {
   },
 
   bomba: function() {
-    // Armar a bomba no local atual com timer aleatório de 10-20 turnos
-    const playerRoom = GameState.playerLocation;
-    
-    if (GameState.armedBomb) {
-      return {
-        success: false,
-        message: 'Já existe uma bomba armada! Desarme-a primeiro com o KIT BOMBA.',
-        consumed: false
-      };
-    }
-    
-    // Remover bomba do inventário
-    const idx = GameState.playerInventory.indexOf('bomba');
-    if (idx > -1) GameState.playerInventory.splice(idx, 1);
-    
-    // Timer aleatório entre 10 e 20 turnos
-    const timerTurns = Utils.randomInt(10, 20);
-    
-    // Armar a bomba
-    GameState.armedBomb = {
-      location: playerRoom,
-      turnsLeft: timerTurns
-    };
-    
-    Log.add(`⚠️ BOMBA ARMADA! Ela vai explodir em ${timerTurns} turnos! SAIA DAQUI!`, 'danger');
-    
+    // Jogador NÃO pode usar a bomba - ela é armada automaticamente pelo Bombardeador
     return {
-      success: true,
-      message: `Você armou a BOMBA em ${GameState.rooms[playerRoom].name}! Timer: ${timerTurns} turnos. CORRA!`,
-      consumed: true
+      success: false,
+      message: 'Você não sabe como armar uma bomba! Use o KIT BOMBA para desarmá-la.',
+      consumed: false
     };
   },
 
@@ -2050,7 +2025,7 @@ const Events = {
     });
   },
 
-  // Bombardeador cria bombas
+  // Bombardeador cria e arma bombas automaticamente
   processBombardeadorBombs: function() {
     const bombardeador = GameState.characters.bombardeador;
     if (!bombardeador.isAlive || bombardeador.isAlly) return;
@@ -2060,21 +2035,24 @@ const Events = {
     const timeSinceLast = GameState.time - bombardeador.lastBombCreation;
     if (timeSinceLast < bombardeador.bombCooldown) return;
     
-    // Não criar se já existe uma bomba no mundo (armada ou não)
-    const bombaItem = GameState.items.bomba;
-    if (GameState.armedBomb || bombaItem.location || GameState.playerInventory.includes('bomba')) {
-      return;
-    }
+    // Não criar se já existe uma bomba armada
+    if (GameState.armedBomb) return;
     
-    // Pequena chance de criar bomba (5%)
+    // Pequena chance de criar e armar bomba (5%)
     if (Utils.random() < 0.05) {
-      // Criar bomba na localização do bombardeador
-      bombaItem.location = bombardeador.location;
-      bombaItem.isDestroyed = false;
+      // Timer aleatório entre 10-20 turnos
+      const timerTurns = Utils.randomInt(10, 20);
+      
+      // Armar a bomba na localização do bombardeador
+      GameState.armedBomb = {
+        location: bombardeador.location,
+        turnsLeft: timerTurns
+      };
+      
       bombardeador.lastBombCreation = GameState.time;
       
       const roomName = GameState.rooms[bombardeador.location].name;
-      Log.add(`💣 O BOMBARDEADOR criou uma BOMBA em ${roomName}!`, 'warning');
+      Log.add(`💣⚠️ O BOMBARDEADOR criou e ARMOU uma BOMBA em ${roomName}! ${timerTurns} turnos até explodir!`, 'danger');
     }
   },
 
