@@ -860,7 +860,7 @@ const CHARACTERS_DATA = {
     maxWeight: 20,
     canFly: false,
     isAlive: true,
-    isAlly: true,
+    isAlly: false,
     lastBoss: false
   },
   aguia: {
@@ -970,7 +970,7 @@ const GameState = {
   // Contador de palavras da bruxa (0-4)
   witchWords: 0,
   lastWitchWordTime: 0,
-  witchWordCooldown: 25, // minutos mínimos entre palavras
+  witchWordCooldown: 40, // minutos mínimos entre palavras
 
   // Palavra mágica do demônio
   demonMagicWord: '',
@@ -1291,23 +1291,39 @@ const ItemUseHandlers = {
     };
   },
 
-  seta_mortal: function() {
-    // Precisa de um alvo
+  seta_mortal: function(targetId) {
     const playerRoom = GameState.playerLocation;
     const enemies = Object.values(GameState.characters).filter(
       c => c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly
     );
     
-    if (enemies.length === 0) {
+    // Se não foi passado um alvo, retorna pedindo seleção
+    if (!targetId) {
+      if (enemies.length === 0) {
+        return {
+          success: false,
+          message: 'Não há inimigos aqui para usar a SETA MORTAL!',
+          consumed: false
+        };
+      }
       return {
         success: false,
-        message: 'Não há inimigos aqui para usar a SETA MORTAL!',
+        message: 'SELECT_SETA_TARGET',
+        selectableTargets: enemies.map(e => ({ id: e.id, name: e.name, hp: e.hp })),
         consumed: false
       };
     }
     
-    // Ataca o primeiro inimigo (ou o mais forte)
-    const target = enemies.reduce((a, b) => a.hp > b.hp ? a : b);
+    // Atacar o alvo escolhido
+    const target = GameState.characters[targetId];
+    if (!target || target.location !== playerRoom || !target.isAlive) {
+      return {
+        success: false,
+        message: 'Alvo inválido!',
+        consumed: false
+      };
+    }
+    
     const damage = 40;
     target.hp -= damage;
     if (target.hp <= 0) {
@@ -1698,10 +1714,10 @@ const Events = {
     const timeSinceLast = GameState.time - GameState.lastWitchWordTime;
     if (timeSinceLast < GameState.witchWordCooldown) return;
     
-    // Chance de falar (aumenta com o tempo, mas começa baixa)
-    const baseChance = 0.08;
-    const timeBonus = (GameState.time - 17 * 60) / 300; // Aumenta mais devagar
-    const chance = Math.min(0.25, baseChance + timeBonus);
+    // Chance de falar (muito baixa, aumenta devagar)
+    const baseChance = 0.04;
+    const timeBonus = (GameState.time - 17 * 60) / 500; // Aumenta bem devagar
+    const chance = Math.min(0.15, baseChance + timeBonus);
     
     if (Utils.random() < chance) {
       GameState.witchWords++;
@@ -2119,7 +2135,31 @@ const Game = {
       return;
     }
     
+    // Caso especial: precisa selecionar um alvo (Seta Mortal)
+    if (result.message === 'SELECT_SETA_TARGET' && result.selectableTargets) {
+      this.openSetaSelectModal(result.selectableTargets);
+      return;
+    }
+    
     this.processAction(result);
+  },
+
+  // Modal de seleção de alvo para Seta Mortal
+  openSetaSelectModal: function(targets) {
+    const targetButtons = targets.map(t => {
+      return `<button class="btn btn-danger" onclick="Game.useWithTarget('seta_mortal', '${t.id}'); Modals.hide();">
+        ⚔️ ${t.name} (HP: ${t.hp})
+      </button>`;
+    }).join('');
+    
+    const content = `
+      <p>Escolha o alvo da SETA MORTAL (40 de dano!):</p>
+      <div class="button-group" style="margin-top: 1rem; flex-direction: column; align-items: stretch;">
+        ${targetButtons}
+      </div>
+      <button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>
+    `;
+    Modals.show('🏹 SETA MORTAL', content);
   },
 
   // Modal de seleção de alvo para Hipnodisco
