@@ -400,6 +400,29 @@
       animation: current-pulse 2s ease-in-out infinite;
     }
 
+    /* Salas adjacentes (saídas válidas) */
+    .map-room.valid-exit {
+      background: linear-gradient(135deg, rgba(88, 166, 255, 0.15) 0%, rgba(56, 139, 219, 0.25) 100%);
+      border: 1.5px solid rgba(88, 166, 255, 0.7);
+      color: rgba(140, 190, 255, 1);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
+    }
+
+    .map-room.valid-exit:hover {
+      background: linear-gradient(135deg, rgba(88, 166, 255, 0.25) 0%, rgba(56, 139, 219, 0.4) 100%);
+      border-color: rgba(120, 190, 255, 0.9);
+      box-shadow: 0 0 15px rgba(88, 166, 255, 0.5);
+      transform: translate(-50%, -50%) scale(1.15);
+    }
+
+    /* Saídas bloqueadas (requer voo ou escudo) */
+    .map-room.blocked-exit {
+      border: 1.5px dashed rgba(255, 180, 60, 0.5);
+      color: rgba(255, 180, 60, 0.7);
+      cursor: not-allowed;
+    }
+
     @keyframes current-pulse {
       0%, 100% { box-shadow: 0 0 20px rgba(212, 168, 70, 0.4), 0 0 40px rgba(212, 168, 70, 0.2); }
       50% { box-shadow: 0 0 25px rgba(212, 168, 70, 0.6), 0 0 50px rgba(212, 168, 70, 0.3); }
@@ -2333,6 +2356,10 @@ const Render = {
       });
     });
     
+    // Obter saídas válidas da sala atual
+    const currentRoom = GameState.rooms[GameState.playerLocation];
+    const validExitIds = currentRoom ? Object.values(currentRoom.exits) : [];
+    
     // Desenhar salas
     Object.entries(GameState.rooms).forEach(([roomId, room]) => {
       const pos = roomPositions[roomId];
@@ -2346,6 +2373,22 @@ const Render = {
       // Verificar se é a sala atual
       if (roomId === GameState.playerLocation) {
         roomEl.classList.add('current');
+      } else if (validExitIds.includes(roomId)) {
+        // Verificar se a saída é acessível
+        const targetRoom = GameState.rooms[roomId];
+        const needsFlight = targetRoom.requiresFlight && !Rules.canPlayerFly();
+        const blockedByShield = roomId === 'teto_masp' && GameState.playerLocation === 'masp' && !GameState.forceShieldDown;
+        
+        if (needsFlight || blockedByShield) {
+          roomEl.classList.add('blocked-exit');
+          roomEl.title = room.name + (needsFlight ? ' (precisa voar)' : ' (escudo de força)');
+        } else {
+          roomEl.classList.add('valid-exit');
+          roomEl.title = room.name + ' (clique para ir)';
+          roomEl.onclick = () => {
+            Game.processAction(Actions.move(roomId));
+          };
+        }
       }
       
       // Verificar entidades na sala
@@ -2368,7 +2411,6 @@ const Render = {
       // Nome abreviado da sala
       const shortName = this.getShortRoomName(room.name);
       roomEl.textContent = shortName;
-      roomEl.title = room.name;
       
       container.appendChild(roomEl);
     });
