@@ -2691,7 +2691,16 @@ const Render = {
       const pos = roomPositions[roomId];
       if (!pos) return;
       
+      // Não desenhar conexões de/para locais aéreos (não são ruas)
+      if (room.requiresFlight) return;
+      
       Object.values(room.exits).forEach(exitId => {
+        const exitRoom = GameState.rooms[exitId];
+        if (!exitRoom) return;
+        
+        // Não desenhar conexão para local aéreo
+        if (exitRoom.requiresFlight) return;
+        
         const exitPos = roomPositions[exitId];
         if (!exitPos) return;
         
@@ -2789,32 +2798,32 @@ const Render = {
     
     // Layout organizado em grade com posições percentuais
     const positions = {
-      // Topo - Céu e Antena
-      'ceu_cidade':  { x: 65, y: 8 },
-      'antena':      { x: 82, y: 12 },
-      'teto_masp':   { x: 50, y: 12 },
+      // === CAMADA AÉREA (y: 8-20%) - Não desenhada como rua ===
+      'ceu_cidade':  { x: 50, y: 8 },   // Centro do céu
+      'teto_masp':   { x: 50, y: 22 },  // Logo acima do MASP
+      'antena':      { x: 88, y: 8 },   // Topo direito (acima do colégio)
       
-      // Linha principal - Av. Paulista
-      'shopping':         { x: 12, y: 32 },
-      'avenida_paulista_oeste': { x: 30, y: 32 },
-      'masp':             { x: 50, y: 32 },
-      'avenida_paulista_leste': { x: 70, y: 32 },
-      'colegio':          { x: 88, y: 32 },
+      // === AVENIDA PAULISTA - LINHA PRINCIPAL HORIZONTAL (y: 38%) ===
+      'shopping':              { x: 10, y: 38 },
+      'avenida_paulista_oeste': { x: 30, y: 38 },
+      'masp':                  { x: 50, y: 38 },
+      'avenida_paulista_leste': { x: 70, y: 38 },
+      'colegio':               { x: 90, y: 38 },
       
-      // Linha intermediária
-      'rua_augusta':      { x: 18, y: 52 },
-      'nove_julho_norte': { x: 50, y: 52 },
-      'avenida_brigadeiro': { x: 82, y: 52 },
+      // === RUAS VERTICAIS - NÍVEL MÉDIO (y: 58%) ===
+      'rua_augusta':           { x: 22, y: 58 },
+      'nove_julho_norte':      { x: 50, y: 58 },
+      'avenida_brigadeiro':    { x: 78, y: 58 },
       
-      // Linha inferior
-      'cinema':           { x: 8, y: 72 },
-      'avenida_santos':   { x: 25, y: 72 },
-      'nove_julho_sul':   { x: 42, y: 72 },
-      'tunel':            { x: 58, y: 72 },
-      'distrito_italiano': { x: 75, y: 72 },
+      // === RUAS VERTICAIS - NÍVEL INFERIOR (y: 78%) ===
+      'cinema':                { x: 14, y: 78 },
+      'avenida_santos':        { x: 30, y: 78 },
+      'nove_julho_sul':        { x: 50, y: 78 },
+      'tunel':                 { x: 50, y: 92 },
+      'distrito_italiano':     { x: 78, y: 78 },
       
-      // Base
-      'livraria':         { x: 85, y: 88 },
+      // === LOCAIS FINAIS (y: 92%) ===
+      'livraria':              { x: 88, y: 92 },
     };
     
     // Converter posições percentuais para pixels
