@@ -1248,16 +1248,46 @@ const ItemUseHandlers = {
     };
   },
 
-  cera_magica: function() {
-    GameState.playerDefenseBonus = 10;
-    GameState.playerDefenseBonusTurns = 5;
+  cera_magica: function(targetItemId) {
+    // Se não foi passado um item, retorna pedindo seleção
+    if (!targetItemId) {
+      const items = GameState.playerInventory.filter(id => id !== 'cera_magica' && GameState.items[id].weight > 0);
+      if (items.length === 0) {
+        return {
+          success: false,
+          message: 'Você não tem itens com peso para aplicar a CERA MÁGICA!',
+          consumed: false
+        };
+      }
+      return {
+        success: false,
+        message: 'SELECT_ITEM',
+        selectableItems: items,
+        consumed: false
+      };
+    }
     
+    // Aplicar a cera no item selecionado
+    const item = GameState.items[targetItemId];
+    if (!item || !GameState.playerInventory.includes(targetItemId)) {
+      return {
+        success: false,
+        message: 'Item não encontrado no seu inventário!',
+        consumed: false
+      };
+    }
+    
+    const oldWeight = item.weight;
+    item.weight = 0;
+    item.hasWax = true;
+    
+    // Remover a cera mágica do inventário
     const idx = GameState.playerInventory.indexOf('cera_magica');
     if (idx > -1) GameState.playerInventory.splice(idx, 1);
     
     return {
       success: true,
-      message: 'Você aplicou a CERA MÁGICA! Sua defesa aumentou em 10 pelos próximos 5 turnos.',
+      message: `Você aplica a CERA MÁGICA em ${item.name}! O item fica leve como uma pluma (peso: ${oldWeight}kg → 0kg)!`,
       consumed: true
     };
   },
@@ -1514,7 +1544,7 @@ const Actions = {
   },
 
   // Usar item
-  useItem: function(itemId) {
+  useItem: function(itemId, targetItemId) {
     if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
     
     if (!GameState.playerInventory.includes(itemId)) {
@@ -1531,7 +1561,7 @@ const Actions = {
       return { success: false, message: 'Este item não tem efeito definido!' };
     }
     
-    const result = handler();
+    const result = handler(targetItemId);
     result.advanceTime = result.success;
     return result;
   },
@@ -2062,8 +2092,39 @@ const Game = {
     this.processAction(Actions.dropItem(itemId));
   },
 
-  use: function(itemId) {
-    this.processAction(Actions.useItem(itemId));
+  use: function(itemId, targetItemId) {
+    const result = Actions.useItem(itemId, targetItemId);
+    
+    // Caso especial: precisa selecionar um item
+    if (result.message === 'SELECT_ITEM' && result.selectableItems) {
+      this.openItemSelectModal(itemId, result.selectableItems);
+      return;
+    }
+    
+    this.processAction(result);
+  },
+
+  // Modal de seleção de item (para Cera Mágica)
+  openItemSelectModal: function(sourceItemId, selectableItems) {
+    const itemButtons = selectableItems.map(id => {
+      const item = GameState.items[id];
+      return `<button class="btn btn-item" onclick="Game.useWithTarget('${sourceItemId}', '${id}'); Modals.hide();">
+        ${item.name} (${item.weight}kg)
+      </button>`;
+    }).join('');
+    
+    const content = `
+      <p>Escolha um item para aplicar a CERA MÁGICA:</p>
+      <div class="button-group" style="margin-top: 1rem; justify-content: center;">
+        ${itemButtons}
+      </div>
+      <button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>
+    `;
+    Modals.show('🕯️ CERA MÁGICA', content);
+  },
+
+  useWithTarget: function(itemId, targetItemId) {
+    this.processAction(Actions.useItem(itemId, targetItemId));
   },
 
   attack: function(charId) {
