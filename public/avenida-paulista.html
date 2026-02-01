@@ -2373,25 +2373,9 @@ const Render = {
       // Verificar se é a sala atual
       if (roomId === GameState.playerLocation) {
         roomEl.classList.add('current');
-      } else if (validExitIds.includes(roomId)) {
-        // Verificar se a saída é acessível
-        const targetRoom = GameState.rooms[roomId];
-        const needsFlight = targetRoom.requiresFlight && !Rules.canPlayerFly();
-        const blockedByShield = roomId === 'teto_masp' && GameState.playerLocation === 'masp' && !GameState.forceShieldDown;
-        
-        if (needsFlight || blockedByShield) {
-          roomEl.classList.add('blocked-exit');
-          roomEl.title = room.name + (needsFlight ? ' (precisa voar)' : ' (escudo de força)');
-        } else {
-          roomEl.classList.add('valid-exit');
-          roomEl.title = room.name + ' (clique para ir)';
-          roomEl.onclick = () => {
-            Game.move(roomId);
-          };
-        }
       }
       
-      // Verificar entidades na sala
+      // Verificar entidades na sala ANTES de aplicar valid-exit
       const enemies = Object.values(GameState.characters).filter(
         c => c.id !== 'player' && c.location === roomId && c.isAlive && !c.isAlly &&
         (c.id !== 'demonio' || c.isSummoned)
@@ -2400,12 +2384,37 @@ const Render = {
         c => c.id !== 'player' && c.location === roomId && c.isAlive && c.isAlly
       );
       
+      const hasEntities = enemies.length > 0 || allies.length > 0;
+      
+      // Aplicar classes de entidades (bolinhas)
       if (enemies.length > 0 && allies.length > 0) {
         roomEl.classList.add('has-both');
       } else if (enemies.length > 0) {
         roomEl.classList.add('has-enemy');
       } else if (allies.length > 0) {
         roomEl.classList.add('has-ally');
+      }
+      
+      // Saídas válidas - só aplica highlight azul se NÃO tiver entidades
+      if (validExitIds.includes(roomId) && roomId !== GameState.playerLocation) {
+        const targetRoom = GameState.rooms[roomId];
+        const needsFlight = targetRoom.requiresFlight && !Rules.canPlayerFly();
+        const blockedByShield = roomId === 'teto_masp' && GameState.playerLocation === 'masp' && !GameState.forceShieldDown;
+        
+        if (needsFlight || blockedByShield) {
+          roomEl.classList.add('blocked-exit');
+          roomEl.title = room.name + (needsFlight ? ' (precisa voar)' : ' (escudo de força)');
+        } else {
+          // Só aplica highlight azul se não tiver entidades na sala
+          if (!hasEntities) {
+            roomEl.classList.add('valid-exit');
+          }
+          roomEl.title = room.name + ' (clique para ir)';
+          roomEl.style.cursor = 'pointer';
+          roomEl.onclick = () => {
+            Game.move(roomId);
+          };
+        }
       }
       
       // Nome abreviado da sala
