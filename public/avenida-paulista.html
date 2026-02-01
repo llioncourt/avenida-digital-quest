@@ -326,121 +326,195 @@
     /* ========== MINIMAP ========== */
     #minimap-container {
       flex: 1;
-      min-height: 200px;
-      background: var(--bg-primary);
+      min-height: 280px;
+      background: linear-gradient(180deg, #0d0d14 0%, #0a0a0f 100%);
       border-radius: var(--radius);
-      padding: 0.5rem;
+      padding: 0.75rem;
       margin-bottom: 0.5rem;
       position: relative;
       overflow: hidden;
+      border: 1px solid rgba(42, 42, 53, 0.6);
+    }
+
+    #minimap-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse at 50% 0%, rgba(212, 168, 70, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(64, 128, 192, 0.02) 0%, transparent 40%);
+      pointer-events: none;
     }
 
     #minimap-title {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
+      letter-spacing: 2px;
+      color: var(--accent-gold);
       margin-bottom: 0.5rem;
       text-align: center;
+      font-weight: 600;
+      text-shadow: 0 0 10px rgba(212, 168, 70, 0.3);
     }
 
     #minimap {
       position: relative;
       width: 100%;
-      height: calc(100% - 20px);
+      height: calc(100% - 50px);
     }
 
     .map-room {
       position: absolute;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      padding: 2px 4px;
-      font-size: 0.6rem;
+      background: rgba(26, 26, 37, 0.9);
+      border: 1.5px solid rgba(60, 60, 80, 0.6);
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 0.55rem;
       font-family: var(--font-mono);
-      color: var(--text-secondary);
+      font-weight: 500;
+      color: rgba(160, 160, 176, 0.9);
       text-align: center;
       cursor: default;
-      transition: all 0.3s ease;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 60px;
+      backdrop-filter: blur(4px);
+      transform: translate(-50%, -50%);
+      min-width: 32px;
+      letter-spacing: 0.5px;
+    }
+
+    .map-room:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+      z-index: 20;
     }
 
     .map-room.current {
-      background: linear-gradient(135deg, var(--accent-gold-dim), #5a4a1e);
-      border-color: var(--accent-gold);
+      background: linear-gradient(135deg, rgba(212, 168, 70, 0.25) 0%, rgba(138, 109, 46, 0.4) 100%);
+      border: 2px solid var(--accent-gold);
       color: var(--accent-gold);
-      box-shadow: 0 0 8px rgba(212, 168, 70, 0.4);
-      z-index: 10;
+      box-shadow: 
+        0 0 20px rgba(212, 168, 70, 0.4),
+        0 0 40px rgba(212, 168, 70, 0.2),
+        inset 0 0 15px rgba(212, 168, 70, 0.1);
+      z-index: 15;
+      animation: current-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes current-pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(212, 168, 70, 0.4), 0 0 40px rgba(212, 168, 70, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(212, 168, 70, 0.6), 0 0 50px rgba(212, 168, 70, 0.3); }
     }
 
     .map-room.has-enemy {
-      border-color: var(--accent-red);
-      box-shadow: 0 0 4px rgba(201, 64, 64, 0.3);
+      border-color: rgba(201, 64, 64, 0.8);
+      box-shadow: 0 0 12px rgba(201, 64, 64, 0.4);
+    }
+
+    .map-room.has-enemy::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent-red);
+      border-radius: 50%;
+      animation: enemy-blink 1s ease-in-out infinite;
+    }
+
+    @keyframes enemy-blink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.8); }
     }
 
     .map-room.has-ally {
-      border-color: var(--accent-green);
-      box-shadow: 0 0 4px rgba(64, 160, 96, 0.3);
+      border-color: rgba(64, 160, 96, 0.8);
+      box-shadow: 0 0 12px rgba(64, 160, 96, 0.3);
+    }
+
+    .map-room.has-ally::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent-green);
+      border-radius: 50%;
     }
 
     .map-room.has-both {
-      border-color: var(--accent-purple);
-      box-shadow: 0 0 4px rgba(128, 64, 160, 0.3);
+      border-color: rgba(128, 64, 160, 0.8);
+      box-shadow: 0 0 12px rgba(128, 64, 160, 0.4);
+    }
+
+    .map-room.has-both::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 8px;
+      height: 8px;
+      background: linear-gradient(135deg, var(--accent-red) 50%, var(--accent-green) 50%);
+      border-radius: 50%;
+      animation: enemy-blink 1s ease-in-out infinite;
     }
 
     .map-connection {
       position: absolute;
-      background: var(--border-color);
+      background: linear-gradient(90deg, 
+        rgba(60, 60, 80, 0.3) 0%, 
+        rgba(80, 80, 100, 0.5) 50%, 
+        rgba(60, 60, 80, 0.3) 100%
+      );
       transform-origin: left center;
-      height: 1px;
+      height: 2px;
       z-index: 1;
+      border-radius: 1px;
     }
 
     .map-legend {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
       display: flex;
       justify-content: center;
-      gap: 0.5rem;
-      margin-top: 0.3rem;
-      font-size: 0.55rem;
-      color: var(--text-muted);
+      gap: 1rem;
+      padding: 0.4rem;
+      background: rgba(10, 10, 15, 0.8);
+      border-radius: 0 0 var(--radius) var(--radius);
+      border-top: 1px solid rgba(42, 42, 53, 0.4);
     }
 
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 4px;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
     }
 
     .legend-dot {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
+      box-shadow: 0 0 6px currentColor;
     }
 
-    .legend-dot.player { background: var(--accent-gold); }
-    .legend-dot.enemy { background: var(--accent-red); }
-    .legend-dot.ally { background: var(--accent-green); }
-
-    .map-entity-indicator {
-      position: absolute;
-      bottom: -3px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 1px;
+    .legend-dot.player { 
+      background: var(--accent-gold); 
+      box-shadow: 0 0 8px rgba(212, 168, 70, 0.6);
     }
-
-    .entity-dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
+    .legend-dot.enemy { 
+      background: var(--accent-red); 
+      box-shadow: 0 0 8px rgba(201, 64, 64, 0.6);
     }
-
-    .entity-dot.enemy { background: var(--accent-red); }
-    .entity-dot.ally { background: var(--accent-green); }
+    .legend-dot.ally { 
+      background: var(--accent-green); 
+      box-shadow: 0 0 8px rgba(64, 160, 96, 0.6);
+    }
 
     #command-input-container {
       display: flex;
@@ -2191,8 +2265,13 @@ const Render = {
     const container = document.getElementById('minimap');
     if (!container) return;
     
+    // Obter dimensões do container
+    const containerRect = container.getBoundingClientRect();
+    const width = containerRect.width || 300;
+    const height = containerRect.height || 200;
+    
     // Definir layout do mapa baseado nas salas
-    const roomPositions = this.calculateRoomPositions();
+    const roomPositions = this.calculateRoomPositions(width, height);
     
     // Limpar mapa
     container.innerHTML = '';
@@ -2215,11 +2294,11 @@ const Render = {
         const connection = document.createElement('div');
         connection.className = 'map-connection';
         
-        // Calcular linha entre os dois pontos
-        const x1 = pos.x + 25;
-        const y1 = pos.y + 10;
-        const x2 = exitPos.x + 25;
-        const y2 = exitPos.y + 10;
+        // Calcular linha entre os dois pontos (centros das salas)
+        const x1 = pos.x;
+        const y1 = pos.y;
+        const x2 = exitPos.x;
+        const y2 = exitPos.y;
         
         const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
         const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
@@ -2270,80 +2349,72 @@ const Render = {
       roomEl.textContent = shortName;
       roomEl.title = room.name;
       
-      // Indicadores de entidades
-      if (enemies.length > 0 || allies.length > 0) {
-        const indicators = document.createElement('div');
-        indicators.className = 'map-entity-indicator';
-        
-        enemies.forEach(() => {
-          const dot = document.createElement('div');
-          dot.className = 'entity-dot enemy';
-          indicators.appendChild(dot);
-        });
-        
-        allies.forEach(() => {
-          const dot = document.createElement('div');
-          dot.className = 'entity-dot ally';
-          indicators.appendChild(dot);
-        });
-        
-        roomEl.appendChild(indicators);
-      }
-      
       container.appendChild(roomEl);
     });
   },
 
-  // Calcular posições das salas dinamicamente
-  calculateRoomPositions: function() {
-    // Layout manual otimizado para o mapa da Avenida Paulista
-    // Baseado na estrutura das salas do jogo
-    return {
-      // Centro - MASP
-      'masp': { x: 120, y: 70 },
-      'teto_masp': { x: 120, y: 20 },
+  // Calcular posições das salas dinamicamente com base no tamanho do container
+  calculateRoomPositions: function(width, height) {
+    // Grid proporcional baseado no tamanho do container
+    const scaleX = width / 100;
+    const scaleY = height / 100;
+    
+    // Layout organizado em grade com posições percentuais
+    const positions = {
+      // Topo - Céu e Antena
+      'ceu_cidade':  { x: 65, y: 8 },
+      'antena':      { x: 82, y: 12 },
+      'teto_masp':   { x: 50, y: 12 },
       
-      // Linha principal horizontal
-      'avenida_paulista_oeste': { x: 50, y: 70 },
-      'avenida_paulista_leste': { x: 190, y: 70 },
+      // Linha principal - Av. Paulista
+      'shopping':         { x: 12, y: 32 },
+      'avenida_paulista_oeste': { x: 30, y: 32 },
+      'masp':             { x: 50, y: 32 },
+      'avenida_paulista_leste': { x: 70, y: 32 },
+      'colegio':          { x: 88, y: 32 },
       
-      // Ramo esquerdo (Augusta/Shopping)
-      'rua_augusta': { x: 10, y: 110 },
-      'shopping': { x: 10, y: 70 },
-      'cinema': { x: 10, y: 150 },
+      // Linha intermediária
+      'rua_augusta':      { x: 18, y: 52 },
+      'nove_julho_norte': { x: 50, y: 52 },
+      'avenida_brigadeiro': { x: 82, y: 52 },
       
-      // Ramo direito (Brigadeiro/Colégio)
-      'avenida_brigadeiro': { x: 230, y: 110 },
-      'colegio': { x: 230, y: 70 },
-      'antena': { x: 260, y: 30 },
-      'ceu_cidade': { x: 200, y: 10 },
+      // Linha inferior
+      'cinema':           { x: 8, y: 72 },
+      'avenida_santos':   { x: 25, y: 72 },
+      'nove_julho_sul':   { x: 42, y: 72 },
+      'tunel':            { x: 58, y: 72 },
+      'distrito_italiano': { x: 75, y: 72 },
       
-      // Linha vertical (Nove de Julho)
-      'nove_julho_norte': { x: 120, y: 110 },
-      'nove_julho_sul': { x: 80, y: 150 },
-      'tunel': { x: 120, y: 150 },
-      
-      // Ramos inferiores
-      'distrito_italiano': { x: 160, y: 150 },
-      'livraria': { x: 200, y: 170 },
-      'avenida_santos': { x: 40, y: 170 },
+      // Base
+      'livraria':         { x: 85, y: 88 },
     };
+    
+    // Converter posições percentuais para pixels
+    const result = {};
+    Object.entries(positions).forEach(([roomId, pos]) => {
+      result[roomId] = {
+        x: pos.x * scaleX,
+        y: pos.y * scaleY
+      };
+    });
+    
+    return result;
   },
 
   // Nome curto para o mapa
   getShortRoomName: function(name) {
     const shortcuts = {
-      'Túnel': 'TUN',
+      'Túnel': 'TÚN',
       'Nove de Julho Norte': '9JN',
       'Nove de Julho Sul': '9JS',
-      'Avenida Brigadeiro': 'BRIG',
-      'Avenida Santos': 'SANT',
+      'Avenida Brigadeiro': 'BRG',
+      'Avenida Santos': 'SNT',
       'Rua Augusta': 'AUG',
-      'Shopping': 'SHOP',
-      'Avenida Paulista Oeste': 'PLO',
-      'Avenida Paulista Leste': 'PLE',
-      'MASP': 'MASP',
-      'Distrito Italiano': 'ITAL',
+      'Shopping': 'SHP',
+      'Avenida Paulista Oeste': 'P.O',
+      'Avenida Paulista Leste': 'P.L',
+      'MASP': '★',
+      'Distrito Italiano': 'ITA',
       'Teto do MASP': 'TETO',
       'Colégio': 'COL',
       'Livraria': 'LIV',
@@ -2351,7 +2422,7 @@ const Render = {
       'Céu da Cidade': 'CÉU',
       'Cinema': 'CIN'
     };
-    return shortcuts[name] || name.substring(0, 4).toUpperCase();
+    return shortcuts[name] || name.substring(0, 3).toUpperCase();
   }
 };
 
