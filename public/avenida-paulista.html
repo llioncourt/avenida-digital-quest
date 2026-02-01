@@ -969,7 +969,7 @@ const GameState = {
   // Contador de palavras da bruxa (0-4)
   witchWords: 0,
   lastWitchWordTime: 0,
-  witchWordCooldown: 15, // minutos mínimos entre palavras
+  witchWordCooldown: 25, // minutos mínimos entre palavras
 
   // Palavra mágica do demônio
   demonMagicWord: '',
@@ -1294,34 +1294,86 @@ const ItemUseHandlers = {
 
   hipnodisco: function() {
     const playerRoom = GameState.playerLocation;
+    
+    // Primeiro tenta em inimigos
     const enemies = Object.values(GameState.characters).filter(
       c => c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly
     );
     
-    if (enemies.length === 0) {
+    // Depois tenta em itens no chão (criar vida!)
+    const itemsOnGround = Object.values(GameState.items).filter(
+      item => item.location === playerRoom && !item.isAnimated
+    );
+    
+    if (enemies.length === 0 && itemsOnGround.length === 0) {
       return {
         success: false,
-        message: 'Não há inimigos aqui para hipnotizar!',
+        message: 'Não há inimigos ou objetos aqui para hipnotizar!',
         consumed: false
       };
     }
     
-    // 50% de chance de converter temporariamente
-    const target = Utils.randomChoice(enemies);
-    if (Utils.random() < 0.5) {
-      target.isAlly = true;
-      return {
-        success: true,
-        message: `O HIPNODISCO gira... ${target.name} está hipnotizado e agora é seu aliado temporário!`,
-        consumed: false
+    // Se há inimigos, tenta hipnotizar um
+    if (enemies.length > 0 && (itemsOnGround.length === 0 || Utils.random() < 0.6)) {
+      const target = Utils.randomChoice(enemies);
+      if (Utils.random() < 0.5) {
+        target.isAlly = true;
+        return {
+          success: true,
+          message: `O HIPNODISCO gira... ${target.name} está hipnotizado e agora é seu aliado!`,
+          consumed: false
+        };
+      } else {
+        return {
+          success: true,
+          message: `O HIPNODISCO gira... mas ${target.name} resistiu à hipnose!`,
+          consumed: false
+        };
+      }
+    }
+    
+    // Dar vida a um objeto! Ele vira um aliado
+    if (itemsOnGround.length > 0) {
+      const item = Utils.randomChoice(itemsOnGround);
+      
+      // Criar um novo personagem baseado no item
+      const animatedId = 'animated_' + item.id + '_' + Date.now();
+      const animatedChar = {
+        id: animatedId,
+        name: item.name + ' ANIMADO',
+        description: `${item.name} ganhou vida através do poder do HIPNODISCO! Agora é seu fiel aliado.`,
+        attackPower: 8 + item.attackPower,
+        defensePower: 3 + item.defensePower,
+        hp: 30 + (item.weight * 2),
+        maxHp: 30 + (item.weight * 2),
+        maxWeight: 0,
+        canFly: item.canFly,
+        isAlive: true,
+        isAlly: true,
+        lastBoss: false,
+        location: playerRoom,
+        isAnimatedObject: true
       };
-    } else {
+      
+      // Adicionar ao estado
+      GameState.characters[animatedId] = animatedChar;
+      
+      // Marcar item como animado (remove do chão)
+      item.location = null;
+      item.isAnimated = true;
+      
       return {
         success: true,
-        message: `O HIPNODISCO gira... mas ${target.name} resistiu à hipnose!`,
+        message: `O HIPNODISCO gira sobre ${item.name}... O objeto treme, levita e GANHA VIDA! ${animatedChar.name} agora é seu aliado!`,
         consumed: false
       };
     }
+    
+    return {
+      success: false,
+      message: 'O HIPNODISCO gira, mas nada acontece...',
+      consumed: false
+    };
   }
 };
 
@@ -1549,10 +1601,10 @@ const Events = {
     const timeSinceLast = GameState.time - GameState.lastWitchWordTime;
     if (timeSinceLast < GameState.witchWordCooldown) return;
     
-    // Chance de falar (aumenta com o tempo)
-    const baseChance = 0.15;
-    const timeBonus = (GameState.time - 17 * 60) / 180; // Aumenta ao longo do tempo
-    const chance = Math.min(0.4, baseChance + timeBonus);
+    // Chance de falar (aumenta com o tempo, mas começa baixa)
+    const baseChance = 0.08;
+    const timeBonus = (GameState.time - 17 * 60) / 300; // Aumenta mais devagar
+    const chance = Math.min(0.25, baseChance + timeBonus);
     
     if (Utils.random() < chance) {
       GameState.witchWords++;
