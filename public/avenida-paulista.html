@@ -114,11 +114,21 @@
 
     /* ========== GAME PANEL ========== */
     #game-panel {
-      flex: 2;
+      flex: 1;
       display: flex;
       flex-direction: column;
       gap: 1rem;
       min-width: 0;
+    }
+
+    /* ========== MINIMAP ASIDE (altura total à direita) ========== */
+    #minimap-container {
+      flex: 1;
+      min-width: 350px;
+      max-width: 450px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     .panel {
@@ -279,24 +289,25 @@
       padding: 0.3rem 0.5rem;
     }
 
-    /* ========== LOG PANEL ========== */
+    /* ========== LOG PANEL (no topo do game-panel, em destaque) ========== */
     #log-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 280px;
-      max-width: 350px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 1px solid var(--accent-blue);
+      max-height: 150px;
+      flex-shrink: 0;
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
     }
 
     #log-container {
-      flex: 0.5;
-      min-height: 120px;
-      max-height: 180px;
+      flex: 1;
+      min-height: 80px;
+      max-height: 100px;
       overflow-y: auto;
       padding: 0.5rem;
       background: var(--bg-primary);
       border-radius: var(--radius);
-      margin-bottom: 0.5rem;
       font-family: var(--font-mono);
       font-size: 0.8rem;
       line-height: 1.5;
@@ -323,10 +334,8 @@
     .log-info { color: var(--text-secondary); }
     .log-magic { color: var(--accent-purple); font-style: italic; }
 
-    /* ========== MINIMAP ========== */
+    /* ========== MINIMAP (estilos internos) ========== */
     #minimap-container {
-      flex: 1;
-      min-height: 280px;
       background: 
         /* Grid sutil de quadras da cidade */
         linear-gradient(rgba(40, 40, 55, 0.3) 1px, transparent 1px),
@@ -335,7 +344,6 @@
       background-size: 20px 20px, 20px 20px, 100% 100%;
       border-radius: var(--radius);
       padding: 0.75rem;
-      margin-bottom: 0.5rem;
       position: relative;
       overflow: hidden;
       border: 1px solid rgba(42, 42, 53, 0.8);
@@ -914,9 +922,100 @@
       75% { background: rgba(255, 255, 0, 0.06); }
       100% { background: rgba(255, 0, 255, 0.04); }
     }
+
+    /* ========== WITCH FLASH EFFECT ========== */
+    @keyframes witch-flash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ========== INTRO STAR WARS ========== */
+    #intro-container {
+      position: fixed;
+      inset: 0;
+      background: black;
+      z-index: 10000;
+      overflow: hidden;
+      perspective: 300px;
+      perspective-origin: 50% 100%;
+    }
+
+    #intro-stars {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(1px 1px at 20% 30%, white, transparent),
+        radial-gradient(1px 1px at 40% 70%, white, transparent),
+        radial-gradient(1px 1px at 50% 50%, white, transparent),
+        radial-gradient(1px 1px at 80% 10%, white, transparent),
+        radial-gradient(1px 1px at 10% 60%, white, transparent),
+        radial-gradient(1px 1px at 70% 40%, white, transparent),
+        radial-gradient(1px 1px at 30% 80%, white, transparent),
+        radial-gradient(1px 1px at 60% 90%, white, transparent);
+      background-size: 200px 200px;
+      opacity: 0.4;
+    }
+
+    #intro-skip {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+      z-index: 10001;
+      background: transparent;
+      border: 1px solid var(--accent-gold);
+      color: var(--accent-gold);
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    #intro-skip:hover {
+      background: var(--accent-gold);
+      color: black;
+    }
+
+    #intro-crawl {
+      position: absolute;
+      width: 80%;
+      left: 10%;
+      top: 100%;
+      transform: rotateX(25deg);
+      transform-origin: 50% 0;
+      animation: star-wars-crawl 60s linear forwards;
+      text-align: center;
+      color: var(--accent-gold);
+      font-size: 1.5rem;
+      line-height: 2;
+    }
+
+    .crawl-title {
+      font-size: 3rem;
+      margin-bottom: 2rem;
+      text-shadow: 0 0 20px rgba(212, 168, 70, 0.5);
+    }
+
+    .crawl-final {
+      font-size: 2rem;
+      margin-top: 3rem;
+      font-style: italic;
+    }
+
+    @keyframes star-wars-crawl {
+      0% { top: 100%; }
+      100% { top: -300%; }
+    }
   </style>
 </head>
 <body>
+  <!-- INTRO STAR WARS -->
+  <div id="intro-container">
+    <div id="intro-stars"></div>
+    <button id="intro-skip" onclick="IntroSystem.skip()">PULAR ▶</button>
+    <div id="intro-crawl"></div>
+  </div>
+
   <!-- Overlay de glitch -->
   <div id="glitch-overlay"></div>
   
@@ -957,8 +1056,15 @@
 
     <!-- MAIN CONTENT -->
     <main id="main-content">
-      <!-- GAME PANEL -->
+      <!-- GAME PANEL (esquerda) -->
       <div id="game-panel">
+        <!-- LOG no topo em destaque -->
+        <div id="log-panel">
+          <h3 class="section-title">📜 Log</h3>
+          <div id="log-container"></div>
+        </div>
+
+        <!-- Sala atual -->
         <div class="panel" id="location-panel">
           <h2 id="location-name">Carregando...</h2>
           <p id="location-description"></p>
@@ -979,35 +1085,26 @@
           </div>
         </div>
 
+        <!-- Inventário -->
         <div class="panel" id="inventory-panel">
           <h3 class="section-title">🎒 Inventário</h3>
           <div id="inventory-list"></div>
         </div>
       </div>
 
-      <!-- LOG PANEL -->
-      <aside class="panel" id="log-panel">
-        <h3 class="section-title">📜 Log</h3>
-        <div id="log-container"></div>
-        
-        <!-- MINIMAP -->
-        <div id="minimap-container">
-          <div id="minimap-header">
-            <div id="minimap-title">🗺️ MAPA</div>
-            <button id="minimap-reset" onclick="MinimapController.resetPositions()" title="Resetar posições do mapa">↺</button>
-          </div>
-          <div id="minimap-viewport">
-            <div id="minimap"></div>
-          </div>
-          <div class="map-legend">
-            <div class="legend-item"><div class="legend-dot player"></div>Você</div>
-            <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
-            <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
-          </div>
+      <!-- MAPA LATERAL DIREITA (altura total) -->
+      <aside id="minimap-container">
+        <div id="minimap-header">
+          <div id="minimap-title">🗺️ MAPA</div>
+          <button id="minimap-reset" onclick="MinimapController.resetPositions()" title="Resetar posições do mapa">↺</button>
         </div>
-        
-        <div id="action-buttons">
-          <button class="btn" onclick="Game.openSpeakModal()">💬 Falar</button>
+        <div id="minimap-viewport">
+          <div id="minimap"></div>
+        </div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot player"></div>Você</div>
+          <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
+          <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
         </div>
       </aside>
     </main>
@@ -1151,7 +1248,8 @@ const ROOMS_DATA = {
     name: 'Céu da Cidade',
     description: 'Você flutua no céu sobre São Paulo! As luzes da cidade brilham abaixo como estrelas terrestres. O vento carrega sussurros misteriosos.',
     exits: { 'Teto do MASP': 'teto_masp', 'Avenida Santos': 'avenida_santos', 'Rua Augusta': 'rua_augusta', 'Nove de Julho Sul': 'nove_julho_sul' },
-    requiresFlight: true  // Precisa voar para chegar aqui
+    requiresFlight: true,  // Precisa voar para chegar aqui
+    mayHaveItems: false    // Itens largados aqui caem do céu e são destruídos!
   },
   cinema: {
     id: 'cinema',
@@ -1414,6 +1512,27 @@ const MAGIC_WORDS = [
   'KRONOS', 'LEVIATHAN', 'MORDECAI', 'NEFERTUM', 'OBSCURUM',
   'PANDORA', 'QUINTESSENTIA', 'RUNEMASTER', 'SALAMANDRA', 'THAUMIEL'
 ];
+
+// ============================================================================
+// SCREEN EFFECTS - Efeitos visuais na tela
+// ============================================================================
+
+const ScreenEffects = {
+  flash: function(color = 'rgba(128, 64, 160, 0.5)') {
+    const flash = document.createElement('div');
+    flash.id = 'screen-flash';
+    flash.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: ${color};
+      pointer-events: none;
+      z-index: 9999;
+      animation: witch-flash 0.4s ease-out forwards;
+    `;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 400);
+  }
+};
 
 // ============================================================================
 // GLITCH EFFECT SYSTEM
@@ -1991,6 +2110,12 @@ const MusicSystem = {
       btn.textContent = this.isPlaying ? '🎵' : '🔕';
       btn.title = this.isPlaying ? 'Desligar música' : 'Ligar música';
     }
+  },
+  
+  // Definir velocidade de playback (para intro Star Wars)
+  setSpeed: function(speed) {
+    this.playbackSpeed = speed || 1.0;
+    // A velocidade será aplicada na próxima vez que as notas forem agendadas
   }
 };
 
@@ -2039,7 +2164,10 @@ const GameState = {
   forceShieldDown: false,
 
   // Bomba armada { location: string, turnsLeft: number }
-  armedBomb: null
+  armedBomb: null,
+
+  // Flag: jogador leu o livro mágico
+  hasReadMagicBook: false
 };
 
 // ============================================================================
@@ -2266,10 +2394,11 @@ const ItemUseHandlers = {
   },
 
   livro: function() {
+    GameState.hasReadMagicBook = true;
     return {
       success: true,
-      message: `Você lê o livro antigo... Entre os encantamentos, você encontra a palavra mágica de conversão: "${GameState.demonMagicWord}". Use-a para converter o Demônio!`,
-      consumed: false
+      message: `Você lê o livro antigo... Entre os encantamentos, você encontra a palavra mágica: "${GameState.demonMagicWord}". O livro se desfaz em pó mágico.`,
+      consumed: true  // Remove do inventário
     };
   },
 
@@ -2590,12 +2719,26 @@ const Actions = {
       return { success: false, message: 'Você não tem este item!' };
     }
     
+    const room = GameState.rooms[GameState.playerLocation];
+    const item = GameState.items[itemId];
+    
+    // Se a sala não permite itens, o item é destruído!
+    if (room.mayHaveItems === false) {
+      GameState.playerInventory.splice(idx, 1);
+      item.location = null; // Item destruído, não está em lugar nenhum
+      return {
+        success: true,
+        message: `Você solta ${item.name}... e ele despenca do céu! O item foi destruído ao atingir o solo lá embaixo!`,
+        advanceTime: true
+      };
+    }
+    
     GameState.playerInventory.splice(idx, 1);
-    GameState.items[itemId].location = GameState.playerLocation;
+    item.location = GameState.playerLocation;
     
     return {
       success: true,
-      message: `Você largou ${GameState.items[itemId].name}.`,
+      message: `Você largou ${item.name}.`,
       advanceTime: true
     };
   },
@@ -2811,8 +2954,9 @@ const Events = {
       GameState.witchWords++;
       GameState.lastWitchWordTime = GameState.time;
       
-      // Som de magia negra
+      // Som de magia negra e efeito visual
       SoundSystem.playDarkMagic();
+      ScreenEffects.flash();
       
       const messages = [
         'O ar estremece... você sente uma energia arcana se acumulando no MASP!',
@@ -3789,6 +3933,13 @@ const Modals = {
   showCharacter: function(charId) {
     const char = GameState.characters[charId];
     const allyText = char.isAlly ? '(Aliado)' : '(Hostil)';
+    
+    // Botão de converter para o demônio (se leu o livro e ainda é hostil)
+    let convertButton = '';
+    if (charId === 'demonio' && GameState.hasReadMagicBook && !char.isAlly && char.isAlive) {
+      convertButton = `<button class="btn btn-item" onclick="Game.speak('${GameState.demonMagicWord}'); Modals.hide();">✨ Converter</button>`;
+    }
+    
     const content = `
       <div id="character-modal-content">
         <p>${char.description}</p>
@@ -3799,6 +3950,7 @@ const Modals = {
           <div>Status: ${allyText}</div>
         </div>
         ${!char.isAlly ? `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>` : ''}
+        ${convertButton}
         <button class="btn" onclick="Modals.hide()">Fechar</button>
       </div>
     `;
@@ -3845,6 +3997,7 @@ const Game = {
     GameState.demonSummoned = false;
     GameState.forceShieldDown = false;
     GameState.armedBomb = null;
+    GameState.hasReadMagicBook = false;
     
     // Gerar palavra mágica do demônio
     GameState.demonMagicWord = Utils.randomChoice(MAGIC_WORDS);
@@ -4139,11 +4292,90 @@ const Game = {
 };
 
 // ============================================================================
+// INTRO SYSTEM - Animação estilo Star Wars
+// ============================================================================
+
+const IntroSystem = {
+  // ========================================
+  // HISTÓRIA - EDITE O TEXTO ABAIXO:
+  // ========================================
+  storyText: `
+AVENIDA PAULISTA
+
+Há muito tempo, nas ruas movimentadas de São Paulo...
+
+Uma terrível BRUXA tomou posse do MASP, o icônico museu de arte da Avenida Paulista.
+
+Com seus poderes arcanos, ela pretende pronunciar QUATRO PALAVRAS MÁGICAS para abrir um portal dimensional e invocar forças das trevas sobre a cidade.
+
+Criaturas sobrenaturais agora vagam pelas ruas. Um DEMÔNIO foi avistado nas sombras. O FEITICEIRO se esconde no Túnel aguardando o anoitecer.
+
+Mas nem tudo está perdido. Aliados improváveis podem ser encontrados - uma CORUJA sábia, um fiel CACHORRO CARAMELO, e outros heróis urbanos.
+
+Artefatos místicos estão espalhados pela cidade. Uma ESPADA lendária. Um ESCUDO ancestral. E um LIVRO que contém o segredo para converter as forças do mal.
+
+Você é a última esperança. Explore a cidade, reúna aliados, encontre armas e derrote a Bruxa antes que ela complete seu ritual...
+
+O destino de São Paulo está em suas mãos.
+  `,
+  // ========================================
+  
+  formatStory: function() {
+    const lines = this.storyText.trim().split('\n\n');
+    let html = '';
+    
+    lines.forEach((paragraph, index) => {
+      if (index === 0) {
+        // Primeiro parágrafo é o título
+        html += `<h1 class="crawl-title">${paragraph}</h1>`;
+      } else if (index === lines.length - 1) {
+        // Último parágrafo tem destaque
+        html += `<p class="crawl-final">${paragraph}</p>`;
+      } else {
+        html += `<p>${paragraph}</p>`;
+      }
+    });
+    
+    return html;
+  },
+  
+  init: function() {
+    const intro = document.getElementById('intro-container');
+    if (!intro) {
+      Game.init();
+      return;
+    }
+    
+    // Inserir história formatada
+    document.getElementById('intro-crawl').innerHTML = this.formatStory();
+    
+    // Iniciar música em velocidade lenta
+    MusicSystem.init();
+    MusicSystem.setSpeed(0.7);
+    
+    // Quando a animação terminar, iniciar o jogo
+    const crawl = document.getElementById('intro-crawl');
+    crawl.addEventListener('animationend', () => this.complete());
+  },
+  
+  skip: function() {
+    const intro = document.getElementById('intro-container');
+    if (intro) intro.remove();
+    MusicSystem.setSpeed(1.0);
+    Game.init();
+  },
+  
+  complete: function() {
+    this.skip();
+  }
+};
+
+// ============================================================================
 // INICIALIZAÇÃO
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-  Game.init();
+  IntroSystem.init();
   
   // Enter no input de comando (se existir)
   const commandInput = document.getElementById('command-input');
