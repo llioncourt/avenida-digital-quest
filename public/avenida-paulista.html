@@ -298,24 +298,31 @@
       border-radius: var(--radius);
       padding: 1rem;
       box-shadow: var(--shadow);
+      overflow: hidden; /* Impedir que conteúdo vaze */
+      display: flex;
+      flex-direction: column;
     }
 
     #log-container {
       flex: 1;
-      min-height: 80px;
-      max-height: 100px;
+      min-height: 0; /* Importante para flex children */
+      max-height: 100%; /* Respeitar o pai */
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 0.5rem;
       background: var(--bg-primary);
       border-radius: var(--radius);
       font-family: var(--font-mono);
       font-size: 0.8rem;
       line-height: 1.5;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     .log-entry {
       padding: 0.2rem 0;
       border-bottom: 1px solid var(--border-color);
+      overflow-wrap: break-word; /* Quebrar palavras longas */
     }
 
     .log-entry:last-child {
@@ -936,8 +943,9 @@
       background: black;
       z-index: 10000;
       overflow: hidden;
-      perspective: 300px;
-      perspective-origin: 50% 100%;
+      /* Perspectiva mais agressiva para efeito 3D */
+      perspective: 400px;
+      perspective-origin: 50% 40%; /* Ponto de fuga mais alto */
     }
 
     #intro-stars {
@@ -978,16 +986,18 @@
 
     #intro-crawl {
       position: absolute;
-      width: 80%;
-      left: 10%;
-      top: 100%;
-      transform: rotateX(25deg);
-      transform-origin: 50% 0;
+      width: 90%;
+      left: 5%;
+      bottom: 0;
+      /* Transformação 3D para simular inclinação */
+      transform-style: preserve-3d;
+      transform: rotateX(45deg) translateZ(0); /* Mais inclinado */
+      transform-origin: 50% 100%; /* Origem na base */
       animation: star-wars-crawl 60s linear forwards;
       text-align: center;
       color: var(--accent-gold);
-      font-size: 1.5rem;
-      line-height: 2;
+      font-size: 1.8rem;
+      line-height: 1.8;
     }
 
     .crawl-title {
@@ -1003,8 +1013,14 @@
     }
 
     @keyframes star-wars-crawl {
-      0% { top: 100%; }
-      100% { top: -300%; }
+      0% { 
+        transform: rotateX(45deg) translateY(0);
+        opacity: 1;
+      }
+      100% { 
+        transform: rotateX(45deg) translateY(-300vh);
+        opacity: 1;
+      }
     }
   </style>
 </head>
