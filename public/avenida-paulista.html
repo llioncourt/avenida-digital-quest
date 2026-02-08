@@ -992,11 +992,9 @@
     #intro-crawl {
       position: absolute;
       width: 80%;
-      left: 10%;
-      top: 100%;
+      left: 50%;
+      bottom: 0;
       transform-style: preserve-3d;
-      transform: rotateX(25deg);
-      transform-origin: 50% 0%;
       /* Animação iniciada via JS após inserir conteúdo */
       animation: none;
       text-align: center;
@@ -1019,14 +1017,11 @@
 
     @keyframes star-wars-crawl {
       0% { 
-        top: 100%;
-        opacity: 1;
-      }
-      5% {
+        transform: translateX(-50%) rotateX(28deg) translateY(80vh) translateZ(0);
         opacity: 1;
       }
       100% { 
-        top: -250%;
+        transform: translateX(-50%) rotateX(28deg) translateY(-400vh) translateZ(-1200px);
         opacity: 1;
       }
     }
@@ -4553,26 +4548,27 @@ O destino de São Paulo está em suas mãos.
     const crawl = document.getElementById('intro-crawl');
     crawl.innerHTML = this.formatStory();
     
-    // Forçar reflow antes de iniciar animação (garante que CSS está aplicado)
+    // Forçar reset completo da animação
+    crawl.style.animation = 'none';
     void crawl.offsetHeight;
     
-    // AGORA iniciar a animação via JS (não automática no CSS)
-    crawl.style.animation = 'star-wars-crawl 45s linear forwards';
+    // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
+    crawl.style.animation = 'star-wars-crawl 60s linear forwards';
     
     // Iniciar música em velocidade lenta
     MusicSystem.init();
     MusicSystem.setSpeed(0.7);
     
-    // Listener para fim da animação
-    crawl.addEventListener('animationend', () => this.complete());
+    // Listener para fim da animação (once: true evita múltiplas execuções)
+    crawl.addEventListener('animationend', () => this.complete(), { once: true });
     
-    // Timer de segurança: se animação não terminar em 50s, forçar conclusão
+    // Timer de segurança: se animação não terminar em 65s, forçar conclusão
     this.safetyTimeout = setTimeout(() => {
       if (!this.isComplete) {
         console.warn('IntroSystem: safety timeout triggered');
         this.complete();
       }
-    }, 50000);
+    }, 65000);
   },
   
   skip: function() {
