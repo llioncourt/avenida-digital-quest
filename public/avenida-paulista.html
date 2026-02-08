@@ -1477,7 +1477,8 @@ const CHARACTERS_DATA = {
     canFly: true,
     isAlive: true,
     isAlly: false,
-    lastBoss: true
+    lastBoss: true,
+    immuneToHypnosis: true
   },
   demonio: {
     id: 'demonio',
@@ -1492,7 +1493,8 @@ const CHARACTERS_DATA = {
     isAlive: true,
     isAlly: false,
     lastBoss: false,
-    isSummoned: false
+    isSummoned: false,
+    immuneToHypnosis: true
   },
   coruja: {
     id: 'coruja',
@@ -2542,7 +2544,9 @@ const ItemUseHandlers = {
     
     // Inimigos (não aliados)
     Object.values(GameState.characters).forEach(c => {
-      if (c.id !== 'player' && c.id !== 'feiticeiro' && c.location === playerRoom && c.isAlive && !c.isAlly) {
+      if (c.id !== 'player' && c.id !== 'feiticeiro' && 
+          c.location === playerRoom && c.isAlive && !c.isAlly &&
+          !c.immuneToHypnosis) {
         targets.push({ type: 'enemy', id: c.id, name: `⚔️ ${c.name} (hipnotizar)` });
       }
     });
@@ -2590,9 +2594,17 @@ const ItemUseHandlers = {
       }
     }
     
-    // CASO: Inimigo - sempre funciona
+    // CASO: Inimigo - sempre funciona (exceto imunes)
     const enemy = GameState.characters[targetId];
     if (enemy && enemy.location === playerRoom && enemy.isAlive && !enemy.isAlly) {
+      // Defesa em profundidade: verificar imunidade
+      if (enemy.immuneToHypnosis) {
+        return {
+          success: false,
+          message: `O HIPNODISCO gira, mas ${enemy.name} resiste! Sua mente é forte demais para ser controlada!`,
+          consumed: false
+        };
+      }
       consumeHipnodisco();
       enemy.isAlly = true;
       return {
