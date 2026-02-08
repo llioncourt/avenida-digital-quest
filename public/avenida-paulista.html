@@ -943,8 +943,14 @@
       background: black;
       z-index: 10000;
       overflow: hidden;
-      perspective: 300px;
-      perspective-origin: 50% 100%;
+      perspective: 400px;
+      perspective-origin: 50% 40%;
+    }
+
+    /* Esconder jogo durante intro */
+    body.intro-active #game-container {
+      visibility: hidden;
+      pointer-events: none;
     }
 
     #intro-stars {
@@ -985,16 +991,17 @@
 
     #intro-crawl {
       position: absolute;
-      width: 90%;
-      left: 5%;
-      bottom: 0;
+      width: 80%;
+      left: 10%;
+      top: 100%;
       transform-style: preserve-3d;
-      transform: rotateX(25deg) translateY(100%);
-      transform-origin: 50% 100%;
-      animation: star-wars-crawl 60s linear forwards;
+      transform: rotateX(25deg);
+      transform-origin: 50% 0%;
+      /* Animação iniciada via JS após inserir conteúdo */
+      animation: none;
       text-align: center;
       color: var(--accent-gold);
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       line-height: 1.8;
     }
 
@@ -1012,11 +1019,14 @@
 
     @keyframes star-wars-crawl {
       0% { 
-        transform: rotateX(25deg) translateY(100%);
+        top: 100%;
+        opacity: 1;
+      }
+      5% {
         opacity: 1;
       }
       100% { 
-        transform: rotateX(25deg) translateY(-300%);
+        top: -250%;
         opacity: 1;
       }
     }
@@ -2388,7 +2398,19 @@ const ItemUseHandlers = {
     
     // NÃO remove kit bomba - é reutilizável!
     
-    // A bomba desarmada volta ao chão
+    // A bomba desarmada volta ao chão (MAS se estamos no céu, ela cai e é destruída!)
+    const currentRoom = GameState.rooms[GameState.playerLocation];
+    if (currentRoom && currentRoom.mayHaveItems === false) {
+      // Estamos no céu - bomba cai e é destruída
+      GameState.items.bomba.location = null;
+      GameState.items.bomba.isDestroyed = true;
+      return {
+        success: true,
+        message: 'Você desarmou a BOMBA com sucesso! Mas ao soltá-la no céu, ela despenca e se despedaça ao atingir o solo!',
+        consumed: false
+      };
+    }
+    
     GameState.items.bomba.location = GameState.playerLocation;
     
     return {
@@ -2919,6 +2941,9 @@ const Events = {
       }
     }
     
+    // WORLD SANITY: validar estado do mundo antes de processar eventos
+    WorldSanity.enforce();
+    
     // Processar eventos
     this.processBombTimer();
     this.processWitchWord();
@@ -2926,6 +2951,9 @@ const Events = {
     this.processBombardeadorBombs();
     this.processNPCAttacks();
     this.processAllyAttacks();
+    
+    // WORLD SANITY: validar novamente após eventos (double-check)
+    WorldSanity.enforce();
   },
 
   // Processar timer da bomba
@@ -3286,8 +3314,17 @@ const Render = {
 
   updateItems: function() {
     const container = document.getElementById('items-container');
+    const currentRoom = GameState.rooms[GameState.playerLocation];
+    
+    // Se a sala não permite itens, nem mostrar (e sanitizar por segurança)
+    if (currentRoom && currentRoom.mayHaveItems === false) {
+      container.innerHTML = '<span style="color: var(--text-muted)">Nenhum item aqui (itens largados cairiam do céu).</span>';
+      return;
+    }
+    
+    // Filtrar itens não destruídos que estão nesta sala
     const items = Object.values(GameState.items).filter(
-      item => item.location === GameState.playerLocation
+      item => item.location === GameState.playerLocation && !item.isDestroyed
     );
     
     if (items.length === 0) {
@@ -4132,6 +4169,10 @@ const Game = {
     // Bomba começa sem localização (criada pelo Bombardeador)
     GameState.items.bomba.location = null;
     GameState.items.bomba.isDestroyed = false;
+    
+    // WORLD SANITY: validar posições iniciais (segurança extra)
+    WorldSanity.init();
+    WorldSanity.enforce();
   },
 
   // Processar resultado de ação
@@ -4378,10 +4419,85 @@ const Game = {
 };
 
 // ============================================================================
-// INTRO SYSTEM - Animação estilo Star Wars
+// WORLD SANITY - Validação contínua para evitar regressões
+// ============================================================================
+
+const WorldSanity = {
+  // Salas terrestres (cache)
+  groundRooms: null,
+  
+  // Inicializar cache
+  init: function() {
+    this.groundRooms = Object.keys(GameState.rooms).filter(r => 
+      r !== 'teto_masp' && 
+      GameState.rooms[r].requiresFlight !== true
+    );
+  },
+  
+  // Executar todas as validações
+  enforce: function() {
+    this.sanitizeCharacters();
+    this.sanitizeItems();
+    this.sanitizeBombs();
+  },
+  
+  // Personagens terrestres não podem estar em salas que requerem voo
+  sanitizeCharacters: function() {
+    if (!this.groundRooms) this.init();
+    
+    Object.values(GameState.characters).forEach(char => {
+      if (char.id === 'player') return; // Player é tratado separadamente
+      if (!char.isAlive) return;
+      if (char.canFly) return; // Pode voar, sem problema
+      if (!char.location) return;
+      
+      const room = GameState.rooms[char.location];
+      if (room && room.requiresFlight) {
+        // ERRO: personagem terrestre no céu! Teleportar para terra
+        const newLocation = Utils.randomChoice(this.groundRooms);
+        Log.add(`⚠️ CORREÇÃO: ${char.name} foi teleportado de volta ao solo (${GameState.rooms[newLocation].name})!`, 'warning');
+        char.location = newLocation;
+      }
+    });
+  },
+  
+  // Itens não podem permanecer em salas com mayHaveItems === false
+  sanitizeItems: function() {
+    Object.values(GameState.items).forEach(item => {
+      if (!item.location) return;
+      if (item.isDestroyed) return;
+      
+      const room = GameState.rooms[item.location];
+      if (room && room.mayHaveItems === false) {
+        // ERRO: item no céu! Destruir
+        Log.add(`⚠️ ${item.name} caiu do céu e foi destruído!`, 'warning');
+        item.location = null;
+        item.isDestroyed = true;
+      }
+    });
+  },
+  
+  // Bombas armadas não podem estar em salas aéreas
+  sanitizeBombs: function() {
+    if (!GameState.armedBomb) return;
+    
+    const room = GameState.rooms[GameState.armedBomb.location];
+    if (room && room.requiresFlight) {
+      // ERRO: bomba no céu! Desarmar
+      Log.add(`⚠️ A bomba armada caiu do céu e foi desarmada!`, 'warning');
+      GameState.armedBomb = null;
+    }
+  }
+};
+
+// ============================================================================
+// INTRO SYSTEM - Animação estilo Star Wars (DETERMINÍSTICO)
 // ============================================================================
 
 const IntroSystem = {
+  safetyTimeout: null,
+  isComplete: false,
+  
   // ========================================
   // HISTÓRIA - EDITE O TEXTO ABAIXO:
   // ========================================
@@ -4412,10 +4528,8 @@ O destino de São Paulo está em suas mãos.
     
     lines.forEach((paragraph, index) => {
       if (index === 0) {
-        // Primeiro parágrafo é o título
         html += `<h1 class="crawl-title">${paragraph}</h1>`;
       } else if (index === lines.length - 1) {
-        // Último parágrafo tem destaque
         html += `<p class="crawl-final">${paragraph}</p>`;
       } else {
         html += `<p>${paragraph}</p>`;
@@ -4432,27 +4546,62 @@ O destino de São Paulo está em suas mãos.
       return;
     }
     
+    // Marcar que intro está ativo (esconde o jogo)
+    document.body.classList.add('intro-active');
+    
     // Inserir história formatada
-    document.getElementById('intro-crawl').innerHTML = this.formatStory();
+    const crawl = document.getElementById('intro-crawl');
+    crawl.innerHTML = this.formatStory();
+    
+    // Forçar reflow antes de iniciar animação (garante que CSS está aplicado)
+    void crawl.offsetHeight;
+    
+    // AGORA iniciar a animação via JS (não automática no CSS)
+    crawl.style.animation = 'star-wars-crawl 45s linear forwards';
     
     // Iniciar música em velocidade lenta
     MusicSystem.init();
     MusicSystem.setSpeed(0.7);
     
-    // Quando a animação terminar, iniciar o jogo
-    const crawl = document.getElementById('intro-crawl');
+    // Listener para fim da animação
     crawl.addEventListener('animationend', () => this.complete());
+    
+    // Timer de segurança: se animação não terminar em 50s, forçar conclusão
+    this.safetyTimeout = setTimeout(() => {
+      if (!this.isComplete) {
+        console.warn('IntroSystem: safety timeout triggered');
+        this.complete();
+      }
+    }, 50000);
   },
   
   skip: function() {
-    const intro = document.getElementById('intro-container');
-    if (intro) intro.remove();
-    MusicSystem.setSpeed(1.0);
-    Game.init();
+    if (this.isComplete) return;
+    this.complete();
   },
   
   complete: function() {
-    this.skip();
+    if (this.isComplete) return;
+    this.isComplete = true;
+    
+    // Limpar timer de segurança
+    if (this.safetyTimeout) {
+      clearTimeout(this.safetyTimeout);
+      this.safetyTimeout = null;
+    }
+    
+    // Remover intro
+    const intro = document.getElementById('intro-container');
+    if (intro) intro.remove();
+    
+    // Mostrar jogo
+    document.body.classList.remove('intro-active');
+    
+    // Restaurar velocidade da música
+    MusicSystem.setSpeed(1.0);
+    
+    // Iniciar jogo
+    Game.init();
   }
 };
 
