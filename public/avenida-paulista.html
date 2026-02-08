@@ -943,9 +943,8 @@
       background: black;
       z-index: 10000;
       overflow: hidden;
-      /* Perspectiva mais agressiva para efeito 3D */
-      perspective: 400px;
-      perspective-origin: 50% 40%; /* Ponto de fuga mais alto */
+      perspective: 300px;
+      perspective-origin: 50% 100%;
     }
 
     #intro-stars {
@@ -988,10 +987,10 @@
       position: absolute;
       width: 90%;
       left: 5%;
-      top: 100%; /* Começar ABAIXO da viewport */
+      bottom: 0;
       transform-style: preserve-3d;
-      transform: rotateX(45deg);
-      transform-origin: 50% 0%; /* Origem no topo do elemento */
+      transform: rotateX(25deg) translateY(100%);
+      transform-origin: 50% 100%;
       animation: star-wars-crawl 60s linear forwards;
       text-align: center;
       color: var(--accent-gold);
@@ -1013,11 +1012,11 @@
 
     @keyframes star-wars-crawl {
       0% { 
-        top: 100%; /* Começa fora (abaixo) */
+        transform: rotateX(25deg) translateY(100%);
         opacity: 1;
       }
       100% { 
-        top: -200%; /* Vai para cima até sumir */
+        transform: rotateX(25deg) translateY(-300%);
         opacity: 1;
       }
     }
@@ -2737,6 +2736,23 @@ const Actions = {
     const room = GameState.rooms[GameState.playerLocation];
     const item = GameState.items[itemId];
     
+    // MORTE: Largar asa delta enquanto está voando no céu!
+    if (itemId === 'asa_delta' && room.requiresFlight) {
+      GameState.playerInventory.splice(idx, 1);
+      item.location = null; // Asa delta também cai
+      
+      // Jogador morre!
+      const player = GameState.characters.player;
+      player.hp = 0;
+      player.isAlive = false;
+      
+      return {
+        success: true,
+        message: 'Você solta a ASA DELTA... e imediatamente começa a cair! Sem nada para te sustentar, você despenca até o chão. VOCÊ MORREU!',
+        advanceTime: true
+      };
+    }
+    
     // Se a sala não permite itens, o item é destruído!
     if (room.mayHaveItems === false) {
       GameState.playerInventory.splice(idx, 1);
@@ -3072,6 +3088,10 @@ const Events = {
     const bombardeador = GameState.characters.bombardeador;
     if (!bombardeador.isAlive || bombardeador.isAlly) return;
     if (!bombardeador.canCreateBombs) return;
+    
+    // SEGURANÇA: Bombardeador não pode armar bomba em sala que requer voo!
+    const currentRoom = GameState.rooms[bombardeador.location];
+    if (currentRoom && currentRoom.requiresFlight) return;
     
     // Checar cooldown (GRANDE - 60 minutos de jogo = 12 turnos)
     const timeSinceLast = GameState.time - bombardeador.lastBombCreation;
@@ -4074,8 +4094,14 @@ const Game = {
 
   // Posicionar personagens e itens
   setupPositions: function() {
-    // Salas disponíveis para randomização (exceto teto_masp)
-    const availableRooms = Object.keys(GameState.rooms).filter(r => r !== 'teto_masp');
+    // Salas que NÃO requerem voo (para itens e personagens terrestres)
+    const groundRooms = Object.keys(GameState.rooms).filter(r => 
+      r !== 'teto_masp' && 
+      GameState.rooms[r].requiresFlight !== true
+    );
+    
+    // Todas as salas exceto teto_masp (para personagens que voam)
+    const flyingRooms = Object.keys(GameState.rooms).filter(r => r !== 'teto_masp');
     
     // Posições fixas
     GameState.characters.player.location = 'masp';
@@ -4089,15 +4115,18 @@ const Game = {
     // LIVRO sempre na LIVRARIA
     GameState.items.livro.location = 'livraria';
     
-    // Randomizar outros personagens
+    // Randomizar personagens RESPEITANDO canFly
     ['aguia', 'bombardeador', 'coruja', 'cachorro'].forEach(charId => {
-      GameState.characters[charId].location = Utils.randomChoice(availableRooms);
+      const char = GameState.characters[charId];
+      // Se pode voar, pode ir em qualquer sala; se não, só groundRooms
+      const validRooms = char.canFly ? flyingRooms : groundRooms;
+      char.location = Utils.randomChoice(validRooms);
     });
     
-    // Randomizar outros itens (exceto livro e bomba que não começa no mundo)
+    // Randomizar itens (SEMPRE em groundRooms - itens não voam!)
     const itemsToPlace = Object.keys(GameState.items).filter(i => i !== 'livro' && i !== 'bomba');
     itemsToPlace.forEach(itemId => {
-      GameState.items[itemId].location = Utils.randomChoice(availableRooms);
+      GameState.items[itemId].location = Utils.randomChoice(groundRooms);
     });
     
     // Bomba começa sem localização (criada pelo Bombardeador)
