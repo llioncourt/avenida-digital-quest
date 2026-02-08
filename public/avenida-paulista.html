@@ -988,11 +988,10 @@
       position: absolute;
       width: 90%;
       left: 5%;
-      bottom: 0;
-      /* Transformação 3D para simular inclinação */
+      top: 100%; /* Começar ABAIXO da viewport */
       transform-style: preserve-3d;
-      transform: rotateX(45deg) translateZ(0); /* Mais inclinado */
-      transform-origin: 50% 100%; /* Origem na base */
+      transform: rotateX(45deg);
+      transform-origin: 50% 0%; /* Origem no topo do elemento */
       animation: star-wars-crawl 60s linear forwards;
       text-align: center;
       color: var(--accent-gold);
@@ -1014,11 +1013,11 @@
 
     @keyframes star-wars-crawl {
       0% { 
-        transform: rotateX(45deg) translateY(0);
+        top: 100%; /* Começa fora (abaixo) */
         opacity: 1;
       }
       100% { 
-        transform: rotateX(45deg) translateY(-300vh);
+        top: -200%; /* Vai para cima até sumir */
         opacity: 1;
       }
     }
@@ -2778,6 +2777,15 @@ const Actions = {
     }
     
     const result = handler(targetItemId);
+    
+    // Se consumed for true, remover do inventário
+    if (result.consumed) {
+      const idx = GameState.playerInventory.indexOf(itemId);
+      if (idx !== -1) {
+        GameState.playerInventory.splice(idx, 1);
+      }
+    }
+    
     result.advanceTime = result.success;
     return result;
   },
@@ -2919,6 +2927,16 @@ const Events = {
     // EXPLOSÃO!
     const bombLocation = GameState.armedBomb.location;
     const roomName = GameState.rooms[bombLocation].name;
+    
+    // COLETAR o que havia na sala ANTES de destruir
+    const itemsInRoom = Object.values(GameState.items)
+      .filter(item => item.location === bombLocation && !item.isDestroyed)
+      .map(item => item.name);
+    
+    const charsInRoom = Object.values(GameState.characters)
+      .filter(char => char.location === bombLocation && char.isAlive && char.id !== 'player')
+      .map(char => char.name);
+    
     const victims = [];
     
     // Matar TODOS os personagens no local (incluindo player e aliados)
@@ -2940,13 +2958,36 @@ const Events = {
     
     GameState.armedBomb = null;
     
-    // Som de explosão
+    // Som de explosão + FLASH laranja
     SoundSystem.playExplosion();
+    ScreenEffects.flash('rgba(255, 150, 50, 0.7)');
     
     if (victims.length > 0) {
       Log.add(`💥 BOOM!!! A bomba explodiu em ${roomName}! Vítimas: ${victims.join(', ')}. Tudo foi destruído!`, 'danger');
     } else {
       Log.add(`💥 BOOM!!! A bomba explodiu em ${roomName}! A área foi completamente destruída!`, 'danger');
+    }
+    
+    // Modal de resumo do que foi destruído
+    if (itemsInRoom.length > 0 || charsInRoom.length > 0) {
+      const itemsList = itemsInRoom.length > 0 
+        ? `<p><strong>📦 Itens destruídos:</strong> ${itemsInRoom.join(', ')}</p>` 
+        : '';
+      const charsList = charsInRoom.length > 0 
+        ? `<p><strong>👥 Personagens atingidos:</strong> ${charsInRoom.join(', ')}</p>` 
+        : '';
+      
+      const content = `
+        <p>A bomba explodiu em <strong>${roomName}</strong>!</p>
+        ${itemsList}
+        ${charsList}
+        <button class="btn" onclick="Modals.hide()">Fechar</button>
+      `;
+      
+      // Mostrar após um pequeno delay para o flash
+      setTimeout(() => {
+        Modals.show('💥 EXPLOSÃO!', content);
+      }, 200);
     }
   },
 
