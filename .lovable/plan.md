@@ -1,162 +1,179 @@
 
+# Plano: Correção de Bugs Críticos (Validação Completa)
 
-# Plano: Correções Finais + Explosão com Modal
+## Bugs Identificados na Análise
 
-## Problemas Identificados
-
-1. **Livro não está sumindo ao ser usado**: A função `Actions.useItem()` retorna `consumed: true` mas **ninguém processa esse campo** para remover o item do inventário
-2. **Tela inicial não saiu**: Não existe mais uma "tela inicial" separada - mas o sistema está funcionando corretamente com o intro Star Wars. Preciso confirmar se o usuário quer remover alguma coisa específica
-3. **Text crawl não começa do início**: O CSS atual usa `bottom: 0` e começa de baixo, mas a animação com `translateY(0)` não posiciona o texto abaixo da tela visível. O texto deveria começar **fora da tela** (abaixo) e subir
-4. **Novo pedido**: Flash + modal de resumo quando bomba explodir
+| # | Bug | Gravidade | Causa Raiz |
+|---|-----|-----------|------------|
+| 1 | Text crawl não "entra" (sem efeito 3D) | Média | Animação de `top` não preserva o `transform` durante a transição |
+| 2 | Bombardeador colocando bomba no Céu | Alta | Personagens iniciando em salas que requerem voo |
+| 3 | Itens iniciando no Céu da Cidade | Alta | `availableRooms` não filtra salas especiais |
+| 4 | Largar Asa Delta no céu não mata o jogador | Alta | `dropItem()` não verifica morte por queda |
+| 5 | Personagens sem voo iniciando no Céu | Alta | `setupPositions()` não respeita `canFly` |
 
 ---
 
 ## Correções Técnicas
 
-### 1. Livro Sumindo ao Ser Usado
+### 1. Corrigir Efeito 3D do Text Crawl
 
-**Problema**: A função `Actions.useItem()` retorna o resultado com `consumed: true`, mas esse campo não é processado para remover o item.
-
-**Solução**: Modificar `Actions.useItem()` para processar o campo `consumed`:
-
-```javascript
-// Em Actions.useItem() - após linha 2781
-useItem: function(itemId, targetItemId) {
-  // ... código existente ...
-  
-  const result = handler(targetItemId);
-  
-  // NOVO: Se consumed for true, remover do inventário
-  if (result.consumed) {
-    const idx = GameState.playerInventory.indexOf(itemId);
-    if (idx !== -1) {
-      GameState.playerInventory.splice(idx, 1);
-    }
-  }
-  
-  result.advanceTime = result.success;
-  return result;
-}
-```
-
-### 2. Text Crawl Começando do Início (Fora da Tela)
-
-**Problema**: O texto não começa fora da tela. Com `bottom: 0` e `transform: rotateX(45deg) translateY(0)`, o texto já está visível desde o início.
-
-**Solução**: O texto deve começar **abaixo** da tela visível, e a animação deve movê-lo para cima:
+O problema é que animar `top` não preserva a perspectiva 3D. Precisamos:
+- Usar `translateY` dentro do `transform` na animação
+- Configurar o container com perspective correta
 
 ```css
+#intro-container {
+  position: fixed;
+  inset: 0;
+  background: black;
+  z-index: 10000;
+  overflow: hidden;
+  perspective: 300px;
+  perspective-origin: 50% 100%;
+}
+
 #intro-crawl {
   position: absolute;
   width: 90%;
   left: 5%;
-  top: 100%; /* Começar ABAIXO da viewport */
+  bottom: 0;
   transform-style: preserve-3d;
-  transform: rotateX(45deg);
-  transform-origin: 50% 0%; /* Origem no topo do elemento */
+  transform: rotateX(25deg) translateY(100%);
+  transform-origin: 50% 100%;
   animation: star-wars-crawl 60s linear forwards;
-  /* ... resto igual ... */
+  text-align: center;
+  color: var(--accent-gold);
+  font-size: 1.8rem;
+  line-height: 1.8;
 }
 
 @keyframes star-wars-crawl {
   0% { 
-    top: 100%; /* Começa fora (abaixo) */
+    transform: rotateX(25deg) translateY(100%);
     opacity: 1;
   }
   100% { 
-    top: -200%; /* Vai para cima até sumir */
+    transform: rotateX(25deg) translateY(-300%);
     opacity: 1;
   }
 }
 ```
 
-### 3. Explosão da Bomba: Flash + Modal de Resumo
+### 2. Filtrar Salas na Inicialização (Itens e Personagens)
 
-**Localização**: `Events.processBombTimer()` (linhas 2907-2951)
-
-**Alterações**:
-1. Coletar informações de itens e personagens **antes** de destruí-los
-2. Adicionar flash visual (usar `ScreenEffects.flash()` com cor laranja)
-3. Mostrar modal com resumo do que havia na sala
+No `setupPositions()`, criar duas listas:
+- `groundRooms`: salas que NÃO requerem voo
+- `allRooms`: todas as salas (para personagens que voam)
 
 ```javascript
-processBombTimer: function() {
-  if (!GameState.armedBomb) return;
+setupPositions: function() {
+  // Salas que não requerem voo (para itens e personagens terrestres)
+  const groundRooms = Object.keys(GameState.rooms).filter(r => 
+    r !== 'teto_masp' && 
+    GameState.rooms[r].requiresFlight !== true
+  );
   
-  GameState.armedBomb.turnsLeft--;
+  // Posições fixas
+  GameState.characters.player.location = 'masp';
+  GameState.playerLocation = 'masp';
+  GameState.characters.bruxa.location = 'teto_masp';
+  GameState.characters.feiticeiro.location = 'tunel';
+  GameState.characters.demonio.location = null;
+  GameState.characters.demonio.isSummoned = false;
   
-  if (GameState.armedBomb.turnsLeft > 0) {
-    SoundSystem.playBombTick();
-    Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s)...`, 'warning');
-    return;
-  }
+  // LIVRO sempre na LIVRARIA
+  GameState.items.livro.location = 'livraria';
   
-  // EXPLOSÃO!
-  const bombLocation = GameState.armedBomb.location;
-  const roomName = GameState.rooms[bombLocation].name;
-  
-  // NOVO: Coletar o que havia na sala ANTES de destruir
-  const itemsInRoom = Object.values(GameState.items)
-    .filter(item => item.location === bombLocation && !item.isDestroyed)
-    .map(item => item.name);
-  
-  const charsInRoom = Object.values(GameState.characters)
-    .filter(char => char.location === bombLocation && char.isAlive && char.id !== 'player')
-    .map(char => char.name);
-  
-  const victims = [];
-  
-  // Matar todos...
-  Object.values(GameState.characters).forEach(char => {
-    if (char.location === bombLocation && char.isAlive) {
-      char.hp = 0;
-      char.isAlive = false;
-      victims.push(char.name);
-    }
+  // Randomizar personagens respeitando canFly
+  ['aguia', 'bombardeador', 'coruja', 'cachorro'].forEach(charId => {
+    const char = GameState.characters[charId];
+    // Se pode voar, pode ir em qualquer sala; se não, só groundRooms
+    const validRooms = char.canFly ? Object.keys(GameState.rooms).filter(r => r !== 'teto_masp') : groundRooms;
+    char.location = Utils.randomChoice(validRooms);
   });
   
-  // Destruir itens...
-  Object.values(GameState.items).forEach(item => {
-    if (item.location === bombLocation) {
-      item.location = null;
-      item.isDestroyed = true;
-    }
+  // Randomizar itens (SEMPRE em groundRooms - itens não voam!)
+  const itemsToPlace = Object.keys(GameState.items).filter(i => i !== 'livro' && i !== 'bomba');
+  itemsToPlace.forEach(itemId => {
+    GameState.items[itemId].location = Utils.randomChoice(groundRooms);
   });
   
-  GameState.armedBomb = null;
+  // Bomba começa sem localização
+  GameState.items.bomba.location = null;
+  GameState.items.bomba.isDestroyed = false;
+}
+```
+
+### 3. Morte ao Largar Asa Delta no Céu
+
+No `dropItem()`, adicionar verificação especial:
+
+```javascript
+dropItem: function(itemId) {
+  if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
   
-  // Som e FLASH
-  SoundSystem.playExplosion();
-  ScreenEffects.flash('rgba(255, 150, 50, 0.7)'); // Flash laranja
-  
-  // Log
-  if (victims.length > 0) {
-    Log.add(`💥 BOOM!!! Explosão em ${roomName}! Vítimas: ${victims.join(', ')}!`, 'danger');
-  } else {
-    Log.add(`💥 BOOM!!! Explosão em ${roomName}!`, 'danger');
+  const idx = GameState.playerInventory.indexOf(itemId);
+  if (idx === -1) {
+    return { success: false, message: 'Você não tem este item!' };
   }
   
-  // NOVO: Modal de resumo do que foi destruído
-  if (itemsInRoom.length > 0 || charsInRoom.length > 0) {
-    const itemsList = itemsInRoom.length > 0 
-      ? `<p><strong>📦 Itens destruídos:</strong> ${itemsInRoom.join(', ')}</p>` 
-      : '';
-    const charsList = charsInRoom.length > 0 
-      ? `<p><strong>👥 Personagens atingidos:</strong> ${charsInRoom.join(', ')}</p>` 
-      : '';
+  const room = GameState.rooms[GameState.playerLocation];
+  const item = GameState.items[itemId];
+  
+  // MORTE: Largar asa delta enquanto está voando no céu!
+  if (itemId === 'asa_delta' && room.requiresFlight) {
+    GameState.playerInventory.splice(idx, 1);
+    item.location = null; // Asa delta também cai
     
-    const content = `
-      <p>A bomba explodiu em <strong>${roomName}</strong>!</p>
-      ${itemsList}
-      ${charsList}
-      <button class="btn" onclick="Modals.hide()">Fechar</button>
-    `;
+    // Jogador morre!
+    const player = GameState.characters.player;
+    player.hp = 0;
+    player.isAlive = false;
     
-    // Mostrar após um pequeno delay para o flash
-    setTimeout(() => {
-      Modals.show('💥 EXPLOSÃO!', content);
-    }, 200);
+    return {
+      success: true,
+      message: 'Você solta a ASA DELTA... e imediatamente começa a cair! Sem nada para te sustentar, você despenca até o chão. VOCÊ MORREU!',
+      advanceTime: true
+    };
   }
+  
+  // Se a sala não permite itens, o item é destruído!
+  if (room.mayHaveItems === false) {
+    GameState.playerInventory.splice(idx, 1);
+    item.location = null;
+    return {
+      success: true,
+      message: `Você solta ${item.name}... e ele despenca do céu! O item foi destruído ao atingir o solo lá embaixo!`,
+      advanceTime: true
+    };
+  }
+  
+  GameState.playerInventory.splice(idx, 1);
+  item.location = GameState.playerLocation;
+  
+  return {
+    success: true,
+    message: `Você largou ${item.name}.`,
+    advanceTime: true
+  };
+}
+```
+
+### 4. Bombardeador Não Pode Armar Bomba em Sala que Requer Voo
+
+Adicionar verificação em `processBombardeadorBombs()`:
+
+```javascript
+processBombardeadorBombs: function() {
+  const bombardeador = GameState.characters.bombardeador;
+  if (!bombardeador.isAlive || bombardeador.isAlly) return;
+  if (!bombardeador.canCreateBombs) return;
+  
+  // Não armar bomba se estiver em sala que requer voo (bug safety)
+  const currentRoom = GameState.rooms[bombardeador.location];
+  if (currentRoom && currentRoom.requiresFlight) return;
+  
+  // ... resto do código igual ...
 }
 ```
 
@@ -166,13 +183,25 @@ processBombTimer: function() {
 
 | Arquivo | Alterações |
 |---------|------------|
-| `public/avenida-paulista.html` | 3 correções |
+| `public/avenida-paulista.html` | 4 correções |
 
 ---
 
 ## Ordem de Implementação
 
-1. Corrigir `Actions.useItem()` para processar `consumed`
-2. Corrigir CSS do text crawl para começar fora da tela
-3. Modificar `Events.processBombTimer()` para flash + modal de resumo
+1. Corrigir `setupPositions()` - filtrar salas por `requiresFlight` e `canFly`
+2. Corrigir `dropItem()` - morte ao largar asa delta no céu
+3. Corrigir `processBombardeadorBombs()` - verificação de segurança
+4. Corrigir CSS do text crawl - usar `translateY` na animação com perspectiva
 
+---
+
+## Validação Pós-Implementação
+
+Após as correções, verificar:
+- [ ] Itens NUNCA aparecem no Céu da Cidade no início
+- [ ] Bombardeador e Cachorro NUNCA aparecem no Céu da Cidade
+- [ ] Águia e Coruja PODEM aparecer no Céu (eles voam)
+- [ ] Largar Asa Delta no céu = morte imediata
+- [ ] Text crawl tem efeito de "entrar na tela" com perspectiva 3D
+- [ ] Bomba só é armada em salas terrestres
