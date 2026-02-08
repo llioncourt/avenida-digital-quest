@@ -1,60 +1,76 @@
 
-# Plano: Remover Landing Page e Corrigir Intro Crawl 3D
+## Plano: Atualizar Hipnodisco para Impedir Hipnotização de Aliados
 
-## Objetivo
-- Remover a página de landing (Index.tsx) da rota "/"
-- Redirecionar automaticamente para /avenida-paulista.html 
-- Corrigir o Intro/Text Crawl para ter efeito 3D real (transform + Z-axis, não animação de top)
-- Nada mais, focado e cirúrgico
+### Status Atual
+A função `hipnodisco` já inclui um filtro `!c.isAlly` na linha 2545 que previne hipnotizar aliados. No entanto, é importante garantir que:
 
-## Mudanças Necessárias
+1. Aliados criados por outras rotas (ex: animação de itens com Hipnodisco → criação de novo aliado) nunca possam ser hipnotizados novamente
+2. O atributo `immuneToHypnosis` seja exclusivo para Bruxa e Demônio
+3. A lógica seja clara e defensiva contra edge cases
 
-### 1. src/pages/Index.tsx - Remover Landing, Implementar Redirect
-**Localização**: Linhas 1-22
-**Mudança**: Transformar em componente que redireciona automaticamente para /avenida-paulista.html
-- Adicionar `useEffect` que dispara na montagem
-- Usar `window.location.replace('/avenida-paulista.html')` para redirecionar sem histórico
-- Componente retorna `null` (nada para renderizar)
+### Mudanças Necessárias
 
-**Resultado**: Acessar "/" agora leva direto ao jogo, sem tela intermediária
+**Arquivo**: `public/avenida-paulista.html`
 
-### 2. public/avenida-paulista.html - Corrigir CSS do Crawl (3D Real)
-**Seção**: Lines 992-1006 (#intro-crawl CSS)
-**Mudança**: 
-- Remover `top: 100%` 
-- Remover `transform: rotateX(25deg)` e `transform-origin: 50% 0%`
-- Deixar apenas `bottom: 0` para ancoragem base
-- A animação via `@keyframes` será responsável pelo `transform` completo
+#### 1. Adicionar `immuneToHypnosis: true` ao Demônio e Bruxa
+- **Demônio** (linha ~1482-1495): Adicionar `immuneToHypnosis: true`
+- **Bruxa** (linha ~1468-1481): Adicionar `immuneToHypnosis: true`
 
-**Seção**: Lines 1020-1032 (@keyframes star-wars-crawl)
-**Mudança**: Substituir animação de `top` por animação de `transform` com Z-axis
-- **0%**: `transform: rotateX(28deg) translateY(80vh) translateZ(0)` (começa visível, abaixo da tela)
-- **100%**: `transform: rotateX(28deg) translateY(-400vh) translateZ(-1200px)` (sobe e "entra" com profundidade)
-- Isso cria o efeito real de "entrar na tela" com perspectiva 3D (Star Wars)
+**Motivo**: Criar uma camada adicional de proteção explícita. Mesmo que a lógica de aliados proteja na prática, este atributo deixa a intenção clara no código: "estes bosses não podem NUNCA ser hipnotizados".
 
-### 3. public/avenida-paulista.html - Melhorar IntroSystem.init()
-**Seção**: Lines 4542-4576 (IntroSystem.init)
-**Mudanças**:
-- Adicionar `crawl.style.animation = 'none'` antes do `offsetHeight` para garantir reset
-- Aumentar duração para `60s` (ajustado para o novo keyframe que vai de 80vh até -400vh)
-- Melhorar o listener: usar `once: true` ou remover o listener após disparar (evitar múltiplas execuções)
-- Aumentar safetyTimeout para `65000ms` (alinhado com a duração de 60s + margem)
+#### 2. Melhorar Filtro no `hipnodisco`
+**Função** (linha ~2544-2546):
 
-**Resultado**: Animação sempre começa do frame 0 e termina de forma confiável
+Atual:
+```javascript
+Object.values(GameState.characters).forEach(c => {
+  if (c.id !== 'player' && c.id !== 'feiticeiro' && c.location === playerRoom && c.isAlive && !c.isAlly) {
+    targets.push({ type: 'enemy', id: c.id, name: `⚔️ ${c.name} (hipnotizar)` });
+  }
+});
+```
 
-## Por Que Essas Mudanças Funcionam
+Novo (adicionar verificação de `immuneToHypnosis`):
+```javascript
+Object.values(GameState.characters).forEach(c => {
+  if (c.id !== 'player' && c.id !== 'feiticeiro' && 
+      c.location === playerRoom && c.isAlive && !c.isAlly &&
+      !c.immuneToHypnosis) {  // Novo: bloquear imunes
+    targets.push({ type: 'enemy', id: c.id, name: `⚔️ ${c.name} (hipnotizar)` });
+  }
+});
+```
 
-| Problema | Solução | Por Quê |
-|----------|---------|--------|
-| Landing page aparece | Redirect em useEffect | O "/" redireciona antes de renderizar React |
-| Crawl não tem profundidade | Transform com Z-axis | `translateZ(-1200px)` cria recuo real em perspectiva |
-| Crawl parece "parado" por segundos | Começar em `80vh` (visível) | Texto aparece rapidamente em vez de fora da tela |
-| Crawl pode não terminar | Reset + safetyTimeout | Garante que animation sempre rodar do início e tem fallback |
+#### 3. Defesa Extra: Validação ao Executar (linha ~2590-2610)
+Se o alvo for inimigo, verificar se é imune antes de executar:
 
-## Testes Pós-Implementação
-1. ✅ Abrir "/" → deve redirecionar para /avenida-paulista.html (sem parar na landing)
-2. ✅ Crawl aparece em ~1-2s
-3. ✅ Crawl tem efeito "entrar" (recuo em perspectiva, não só sobe)
-4. ✅ Botão PULAR funciona sempre
-5. ✅ Ao terminar, intro some e jogo aparece (sem travar)
-6. ✅ Recarregar página 3x e verificar que funciona toda vez (determinístico)
+```javascript
+const enemy = GameState.characters[targetId];
+if (enemy && enemy.location === playerRoom && enemy.isAlive && !enemy.isAlly) {
+  // Defesa em profundidade
+  if (enemy.immuneToHypnosis) {
+    return {
+      success: false,
+      message: `O HIPNODISCO gira, mas ${enemy.name} resiste! Sua mente é forte demais para ser controlada!`,
+      consumed: false
+    };
+  }
+  // ... resto da lógica de hipnotizar
+}
+```
+
+### Por Que Essas Mudanças Funcionam
+
+| Cenário | Proteção |
+|---------|----------|
+| Bruxa/Demônio aparecem no início | `immuneToHypnosis: true` os protege |
+| Alguém tentar hipnotizar um aliado | `!c.isAlly` filtra na coleta de alvos |
+| Bruxa/Demônio se tornarem aliados (futuro) | `immuneToHypnosis` ainda previne hipnose |
+| Bug raro: inimigo com `isAlly=true` mas não é aliado | A defesa dupla captura |
+
+### Testes Pós-Implementação
+1. ✅ Hipnodisco com Bruxa na mesma sala → não aparece opção de hipnotizá-la
+2. ✅ Hipnodisco com Demônio (se summonado) → não aparece opção de hipnotizá-lo
+3. ✅ Hipnodisco em aliado qualquer → não aparece opção
+4. ✅ Se bug/hack tentar usar em Bruxa/Demônio → mensagem de resistência, item não consumido
+5. ✅ Hipnodisco continua funcionando em Bombardeador, Cachorro, Águia, etc.
