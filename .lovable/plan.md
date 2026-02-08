@@ -1,207 +1,157 @@
 
-# Plano: Correção de Bugs Críticos (Validação Completa)
+Objetivo
+- Fazer uma validação “de ponta a ponta” do jogo (especialmente Intro/Text Crawl e regras do “Céu da Cidade”), identificar causas raiz, e aplicar correções que eliminem regressões recorrentes.
+- Reduzir retrabalho: criar “cintos de segurança” no runtime (sanity checks) para que, mesmo que um bug apareça em algum fluxo raro, o jogo se auto-corrija e registre o ocorrido no log.
 
-## Bugs Identificados na Análise
+Constatações (análise do código atual)
+1) Intro/Text crawl “não faz nada” (causa raiz provável: animação começa cedo + início invisível por muito tempo)
+- O elemento #intro-crawl já nasce com `animation: star-wars-crawl 60s ...` definido no CSS.
+- O conteúdo do texto só é inserido em `IntroSystem.init()` (DOMContentLoaded).
+- Resultado: a animação pode estar rodando “em branco” antes do innerHTML existir; quando o texto entra, ele já está em um ponto da animação (ou até fora da tela).
+- Além disso, com o estado atual:
+  - `bottom: 0` + `translateY(100%)` deixa o texto totalmente fora da viewport no início.
+  - Ele só “entra” depois de uma fração grande da duração (em muitos casos, parece travado/inexistente por vários segundos).
+- Dependendo de timing/render, `animationend` pode não disparar como esperado (listener é adicionado depois da animação já ter começado; e se a animação não rodar como previsto, o overlay nunca sai).
 
-| # | Bug | Gravidade | Causa Raiz |
-|---|-----|-----------|------------|
-| 1 | Text crawl não "entra" (sem efeito 3D) | Média | Animação de `top` não preserva o `transform` durante a transição |
-| 2 | Bombardeador colocando bomba no Céu | Alta | Personagens iniciando em salas que requerem voo |
-| 3 | Itens iniciando no Céu da Cidade | Alta | `availableRooms` não filtra salas especiais |
-| 4 | Largar Asa Delta no céu não mata o jogador | Alta | `dropItem()` não verifica morte por queda |
-| 5 | Personagens sem voo iniciando no Céu | Alta | `setupPositions()` não respeita `canFly` |
+2) Intro overlay não está isolando o jogo por baixo
+- Pelo que vimos no browser tool, elementos do jogo aparecem “clicáveis” mesmo com o intro presente (isso indica que o overlay não está bloqueando interação ou há alguma condição onde ele não cobre do jeito esperado).
+- Isso cria sensação de “tela inicial não saiu” e também dificulta diagnosticar se o problema é o intro ou o game rodando por trás.
 
----
+3) Regras do “Céu da Cidade” ainda escapam por caminhos alternativos (itens/bomba)
+- A inicialização (Game.setupPositions) já filtra `requiresFlight !== true` para itens e personagens terrestres, o que é bom.
+- Porém existem rotas secundárias que conseguem colocar itens no céu:
+  - `ItemUseHandlers.kit_bomba()` ao desarmar: faz `GameState.items.bomba.location = GameState.playerLocation` sem respeitar `mayHaveItems: false` (no céu deveria “cair e destruir”).
+- Render.updateItems também não filtra `isDestroyed`, e não força a regra `mayHaveItems: false` na UI. Então qualquer item “vazado” para ceu_cidade aparece.
 
-## Correções Técnicas
+4) Bombardeador “colocou bomba no céu” (precisamos tornar impossível, não só improvável)
+- Já existe o guard:
+  - Em `processNPCMovement`: impede NPC sem voo de ir para `requiresFlight`.
+  - Em `processBombardeadorBombs`: impede armar bomba se room.requiresFlight.
+- Se isso ainda ocorreu, a explicação mais provável é:
+  - Ou houve estado inválido em algum momento (bombardeador.location ficou em ceu_cidade por bug/edge-case), ou
+  - A UI/log está reportando/interpretando algo indevidamente.
+- Para acabar com regressões, precisamos de validação contínua: se um personagem terrestre aparecer em sala aérea, o jogo corrige automaticamente e registra no log (isso também economiza créditos porque o problema “não fica feio” em runtime).
 
-### 1. Corrigir Efeito 3D do Text Crawl
+5) “Tela inicial não saiu”
+- No React (rota “/”) ainda existe a landing page (src/pages/Index.tsx) com botão “JOGAR” para /avenida-paulista.html.
+- Se a expectativa é abrir direto o jogo, precisamos redirecionar automaticamente (sem tela intermediária).
 
-O problema é que animar `top` não preserva a perspectiva 3D. Precisamos:
-- Usar `translateY` dentro do `transform` na animação
-- Configurar o container com perspective correta
+Lista completa de correções propostas (implementação)
+Arquivos
+- Principal: public/avenida-paulista.html
+- Opcional (para remover a landing): src/pages/Index.tsx (ou ajuste de rotas no src/App.tsx)
 
-```css
-#intro-container {
-  position: fixed;
-  inset: 0;
-  background: black;
-  z-index: 10000;
-  overflow: hidden;
-  perspective: 300px;
-  perspective-origin: 50% 100%;
-}
+A) Tornar o Intro/Text Crawl determinístico e “visível desde o começo”
+1. Não deixar a animação iniciar automaticamente via CSS
+- Remover a animação “fixa” do CSS do #intro-crawl e iniciar via JS depois de inserir o texto.
+- Abordagem segura:
+  - CSS: `#intro-crawl { animation: none; }`
+  - JS (IntroSystem.init):
+    - Inserir innerHTML do texto
+    - Forçar restart da animação:
+      - `crawl.style.animation = 'none'`
+      - `crawl.offsetHeight` (force reflow)
+      - `crawl.style.animation = 'star-wars-crawl 60s linear forwards'`
+2. Ajustar o início para não ficar “invisível” por muitos segundos
+- Trocar o keyframe inicial de translateY(100%) para algo que apareça rápido:
+  - Ex.: iniciar em translateY(10%/20%) ou usar valores em vh/px mais previsíveis.
+- Para recuperar o “entra” (profundidade), adicionar componente de Z:
+  - Ex.: `translate3d(0, Y, 0)` -> `translate3d(0, Yfinal, -1200px)`
+3. Fallback de término (se animationend falhar)
+- Iniciar um timer de segurança em IntroSystem.init (duration + margem).
+- No finish (animationend ou timer), chamar IntroSystem.complete() e limpar o timer.
+4. Isolar o intro do game por baixo
+- Enquanto intro estiver ativo:
+  - esconder o game container (ex.: `#game-container { visibility: hidden; }` ou classe `intro-active`)
+  - ou bloquear pointer events do game.
+- Ao skip/complete:
+  - mostrar o game container novamente.
 
-#intro-crawl {
-  position: absolute;
-  width: 90%;
-  left: 5%;
-  bottom: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(25deg) translateY(100%);
-  transform-origin: 50% 100%;
-  animation: star-wars-crawl 60s linear forwards;
-  text-align: center;
-  color: var(--accent-gold);
-  font-size: 1.8rem;
-  line-height: 1.8;
-}
+B) “World Sanity” (validação contínua para evitar regressões)
+Criar um módulo leve no próprio HTML (ex.: WorldSanity / Validators) e chamar:
+- Depois de Game.setupPositions() (no init)
+- No início e/ou fim de Events.advanceTime()
+Regras a impor:
+1. Personagem sem voo nunca pode estar em sala `requiresFlight: true`
+- Se detectar (ex.: bombardeador, cachorro, feiticeiro, etc):
+  - mover automaticamente para uma sala terrestre aleatória (groundRooms)
+  - registrar no Log como correção automática (tipo warning)
+2. Nenhum item pode permanecer em sala com `mayHaveItems === false` (como ceu_cidade)
+- Se detectar item.location em ceu_cidade:
+  - `item.location = null; item.isDestroyed = true`
+  - registrar no Log que caiu do céu e foi destruído
+3. Bombas:
+- Se `GameState.armedBomb.location` cair em sala aérea (por qualquer motivo):
+  - cancelar/desarmar e registrar no Log (ou explodir imediatamente, dependendo do design; vou propor desarmar para evitar “soft lock”)
+- Se `GameState.items.bomba.location` estiver em sala aérea:
+  - destruir (mesma regra de itens)
 
-@keyframes star-wars-crawl {
-  0% { 
-    transform: rotateX(25deg) translateY(100%);
-    opacity: 1;
-  }
-  100% { 
-    transform: rotateX(25deg) translateY(-300%);
-    opacity: 1;
-  }
-}
-```
+C) Fechar o “vazamento” do kit_bomba no céu
+- Em ItemUseHandlers.kit_bomba(), após desarmar:
+  - Se a sala atual tiver `mayHaveItems === false`:
+    - a bomba “cai”: setar `location=null` e `isDestroyed=true`
+    - mensagem especial no log/modal (“ao soltar no céu, é destruída ao atingir o solo”)
+  - Caso contrário, pode continuar deixando no chão como hoje.
 
-### 2. Filtrar Salas na Inicialização (Itens e Personagens)
+D) Render mais defensivo (para não “mostrar lixo”)
+- Render.updateItems():
+  - filtrar `!item.isDestroyed`
+  - se a sala atual tem `mayHaveItems === false`, sempre mostrar “Nenhum item aqui” (e opcionalmente disparar uma sanitização imediata)
+Isso reduz muito a chance de o usuário “ver item no céu” mesmo que algo dê errado.
 
-No `setupPositions()`, criar duas listas:
-- `groundRooms`: salas que NÃO requerem voo
-- `allRooms`: todas as salas (para personagens que voam)
+E) Harden do Bombardeador (dupla proteção)
+- Manter o guard atual (requiresFlight) em processBombardeadorBombs.
+- Adicionar:
+  - Se bombardeador.location for inválida (null/undefined) ou sala aérea, corrigir (teleport) antes de qualquer lógica.
+  - Se por algum motivo armou bomba em local inválido, WorldSanity também corrige.
 
-```javascript
-setupPositions: function() {
-  // Salas que não requerem voo (para itens e personagens terrestres)
-  const groundRooms = Object.keys(GameState.rooms).filter(r => 
-    r !== 'teto_masp' && 
-    GameState.rooms[r].requiresFlight !== true
-  );
-  
-  // Posições fixas
-  GameState.characters.player.location = 'masp';
-  GameState.playerLocation = 'masp';
-  GameState.characters.bruxa.location = 'teto_masp';
-  GameState.characters.feiticeiro.location = 'tunel';
-  GameState.characters.demonio.location = null;
-  GameState.characters.demonio.isSummoned = false;
-  
-  // LIVRO sempre na LIVRARIA
-  GameState.items.livro.location = 'livraria';
-  
-  // Randomizar personagens respeitando canFly
-  ['aguia', 'bombardeador', 'coruja', 'cachorro'].forEach(charId => {
-    const char = GameState.characters[charId];
-    // Se pode voar, pode ir em qualquer sala; se não, só groundRooms
-    const validRooms = char.canFly ? Object.keys(GameState.rooms).filter(r => r !== 'teto_masp') : groundRooms;
-    char.location = Utils.randomChoice(validRooms);
-  });
-  
-  // Randomizar itens (SEMPRE em groundRooms - itens não voam!)
-  const itemsToPlace = Object.keys(GameState.items).filter(i => i !== 'livro' && i !== 'bomba');
-  itemsToPlace.forEach(itemId => {
-    GameState.items[itemId].location = Utils.randomChoice(groundRooms);
-  });
-  
-  // Bomba começa sem localização
-  GameState.items.bomba.location = null;
-  GameState.items.bomba.isDestroyed = false;
-}
-```
+F) Remover “tela inicial” do React (se a expectativa é abrir direto no jogo)
+Opção 1 (simples e efetiva)
+- Em src/pages/Index.tsx: redirect automático para /avenida-paulista.html via useEffect + window.location.replace.
+Resultado: acessou “/”, já cai no jogo; não tem tela intermediária.
+Opção 2
+- Ajustar rotas do App para servir o HTML diretamente (menos comum no stack atual).
 
-### 3. Morte ao Largar Asa Delta no Céu
+Plano de testes (o que eu vou executar após implementar)
+1) Smoke test do Intro
+- Abrir /avenida-paulista.html
+- Verificar:
+  - texto aparece rapidamente (em 1–2s no máximo)
+  - movimento “para dentro” (recedendo) perceptível por Z/perspective
+  - botão PULAR funciona sempre
+  - ao terminar (animationend ou timer), intro sai e Game.init roda (sem ficar preso)
+2) Teste de isolamento
+- Durante o intro, garantir que não dá para clicar em saídas/itens do jogo por baixo.
+3) Teste de spawn (repetição)
+- Recarregar a página múltiplas vezes e verificar:
+  - nunca há itens no ceu_cidade no início
+  - bombardeador e cachorro nunca aparecem no ceu_cidade
+4) Teste do “asa_delta drop = morte”
+- Conseguir asa_delta, ir para ceu_cidade, largar asa_delta:
+  - morte imediata
+  - modal de fim de jogo aparece
+5) Teste de bomba/kit_bomba no céu
+- Forçar cenário onde bomba é desarmada no céu (se possível) e verificar que:
+  - bomba é destruída (não fica como item no ceu_cidade)
+6) Teste de regressão do bombardeador
+- Jogar alguns turnos (movimento/tempo) e confirmar que:
+  - não arma bomba em ceu_cidade
+  - se qualquer estado inválido ocorrer, o log acusa “correção automática” e o jogo se mantém consistente
+7) Console
+- Confirmar sem erros no console (principalmente relacionados a IntroSystem e animação)
 
-No `dropItem()`, adicionar verificação especial:
+Entrega (resultado esperado)
+- Intro/text crawl sempre aparece e sempre termina (sem “travamentos”).
+- Céu da Cidade vira uma regra “impossível de quebrar”:
+  - itens não persistem lá
+  - personagens terrestres não ficam lá
+  - bombardeador não arma bomba lá, mesmo em caso de estado corrompido
+- Menos iterações para corrigir bugs: o próprio jogo denuncia e corrige inconsistências, evitando regressões “feias”.
 
-```javascript
-dropItem: function(itemId) {
-  if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
-  
-  const idx = GameState.playerInventory.indexOf(itemId);
-  if (idx === -1) {
-    return { success: false, message: 'Você não tem este item!' };
-  }
-  
-  const room = GameState.rooms[GameState.playerLocation];
-  const item = GameState.items[itemId];
-  
-  // MORTE: Largar asa delta enquanto está voando no céu!
-  if (itemId === 'asa_delta' && room.requiresFlight) {
-    GameState.playerInventory.splice(idx, 1);
-    item.location = null; // Asa delta também cai
-    
-    // Jogador morre!
-    const player = GameState.characters.player;
-    player.hp = 0;
-    player.isAlive = false;
-    
-    return {
-      success: true,
-      message: 'Você solta a ASA DELTA... e imediatamente começa a cair! Sem nada para te sustentar, você despenca até o chão. VOCÊ MORREU!',
-      advanceTime: true
-    };
-  }
-  
-  // Se a sala não permite itens, o item é destruído!
-  if (room.mayHaveItems === false) {
-    GameState.playerInventory.splice(idx, 1);
-    item.location = null;
-    return {
-      success: true,
-      message: `Você solta ${item.name}... e ele despenca do céu! O item foi destruído ao atingir o solo lá embaixo!`,
-      advanceTime: true
-    };
-  }
-  
-  GameState.playerInventory.splice(idx, 1);
-  item.location = GameState.playerLocation;
-  
-  return {
-    success: true,
-    message: `Você largou ${item.name}.`,
-    advanceTime: true
-  };
-}
-```
+Observação sobre “validar tudo”
+- O código é um HTML monolítico com muitos sistemas (som, minimapa, eventos, render). Em vez de tentar “achar manualmente” cada bug a cada rodada, o ganho real aqui vem de:
+  1) corrigir a causa raiz do Intro (timing/restart)
+  2) adicionar validação contínua (WorldSanity) para impedir que qualquer bug futuro quebre as regras básicas do mundo
+Isso é o que vai parar de “gastar créditos à toa”.
 
-### 4. Bombardeador Não Pode Armar Bomba em Sala que Requer Voo
-
-Adicionar verificação em `processBombardeadorBombs()`:
-
-```javascript
-processBombardeadorBombs: function() {
-  const bombardeador = GameState.characters.bombardeador;
-  if (!bombardeador.isAlive || bombardeador.isAlly) return;
-  if (!bombardeador.canCreateBombs) return;
-  
-  // Não armar bomba se estiver em sala que requer voo (bug safety)
-  const currentRoom = GameState.rooms[bombardeador.location];
-  if (currentRoom && currentRoom.requiresFlight) return;
-  
-  // ... resto do código igual ...
-}
-```
-
----
-
-## Arquivo a Modificar
-
-| Arquivo | Alterações |
-|---------|------------|
-| `public/avenida-paulista.html` | 4 correções |
-
----
-
-## Ordem de Implementação
-
-1. Corrigir `setupPositions()` - filtrar salas por `requiresFlight` e `canFly`
-2. Corrigir `dropItem()` - morte ao largar asa delta no céu
-3. Corrigir `processBombardeadorBombs()` - verificação de segurança
-4. Corrigir CSS do text crawl - usar `translateY` na animação com perspectiva
-
----
-
-## Validação Pós-Implementação
-
-Após as correções, verificar:
-- [ ] Itens NUNCA aparecem no Céu da Cidade no início
-- [ ] Bombardeador e Cachorro NUNCA aparecem no Céu da Cidade
-- [ ] Águia e Coruja PODEM aparecer no Céu (eles voam)
-- [ ] Largar Asa Delta no céu = morte imediata
-- [ ] Text crawl tem efeito de "entrar na tela" com perspectiva 3D
-- [ ] Bomba só é armada em salas terrestres
+Se você aprovar este plano, eu implemento essas mudanças de uma vez (principalmente em public/avenida-paulista.html) e faço a rodada de smoke tests no preview para confirmar os pontos acima.
