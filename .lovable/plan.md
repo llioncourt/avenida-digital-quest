@@ -1,23 +1,37 @@
 
 
-# Restaurar Icones de Musica e Som
+# Mover Icones de Audio para o Card de Log
 
 **Arquivo**: `public/avenida-paulista.html`
 
-## Problema
+## O que sera feito
 
-O `overflow: hidden` adicionado ao `#header` (linha 65) esta cortando os botoes de audio (musica e efeitos sonoros) que ficam no final da linha flex. Como o card usa `flex-wrap: nowrap`, o conteudo que nao cabe e simplesmente escondido.
+Os botoes de musica (🎵) e efeitos sonoros (🔊) serao movidos do card de status (#header) para o canto superior direito do card de log (#log-panel), conforme indicado na imagem de referencia.
 
-## Solucao
+## Mudancas
 
-**Mudancas CSS no `#header` (~linha 55-68):**
-- Remover `overflow: hidden`
-- Adicionar `overflow: visible` (ou simplesmente remover a propriedade)
-- Manter `flex-wrap: nowrap` para o card nao crescer em altura
-- Adicionar `min-width: 0` no `#stats` para que ele encolha se necessario, em vez de empurrar os botoes para fora
+### 1. HTML: Mover botoes para o log-panel (~linha 1163-1165)
 
-**Mudancas CSS no `#stats` (~linha 70-76):**
-- Adicionar `min-width: 0` e `overflow: hidden` (apenas no stats, nao no header inteiro)
-- Adicionar `flex: 1` para o stats ocupar o espaco disponivel sem empurrar os botoes
+Transformar o titulo do log-panel em um container flex com o titulo a esquerda e os botoes de audio a direita:
 
-Assim o card mantem tamanho fixo (nao quebra linha) mas os botoes de audio permanecem visiveis.
+```html
+<div id="log-panel">
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <h3 class="section-title" style="margin:0; border:none; padding:0;">Avenida Paulista</h3>
+    <div style="display:flex; gap:0.3rem; flex-shrink:0;">
+      <button id="sound-toggle" ...>🔊</button>
+      <button id="music-toggle" ...>🎵</button>
+    </div>
+  </div>
+  <div id="log-container" ...></div>
+</div>
+```
+
+### 2. HTML: Remover botoes do card de status (~linha 1237-1244)
+
+Remover o wrapper flex e os dois botoes de audio que estao atualmente dentro do `#header`.
+
+### 3. Nenhuma outra mudanca
+
+Nenhum CSS, JS ou logica do jogo sera alterado. Os IDs `sound-toggle` e `music-toggle` permanecem os mesmos, entao o JS existente continua funcionando.
+
