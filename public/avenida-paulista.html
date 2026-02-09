@@ -1088,10 +1088,6 @@
           <h2 id="location-name">Carregando...</h2>
           <p id="location-description"></p>
           
-          <div id="exits-section">
-            <h3 class="section-title">📍 Saídas</h3>
-            <div class="button-group" id="exits-container"></div>
-          </div>
 
           <div id="items-section">
             <h3 class="section-title">📦 Itens no local</h3>
@@ -3280,7 +3276,7 @@ const Render = {
   update: function() {
     this.updateHeader();
     this.updateLocation();
-    this.updateExits();
+    
     this.updateItems();
     this.updateCharacters();
     this.updateInventory();
@@ -3306,25 +3302,8 @@ const Render = {
     document.getElementById('location-description').textContent = room.description;
   },
 
-  updateExits: function() {
-    const room = GameState.rooms[GameState.playerLocation];
-    const container = document.getElementById('exits-container');
-    
-    const exits = Object.entries(room.exits);
-    if (exits.length === 0) {
-      container.innerHTML = '<span style="color: var(--text-muted)">Não há saídas visíveis...</span>';
-      return;
-    }
-    
-    container.innerHTML = exits.map(([label, roomId]) => {
-      const targetRoom = GameState.rooms[roomId];
-      const needsFlight = targetRoom.requiresFlight;
-      const canGo = Rules.canMoveTo(roomId);
-      const icon = needsFlight ? '🦅 ' : '🚶 ';
-      const disabled = canGo ? '' : 'style="opacity: 0.5; cursor: not-allowed;"';
-      return `<button class="btn btn-exit" onclick="Game.move('${roomId}')" ${disabled}>${icon}${label}</button>`;
-    }).join('');
-  },
+
+
 
   updateItems: function() {
     const container = document.getElementById('items-container');
