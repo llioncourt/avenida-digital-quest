@@ -632,6 +632,29 @@
       animation: enemy-blink 1s ease-in-out infinite;
     }
 
+    .map-room.has-bomb::after {
+      content: '💣';
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      font-size: 0.6rem;
+      z-index: 25;
+      animation: bomb-pulse 1s ease-in-out infinite;
+    }
+
+    /* Quando tem bomba E inimigo/aliado, bomba fica à esquerda */
+    .map-room.has-bomb.has-enemy::after,
+    .map-room.has-bomb.has-ally::after,
+    .map-room.has-bomb.has-both::after {
+      right: auto;
+      left: -8px;
+    }
+
+    @keyframes bomb-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
     /* Conexões como RUAS da cidade */
     .map-connection {
       position: absolute;
@@ -1150,6 +1173,7 @@
             <div class="legend-item"><div class="legend-dot player"></div>Você</div>
             <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
             <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
+            <div class="legend-item"><span style="font-size:0.6rem">💣</span>Bomba</div>
           </div>
         </aside>
         <!-- Inventário (card separado) -->
@@ -1195,98 +1219,126 @@ const ROOMS_DATA = {
     name: 'Túnel',
     description: 'Um túnel escuro e úmido sob a Avenida Paulista. O eco dos seus passos ressoa nas paredes de concreto. Há um cheiro de mofo e o som distante de água pingando.',
     exits: { 'Nove de Julho Norte': 'nove_julho_norte', 'Nove de Julho Sul': 'nove_julho_sul' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Túnel Desmoronado',
+    ruinDescription: 'O túnel colapsou com a explosão. Escombros e poeira impedem a visão. Pedaços de concreto e ferragens retorcidas bloqueiam parcialmente a passagem.'
   },
   nove_julho_norte: {
     id: 'nove_julho_norte',
     name: 'Nove de Julho Norte',
     description: 'A parte norte da movimentada Avenida Nove de Julho. Prédios comerciais se erguem de ambos os lados. O trânsito está estranhamente silencioso hoje.',
     exits: { 'Distrito Italiano': 'distrito_italiano', 'MASP': 'masp', 'Túnel': 'tunel' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Cratera da Nove de Julho',
+    ruinDescription: 'A explosão abriu uma cratera enorme no asfalto. Prédios comerciais ao redor têm fachadas estilhaçadas e janelas quebradas. Fumaça ainda sobe dos escombros.'
   },
   nove_julho_sul: {
     id: 'nove_julho_sul',
     name: 'Nove de Julho Sul',
     description: 'O trecho sul da Nove de Julho. Lojas e restaurantes alinham as calçadas. Uma estranha névoa paira no ar.',
     exits: { 'Túnel': 'tunel', 'Avenida Santos': 'avenida_santos', 'Avenida Brigadeiro': 'avenida_brigadeiro' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Nove de Julho Sul em Chamas',
+    ruinDescription: 'As lojas e restaurantes foram consumidos pela explosão. Vitrines derretidas e mesas carbonizadas cobrem a calçada. O cheiro de queimado é sufocante.'
   },
   avenida_brigadeiro: {
     id: 'avenida_brigadeiro',
     name: 'Avenida Brigadeiro',
     description: 'Uma avenida larga e arborizada. Os edifícios aqui são mais antigos, com uma arquitetura elegante do início do século XX.',
     exits: { 'Distrito Italiano': 'distrito_italiano', 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Nove de Julho Sul': 'nove_julho_sul' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Brigadeiro Destruída',
+    ruinDescription: 'As árvores centenárias foram arrancadas pela força da explosão. A arquitetura elegante agora é um amontoado de tijolos e ornamentos quebrados.'
   },
   avenida_santos: {
     id: 'avenida_santos',
     name: 'Avenida Santos',
     description: 'Uma rua comercial movimentada. Vitrines exibem produtos variados, mas todas as lojas parecem abandonadas.',
     exits: { 'Nove de Julho Sul': 'nove_julho_sul', 'Rua Augusta': 'rua_augusta' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Avenida Santos Arrasada',
+    ruinDescription: 'As vitrines explodiram para fora, espalhando estilhaços por toda a rua. Manequins derretidos jazem entre os escombros das lojas abandonadas.'
   },
   rua_augusta: {
     id: 'rua_augusta',
     name: 'Rua Augusta',
     description: 'A famosa Rua Augusta, conhecida por sua vida noturna. Grafites coloridos cobrem as paredes. O ar tem um cheiro de liberdade e rebeldia.',
     exits: { 'Shopping': 'shopping', 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Cinema': 'cinema', 'Avenida Santos': 'avenida_santos' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Rua Augusta Devastada',
+    ruinDescription: 'Os grafites coloridos foram cobertos por cinzas e fuligem. As paredes rachadas mal se sustentam. A rebeldia deu lugar à desolação.'
   },
   shopping: {
     id: 'shopping',
     name: 'Shopping',
     description: 'Um shopping center moderno com vários andares. As escadas rolantes estão paradas e as luzes piscam intermitentemente.',
     exits: { 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Rua Augusta': 'rua_augusta' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Ruínas do Shopping',
+    ruinDescription: 'O shopping desabou parcialmente. Escadas rolantes retorcidas pendem entre andares colapsados. Vidro quebrado e concreto cobrem tudo.'
   },
   avenida_paulista_oeste: {
     id: 'avenida_paulista_oeste',
     name: 'Avenida Paulista Oeste',
     description: 'O trecho oeste da icônica Avenida Paulista. Arranha-céus de vidro refletem o céu alaranjado do fim de tarde.',
     exits: { 'Rua Augusta': 'rua_augusta', 'Shopping': 'shopping', 'Avenida Paulista Leste': 'avenida_paulista_leste', 'MASP': 'masp' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Paulista Oeste em Escombros',
+    ruinDescription: 'Os arranha-céus de vidro imploriram, chovendo estilhaços sobre a avenida. Crateras no asfalto e estruturas metálicas retorcidas dominam a paisagem.'
   },
   avenida_paulista_leste: {
     id: 'avenida_paulista_leste',
     name: 'Avenida Paulista Leste',
     description: 'O trecho leste da Avenida Paulista. Bancos e empresas ocupam edifícios imponentes. O silêncio é perturbador.',
     exits: { 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Avenida Brigadeiro': 'avenida_brigadeiro', 'Colégio': 'colegio', 'MASP': 'masp' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Paulista Leste Arruinada',
+    ruinDescription: 'Os edifícios de bancos e empresas tiveram suas fachadas arrancadas pela explosão. Cofres e papéis espalham-se pela rua destruída.'
   },
   masp: {
     id: 'masp',
     name: 'MASP',
     description: 'O Museu de Arte de São Paulo, com sua arquitetura suspensa icônica. Os pilares vermelhos sustentam a estrutura sobre o vão livre. Você sente uma energia estranha vindo do teto.',
     exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Nove de Julho Norte': 'nove_julho_norte', 'Teto do MASP': 'teto_masp' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Ruínas do MASP',
+    ruinDescription: 'Os icônicos pilares vermelhos estão retorcidos e a estrutura suspensa desabou parcialmente. Obras de arte destroçadas jazem entre os escombros do vão livre.'
   },
   distrito_italiano: {
     id: 'distrito_italiano',
     name: 'Distrito Italiano',
     description: 'O charmoso bairro italiano de São Paulo. O aroma de massas e molhos ainda paira no ar, mesmo com as cantinas fechadas.',
     exits: { 'Livraria': 'livraria', 'Nove de Julho Norte': 'nove_julho_norte', 'Avenida Brigadeiro': 'avenida_brigadeiro' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Distrito Italiano Carbonizado',
+    ruinDescription: 'As cantinas e trattorias foram reduzidas a cinzas. O aroma de massas foi substituído pelo cheiro acre de destruição. Mesas e cadeiras carbonizadas cobrem a rua.'
   },
   teto_masp: {
     id: 'teto_masp',
     name: 'Teto do MASP',
     description: 'O topo do MASP. Daqui você tem uma vista panorâmica de toda a Avenida Paulista. O vento é forte e você sente uma presença maligna. Símbolos arcanos estão desenhados no chão.',
     exits: {},
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Teto Colapsado do MASP',
+    ruinDescription: 'O teto do MASP está parcialmente destruído. Os símbolos arcanos foram apagados pela explosão. Buracos enormes revelam o interior devastado do museu abaixo.'
   },
   colegio: {
     id: 'colegio',
     name: 'Colégio',
     description: 'Um antigo colégio tradicional. Os corredores vazios ecoam com memórias de estudantes. Uma escada leva a uma antena no topo.',
     exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Antena': 'antena' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Colégio em Ruínas',
+    ruinDescription: 'As paredes do colégio desmoronaram, expondo salas de aula destruídas. Carteiras e quadros-negros quebrados se misturam aos escombros. A escada para a antena está danificada.'
   },
   livraria: {
     id: 'livraria',
     name: 'Livraria',
     description: 'Uma livraria antiga e empoeirada. Estantes repletas de livros raros chegam até o teto. O cheiro de papel velho é reconfortante.',
     exits: { 'Distrito Italiano': 'distrito_italiano' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Livraria Incendiada',
+    ruinDescription: 'Os livros raros foram consumidos pelas chamas da explosão. Estantes carbonizadas e páginas chamuscadas flutuam no ar quente. O conhecimento de séculos perdido para sempre.'
   },
   antena: {
     id: 'antena',
@@ -1294,22 +1346,28 @@ const ROOMS_DATA = {
     description: 'Uma torre de antena no topo do colégio. Daqui você pode ver o céu da cidade se estendendo ao infinito. Você poderia PULAR para o Céu da Cidade... se tiver como planar.',
     exits: { 'Colégio': 'colegio', 'Pular para o Céu': 'ceu_cidade' },
     requiresFlight: false,
-    hasDeadlyJump: true  // Pular sem asa delta = morte
+    hasDeadlyJump: true,
+    ruinName: 'Antena Retorcida',
+    ruinDescription: 'A torre de antena foi entortada pela explosão, pendendo perigosamente para o lado. A estrutura range e balança com o vento. Pular daqui seria ainda mais suicida.'
   },
   ceu_cidade: {
     id: 'ceu_cidade',
     name: 'Céu da Cidade',
     description: 'Você flutua no céu sobre São Paulo! As luzes da cidade brilham abaixo como estrelas terrestres. O vento carrega sussurros misteriosos.',
     exits: { 'Teto do MASP': 'teto_masp', 'Avenida Santos': 'avenida_santos', 'Rua Augusta': 'rua_augusta', 'Nove de Julho Sul': 'nove_julho_sul' },
-    requiresFlight: true,  // Precisa voar para chegar aqui
-    mayHaveItems: false    // Itens largados aqui caem do céu e são destruídos!
+    requiresFlight: true,
+    mayHaveItems: false,
+    ruinName: 'Céu Poluído',
+    ruinDescription: 'O céu sobre São Paulo está tomado por uma nuvem densa de fumaça e cinzas da explosão abaixo. A visibilidade é mínima e o ar é irrespirável.'
   },
   cinema: {
     id: 'cinema',
     name: 'Cinema',
     description: 'Um cinema antigo com poltronas de veludo vermelho. A tela está escura, mas você jura ter visto algo se mover nas sombras.',
     exits: { 'Rua Augusta': 'rua_augusta' },
-    requiresFlight: false
+    requiresFlight: false,
+    ruinName: 'Cinema Demolido',
+    ruinDescription: 'O cinema desabou sobre si mesmo. Poltronas de veludo queimado e pedaços da tela rasgada se misturam aos escombros do teto. As sombras agora são reais.'
   }
 };
 
@@ -3053,6 +3111,14 @@ const Events = {
       }
     });
     
+    // Transformar sala em ruína
+    const room = GameState.rooms[bombLocation];
+    if (room.ruinName) {
+      room.name = room.ruinName;
+      room.description = room.ruinDescription;
+      room.isRuined = true;
+    }
+    
     GameState.armedBomb = null;
     
     // Som de explosão + FLASH laranja
@@ -3583,6 +3649,11 @@ const Render = {
         roomEl.classList.add('has-enemy');
       } else if (allies.length > 0) {
         roomEl.classList.add('has-ally');
+      }
+      
+      // Verificar se há bomba armada nesta sala
+      if (GameState.armedBomb && GameState.armedBomb.location === roomId) {
+        roomEl.classList.add('has-bomb');
       }
       
       // Nome abreviado da sala
