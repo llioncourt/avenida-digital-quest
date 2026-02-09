@@ -1,31 +1,23 @@
 
 
-# Fixar Status Card + Peso Maximo 20kg
+# Restaurar Icones de Musica e Som
 
 **Arquivo**: `public/avenida-paulista.html`
 
-## 1. Fixar tamanho do card de Status
+## Problema
 
-O `#header` (status card) atualmente usa `flex-wrap: wrap` (linha 63) e `#stats` tambem (linha 72), o que permite que o conteudo quebre linha e aumente a altura do card.
+O `overflow: hidden` adicionado ao `#header` (linha 65) esta cortando os botoes de audio (musica e efeitos sonoros) que ficam no final da linha flex. Como o card usa `flex-wrap: nowrap`, o conteudo que nao cabe e simplesmente escondido.
 
-**Mudancas CSS (~linhas 54-75):**
-- `#header`: adicionar `flex-wrap: nowrap` e `overflow: hidden` para impedir crescimento
-- `#stats`: trocar `flex-wrap: wrap` por `flex-wrap: nowrap`
-- Garantir que o card nao cresca com conteudo dinamico
+## Solucao
 
-## 2. Peso maximo do player para 20kg
+**Mudancas CSS no `#header` (~linha 55-68):**
+- Remover `overflow: hidden`
+- Adicionar `overflow: visible` (ou simplesmente remover a propriedade)
+- Manter `flex-wrap: nowrap` para o card nao crescer em altura
+- Adicionar `min-width: 0` no `#stats` para que ele encolha se necessario, em vez de empurrar os botoes para fora
 
-Na definicao do personagem `player` (~linha 1566), trocar:
+**Mudancas CSS no `#stats` (~linha 70-76):**
+- Adicionar `min-width: 0` e `overflow: hidden` (apenas no stats, nao no header inteiro)
+- Adicionar `flex: 1` para o stats ocupar o espaco disponivel sem empurrar os botoes
 
-```
-maxWeight: 50
-```
-
-Por:
-
-```
-maxWeight: 20
-```
-
-Isso limita o inventario do jogador a 20kg, alinhado com o balanceamento desejado. O display de peso (`weight/maxWeight`) ja usa `player.maxWeight` dinamicamente, entao refletira automaticamente.
-
+Assim o card mantem tamanho fixo (nao quebra linha) mas os botoes de audio permanecem visiveis.
