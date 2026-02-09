@@ -1,40 +1,18 @@
 
-
-# Permitir Navegação para o Céu da Cidade pelo Minimapa
+# Alinhar a Base do Inventário com o Game Panel
 
 ## Problema
-Desde que a seção de saídas foi removida, o minimapa é a única forma de navegar. Porém, o "Céu da Cidade" é marcado como `blocked-exit` (vermelho) quando o jogador não tem a Asa Delta, impedindo o clique. A lógica de "pulo mortal" já existe dentro de `Game.move()` -- ela deveria ser acionada normalmente.
+O card do inventário na coluna direita termina acima da base do card principal (game-panel) à esquerda. As duas colunas não estão com a mesma altura.
 
 ## Solução
-Tratar a saída da Antena para o Céu da Cidade como um caso especial no minimapa: quando a sala atual for `antena` e a saída for `ceu_cidade`, marcar como `valid-exit` (clicável) mesmo sem a Asa Delta, permitindo que o `Game.move()` cuide da morte/sucesso.
+Garantir que o flexbox do `#main-content` estique ambas as colunas igualmente, e que o sidebar ocupe toda a altura disponível corretamente.
 
-## Mudança
+## Mudanças Técnicas
 
 **Arquivo**: `public/avenida-paulista.html`
 
-Na lógica de renderização do minimapa (por volta da linha 3506-3518), ao avaliar se uma saída é `blocked-exit` ou `valid-exit`, adicionar uma exceção:
+1. **`#main-content`**: Adicionar `align-items: stretch` (explícito, para garantir)
+2. **`#right-sidebar`**: Trocar `height: 100%` por `min-height: 0` -- deixar o flexbox do pai controlar a altura, em vez de forçar 100%
+3. **`#inventory-panel`**: Se necessário, ajustar para que o inventário cresça até preencher o espaço -- em vez de `max-height: 200px`, usar algo como `flex: 0 0 auto` com `min-height` para quando tiver poucos itens, e deixar o mapa (`flex: 1`) absorver o restante
 
-- Se a sala atual é `antena` e a saída é `ceu_cidade`, sempre marcar como `valid-exit` (pois o jogo permite o pulo -- com consequências)
-
-Isso mantém o comportamento de morte irônica intacto, apenas desbloqueando o clique no mapa.
-
-## Detalhes Tecnicos
-
-Dentro do bloco que verifica `needsFlight || blockedByShield`:
-
-```javascript
-// Exceção: Antena → Céu é sempre clicável (Game.move cuida da morte)
-const isDeadlyJump = GameState.playerLocation === 'antena' && roomId === 'ceu_cidade';
-
-if ((needsFlight || blockedByShield) && !isDeadlyJump) {
-  roomEl.classList.add('blocked-exit');
-  // ...
-} else {
-  roomEl.classList.add('valid-exit');
-  // ...
-}
-```
-
-## Escopo
-- Uma pequena alteração condicional na renderização do minimapa
-- Zero impacto na lógica de jogo existente
+Isso fará com que a coluna direita tenha exatamente a mesma altura da coluna esquerda, e o inventário ficará ancorado na base, alinhado com o final do game-panel.
