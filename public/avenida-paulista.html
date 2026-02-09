@@ -123,9 +123,10 @@
 
     /* ========== MINIMAP ASIDE (altura total à direita) ========== */
     #minimap-container {
-      flex: 1;
-      min-width: 350px;
-      max-width: 450px;
+      flex: 0 0 auto;
+      width: 320px;
+      min-width: 280px;
+      max-width: 400px;
       height: 100%;
       display: flex;
       flex-direction: column;
@@ -248,7 +249,8 @@
 
     /* ========== INVENTORY PANEL ========== */
     #inventory-panel {
-      flex: 1;
+      flex-shrink: 0;
+      max-height: 35%;
       overflow-y: auto;
     }
 
@@ -408,7 +410,8 @@
     #minimap-viewport {
       position: relative;
       width: 100%;
-      height: calc(100% - 50px);
+      flex: 1;
+      min-height: 0;
       overflow: hidden;
       cursor: grab;
       touch-action: none;
@@ -1100,11 +1103,6 @@
           </div>
         </div>
 
-        <!-- Inventário -->
-        <div class="panel" id="inventory-panel">
-          <h3 class="section-title">🎒 Inventário</h3>
-          <div id="inventory-list"></div>
-        </div>
       </div>
 
       <!-- MAPA LATERAL DIREITA (altura total) -->
@@ -1120,6 +1118,11 @@
           <div class="legend-item"><div class="legend-dot player"></div>Você</div>
           <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
           <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
+        </div>
+        <!-- Inventário (abaixo do mapa) -->
+        <div class="panel" id="inventory-panel">
+          <h3 class="section-title">🎒 Inventário</h3>
+          <div id="inventory-list"></div>
         </div>
       </aside>
     </main>
