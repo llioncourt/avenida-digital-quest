@@ -60,8 +60,9 @@
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 0.5rem;
+      overflow: hidden;
       box-shadow: var(--shadow);
       flex-shrink: 0;
     }
@@ -69,7 +70,7 @@
     #stats {
       display: flex;
       gap: 1rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       font-family: var(--font-mono);
       font-size: 0.85rem;
     }
@@ -1563,7 +1564,7 @@ const CHARACTERS_DATA = {
     defensePower: 5,
     hp: 100,
     maxHp: 100,
-    maxWeight: 50,
+    maxWeight: 20,
     canFly: false,
     isAlive: true,
     isAlly: true,
