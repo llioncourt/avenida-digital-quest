@@ -997,7 +997,7 @@
       transform-style: preserve-3d;
       /* Animação iniciada via JS após inserir conteúdo */
       animation: none;
-      text-align: center;
+      text-align: justify;
       color: var(--accent-gold);
       font-size: 1.6rem;
       line-height: 1.8;
@@ -1914,6 +1914,7 @@ const MusicSystem = {
   scheduledOscs: [],
   loopTimeoutId: null,
   startTime: 0,
+  playbackSpeed: 1.0,
   
   init: async function() {
     await this.loadMIDI();
@@ -2067,18 +2068,24 @@ const MusicSystem = {
     
     const ctx = SoundSystem.audioCtx;
     this.startTime = ctx.currentTime;
+    const speed = this.playbackSpeed || 1.0;
     
     this.notes.forEach(note => {
-      this.playNote(note.n, this.startTime + note.t, note.d, note.v);
+      this.playNote(
+        note.n, 
+        this.startTime + (note.t / speed), 
+        note.d / speed, 
+        note.v
+      );
     });
     
-    // Agendar loop
+    // Agendar loop com duração ajustada pela velocidade
     if (this.isPlaying) {
       this.loopTimeoutId = setTimeout(() => {
         if (this.isPlaying) {
           this.scheduleNotes();
         }
-      }, (this.duration + 0.5) * 1000);
+      }, ((this.duration / speed) + 0.5) * 1000);
     }
   },
   
@@ -4511,26 +4518,21 @@ const IntroSystem = {
   storyText: `
 AVENIDA PAULISTA
 
-Há muito tempo, nas ruas movimentadas de São Paulo...
+Há muito tempo, nas ruas movimentadas de São Paulo, uma terrível BRUXA tomou posse do MASP, o icônico museu de arte da Avenida Paulista. Com seus poderes arcanos, ela pretende pronunciar QUATRO PALAVRAS MÁGICAS para abrir um portal dimensional e invocar forças das trevas sobre a cidade.
 
-Uma terrível BRUXA tomou posse do MASP, o icônico museu de arte da Avenida Paulista.
 
-Com seus poderes arcanos, ela pretende pronunciar QUATRO PALAVRAS MÁGICAS para abrir um portal dimensional e invocar forças das trevas sobre a cidade.
+Criaturas sobrenaturais agora vagam pelas ruas. Um DEMÔNIO foi avistado nas sombras. O FEITICEIRO se esconde no Túnel aguardando o anoitecer. Mas nem tudo está perdido. Aliados improváveis podem ser encontrados — uma CORUJA sábia, um fiel CACHORRO CARAMELO, e outros heróis urbanos.
 
-Criaturas sobrenaturais agora vagam pelas ruas. Um DEMÔNIO foi avistado nas sombras. O FEITICEIRO se esconde no Túnel aguardando o anoitecer.
 
-Mas nem tudo está perdido. Aliados improváveis podem ser encontrados - uma CORUJA sábia, um fiel CACHORRO CARAMELO, e outros heróis urbanos.
+Artefatos místicos estão espalhados pela cidade. Uma ESPADA lendária. Um ESCUDO ancestral. E um LIVRO que contém o segredo para converter as forças do mal. Você é a última esperança. Explore a cidade, reúna aliados, encontre armas e derrote a Bruxa antes que ela complete seu ritual...
 
-Artefatos místicos estão espalhados pela cidade. Uma ESPADA lendária. Um ESCUDO ancestral. E um LIVRO que contém o segredo para converter as forças do mal.
-
-Você é a última esperança. Explore a cidade, reúna aliados, encontre armas e derrote a Bruxa antes que ela complete seu ritual...
 
 O destino de São Paulo está em suas mãos.
   `,
   // ========================================
   
   formatStory: function() {
-    const lines = this.storyText.trim().split('\n\n');
+    const lines = this.storyText.trim().split('\n\n').filter(p => p.trim() !== '');
     let html = '';
     
     lines.forEach((paragraph, index) => {
@@ -4565,7 +4567,7 @@ O destino de São Paulo está em suas mãos.
     void crawl.offsetHeight;
     
     // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
-    crawl.style.animation = 'star-wars-crawl 60s linear forwards';
+    crawl.style.animation = 'star-wars-crawl 84s linear forwards';
     
     // Iniciar música em velocidade lenta
     MusicSystem.init();
@@ -4580,7 +4582,7 @@ O destino de São Paulo está em suas mãos.
         console.warn('IntroSystem: safety timeout triggered');
         this.complete();
       }
-    }, 65000);
+    }, 90000);
   },
   
   skip: function() {
