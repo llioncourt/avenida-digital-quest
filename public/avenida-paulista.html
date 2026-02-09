@@ -121,13 +121,21 @@
       min-width: 0;
     }
 
-    /* ========== MINIMAP ASIDE (altura total à direita) ========== */
-    #minimap-container {
+    /* ========== RIGHT SIDEBAR (mapa + inventário) ========== */
+    #right-sidebar {
       flex: 0 0 auto;
       width: 320px;
       min-width: 280px;
       max-width: 400px;
       height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    #minimap-container {
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
     }
@@ -1142,28 +1150,30 @@
 
       </div>
 
-      <!-- MAPA LATERAL DIREITA (altura total) -->
-      <aside id="minimap-container">
-        <div id="minimap-header">
-          <div id="minimap-title">🗺️ MAPA</div>
-          <button id="minimap-reset" onclick="MinimapController.resetPositions()" title="Resetar posições do mapa">↺</button>
-        </div>
-        <div id="minimap-viewport">
-          <div id="minimap"></div>
-        </div>
-        <div class="map-legend">
-          <div class="legend-item"><div class="legend-dot player"></div>Você</div>
-          <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
-          <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
-        </div>
-        <!-- Inventário (abaixo do mapa) -->
+      <!-- COLUNA DIREITA: mapa + inventário -->
+      <div id="right-sidebar">
+        <aside id="minimap-container">
+          <div id="minimap-header">
+            <div id="minimap-title">🗺️ MAPA</div>
+            <button id="minimap-reset" onclick="MinimapController.resetPositions()" title="Resetar posições do mapa">↺</button>
+          </div>
+          <div id="minimap-viewport">
+            <div id="minimap"></div>
+          </div>
+          <div class="map-legend">
+            <div class="legend-item"><div class="legend-dot player"></div>Você</div>
+            <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
+            <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
+          </div>
+        </aside>
+        <!-- Inventário (card separado) -->
         <div class="panel" id="inventory-panel">
           <h3 class="section-title">🎒 Inventário</h3>
           <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
             <div id="inventory-list"></div>
           </div>
         </div>
-      </aside>
+      </div>
     </main>
   </div>
 
