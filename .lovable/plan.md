@@ -1,56 +1,37 @@
 
 
-# Ajuste de Layout + Titulo do Log
-
-## Duas mudancas combinadas
+# Tres Ajustes Visuais
 
 **Arquivo**: `public/avenida-paulista.html`
 
-### 1. Novo Layout dos Paineis
+## 1. Inventario: trocar texto dos verbos por icones
 
-Reorganizar a estrutura HTML e CSS para o layout:
+Os botoes de acao dos itens ("Usar", "Largar") serao substituidos por icones com tooltip, evitando que o card estoure.
 
-```text
-┌──────────────────────┬──────────────────────┐
-│  Avenida Paulista    │                      │
-│  (Log)               │    Minimapa          │
-├──────────┬───────────┤                      │
-│ Game     │ Inventario├──────────────────────┤
-│ Card     │           │  Status              │
-│          │           │  (HP / Tempo / Peso) │
-└──────────┴───────────┴──────────────────────┘
-```
+**Mudancas no `renderInventory()` (~linha 3517-3526):**
+- `Usar` vira icone `✋` (ou similar) com `title="Usar"`
+- `Largar` vira icone `📤` com `title="Largar"`
+- Botoes menores com padding reduzido e fonte maior para o emoji ficar legivel
 
-**Estrutura HTML:**
-- `#main-content` com duas colunas: `#left-column` e `#right-sidebar`
-- `#left-column`: `#log-panel` (topo) + `#left-bottom` (Game Card e Inventario lado a lado)
-- `#right-sidebar`: `#minimap-container` (topo) + `#header` status (embaixo)
+**CSS ajustado para `.btn-small`:**
+- Padding compacto (~0.2rem 0.4rem), sem texto longo
+- Garante que `.inventory-actions` use `flex-shrink: 0` para nao comprimir os botoes
+- `.inventory-item` recebe `overflow: hidden` e `min-width: 0` para o nome truncar com ellipsis em vez de explodir o card
 
-**Movimentacoes:**
-- `#header` (status) sai do `#game-panel` e vai para o final do `#right-sidebar`
-- `#inventory-panel` sai do `#right-sidebar` e vai para `#left-bottom`, ao lado do `#location-panel`
+## 2. Status: icones de musica e som sempre na mesma linha
 
-**CSS principal:**
-- `#main-content`: flex row, gap 1rem
-- `#left-column`: flex column, flex 1
-- `#left-bottom`: flex row, gap 1rem, flex 1
-- `#right-sidebar`: flex column, largura fixa ~320px
-- `#inventory-panel`: remover max-height de 180px
-- Responsivo (mobile): tudo empilha verticalmente
+Os botoes `#sound-toggle` e `#music-toggle` (~linhas 1210-1215) serao agrupados num wrapper flex para nunca quebrarem linha.
 
-### 2. Titulo do Log: "Avenida Paulista"
+**Mudancas:**
+- Envolver os dois `<button>` em `<div style="display:flex; gap:0.3rem; flex-shrink:0; margin-left:auto;">`
+- Isso garante que mesmo em telas estreitas, os dois icones fiquem lado a lado
 
-Na linha 1139 do HTML, trocar:
+## 3. Titulo "Avenida Paulista" com destaque moderno
 
-```html
-<h3 class="section-title">📜 Log</h3>
-```
-
-Por:
-
-```html
-<h3 class="section-title">Avenida Paulista</h3>
-```
-
-Remove o icone de pergaminho e a palavra "Log", substituindo por "Avenida Paulista" como titulo do card.
+Novo estilo CSS para `#log-panel .section-title`:
+- `font-size: 1.1rem`
+- `letter-spacing: 3px`
+- `text-transform: uppercase`
+- Gradiente dourado no texto (`background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-dim))` com `-webkit-background-clip: text` e `-webkit-text-fill-color: transparent`)
+- `border-bottom: 2px solid var(--accent-gold-dim)`
 
