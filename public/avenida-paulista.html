@@ -250,8 +250,45 @@
     /* ========== INVENTORY PANEL ========== */
     #inventory-panel {
       flex-shrink: 0;
-      max-height: 35%;
+      height: 180px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #inventory-panel .section-title {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--bg-secondary);
+      margin: 0 0 0.5rem 0;
+      padding-bottom: 0.3rem;
+    }
+
+    #inventory-panel .inventory-scroll-wrap {
+      flex: 1;
       overflow-y: auto;
+      position: relative;
+    }
+
+    /* ========== SUBTLE SCROLL INDICATORS ========== */
+    .scroll-indicator-container {
+      position: relative;
+    }
+    .scroll-indicator-container::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 24px;
+      background: linear-gradient(to bottom, transparent, var(--bg-secondary));
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .scroll-indicator-container.has-overflow-below::after {
+      opacity: 1;
     }
 
     #inventory-list {
@@ -1083,7 +1120,7 @@
         <!-- LOG no topo em destaque -->
         <div id="log-panel">
           <h3 class="section-title">📜 Log</h3>
-          <div id="log-container"></div>
+          <div id="log-container" class="scroll-indicator-container"></div>
         </div>
 
         <!-- Sala atual -->
@@ -1122,7 +1159,9 @@
         <!-- Inventário (abaixo do mapa) -->
         <div class="panel" id="inventory-panel">
           <h3 class="section-title">🎒 Inventário</h3>
-          <div id="inventory-list"></div>
+          <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
+            <div id="inventory-list"></div>
+          </div>
         </div>
       </aside>
     </main>
@@ -3273,6 +3312,7 @@ const Log = {
       </div>`
     ).join('');
     container.scrollTop = container.scrollHeight;
+    requestAnimationFrame(() => GameUI.updateScrollIndicators());
   }
 };
 
@@ -3386,6 +3426,17 @@ const Render = {
         </div>
       </div>`;
     }).join('');
+    
+    // Update scroll indicator
+    requestAnimationFrame(() => this.updateScrollIndicators());
+  },
+
+  updateScrollIndicators: function() {
+    document.querySelectorAll('.scroll-indicator-container').forEach(el => {
+      const hasOverflow = el.scrollHeight > el.clientHeight + 4;
+      const isNearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+      el.classList.toggle('has-overflow-below', hasOverflow && !isNearBottom);
+    });
   },
 
   updateWitchIndicator: function() {
@@ -4612,6 +4663,11 @@ O destino de São Paulo está em suas mãos.
 
 document.addEventListener('DOMContentLoaded', function() {
   IntroSystem.init();
+
+  // Scroll indicator listeners
+  document.querySelectorAll('.scroll-indicator-container').forEach(el => {
+    el.addEventListener('scroll', () => GameUI.updateScrollIndicators());
+  });
   
   // Enter no input de comando (se existir)
   const commandInput = document.getElementById('command-input');
