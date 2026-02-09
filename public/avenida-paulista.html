@@ -3125,6 +3125,8 @@ const Events = {
     SoundSystem.playExplosion();
     ScreenEffects.flash('rgba(255, 150, 50, 0.7)');
     
+    const playerInRoom = victims.includes(GameState.characters.player.name);
+    
     if (victims.length > 0) {
       Log.add(`💥 BOOM!!! A bomba explodiu em ${roomName}! Vítimas: ${victims.join(', ')}. Tudo foi destruído!`, 'danger');
     } else {
@@ -3132,26 +3134,31 @@ const Events = {
     }
     
     // Modal de resumo do que foi destruído
-    if (itemsInRoom.length > 0 || charsInRoom.length > 0) {
-      const itemsList = itemsInRoom.length > 0 
-        ? `<p><strong>📦 Itens destruídos:</strong> ${itemsInRoom.join(', ')}</p>` 
-        : '';
-      const charsList = charsInRoom.length > 0 
-        ? `<p><strong>👥 Personagens atingidos:</strong> ${charsInRoom.join(', ')}</p>` 
-        : '';
-      
-      const content = `
-        <p>A bomba explodiu em <strong>${roomName}</strong>!</p>
-        ${itemsList}
-        ${charsList}
-        <button class="btn" onclick="Modals.hide()">Fechar</button>
-      `;
-      
-      // Mostrar após um pequeno delay para o flash
-      setTimeout(() => {
-        Modals.show('💥 EXPLOSÃO!', content);
-      }, 200);
+    const itemsList = itemsInRoom.length > 0 
+      ? `<p><strong>📦 Itens destruídos:</strong> ${itemsInRoom.join(', ')}</p>` 
+      : '';
+    const charsList = charsInRoom.length > 0 
+      ? `<p><strong>👥 Personagens atingidos:</strong> ${charsInRoom.join(', ')}</p>` 
+      : '';
+    
+    let modalContent = `<p>A bomba explodiu em <strong>${roomName}</strong>!</p>`;
+    
+    if (playerInRoom) {
+      modalContent = '<p style="color:#ff4444;font-size:1.2rem;font-weight:bold;">💀 VOCÊ FOI ATINGIDO PELA EXPLOSÃO!</p>' + modalContent;
     }
+    
+    modalContent += itemsList + charsList;
+    
+    const playerDied = playerInRoom && !GameState.characters.player.isAlive;
+    modalContent += '<button class="btn" onclick="Game.closeExplosionModal(' + playerDied + ')">Continuar</button>';
+    
+    // Marcar flag para evitar checkGameOver automático durante explosão
+    GameState._explosionInProgress = true;
+    
+    // Mostrar após um pequeno delay para o flash
+    setTimeout(() => {
+      Modals.show('💥 EXPLOSÃO!', modalContent);
+    }, 200);
   },
 
   // Bruxa fala palavra mágica
@@ -4298,6 +4305,18 @@ const Game = {
     WorldSanity.enforce();
   },
 
+  // Fechar modal de explosão e verificar game over
+  closeExplosionModal: function(playerDied) {
+    Modals.hide();
+    GameState._explosionInProgress = false;
+    if (playerDied) {
+      const gameCheck = Rules.checkGameOver();
+      if (gameCheck.ended) {
+        Modals.showGameOver(gameCheck.reason);
+      }
+    }
+  },
+
   // Processar resultado de ação
   processAction: function(result) {
     if (result.message) {
@@ -4309,10 +4328,12 @@ const Game = {
       Events.advanceTime();
     }
     
-    // Verificar fim de jogo
-    const gameCheck = Rules.checkGameOver();
-    if (gameCheck.ended) {
-      Modals.showGameOver(gameCheck.reason);
+    // Verificar fim de jogo (não durante explosão - o modal de explosão controla o fluxo)
+    if (!GameState._explosionInProgress) {
+      const gameCheck = Rules.checkGameOver();
+      if (gameCheck.ended) {
+        Modals.showGameOver(gameCheck.reason);
+      }
     }
     
     Render.update();
