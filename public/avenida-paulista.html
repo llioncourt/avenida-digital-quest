@@ -105,13 +105,32 @@
       align-items: stretch;
     }
 
-    /* ========== GAME PANEL ========== */
-    #game-panel {
+    /* ========== LEFT COLUMN ========== */
+    #left-column {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 1rem;
       min-width: 0;
+    }
+
+    #left-bottom {
+      display: flex;
+      gap: 1rem;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #left-bottom #location-panel {
+      flex: 1;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    #left-bottom #inventory-panel {
+      flex: 0 0 220px;
+      max-height: none;
+      overflow-y: auto;
     }
 
     /* ========== RIGHT SIDEBAR (mapa + inventário) ========== */
@@ -253,7 +272,6 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      max-height: 180px;
     }
 
     #inventory-panel .section-title {
@@ -847,6 +865,18 @@
       #main-content {
         flex-direction: column;
       }
+
+      #left-bottom {
+        flex-direction: column;
+      }
+
+      #left-bottom #inventory-panel {
+        flex: 0 0 auto;
+      }
+
+      #right-sidebar {
+        width: 100% !important;
+      }
       
       #log-panel {
         max-width: none;
@@ -1100,9 +1130,60 @@
   <div id="game-container">
     <!-- MAIN CONTENT -->
     <main id="main-content">
-      <!-- GAME PANEL (esquerda) -->
-      <div id="game-panel">
-        <!-- HEADER compacto (stats alinhados à esquerda, sem título) -->
+      <!-- COLUNA ESQUERDA -->
+      <div id="left-column">
+        <!-- LOG no topo em destaque -->
+        <div id="log-panel">
+          <h3 class="section-title">Avenida Paulista</h3>
+          <div id="log-container" class="scroll-indicator-container"></div>
+        </div>
+
+        <!-- Game Card + Inventário lado a lado -->
+        <div id="left-bottom">
+          <!-- Sala atual -->
+          <div class="panel" id="location-panel">
+            <h2 id="location-name">Carregando...</h2>
+            <p id="location-description"></p>
+
+            <div id="items-section">
+              <h3 class="section-title">📦 Itens no local</h3>
+              <div class="button-group" id="items-container"></div>
+            </div>
+
+            <div id="characters-section">
+              <h3 class="section-title">👥 Personagens</h3>
+              <div class="button-group" id="characters-container"></div>
+            </div>
+          </div>
+
+          <!-- Inventário -->
+          <div class="panel" id="inventory-panel">
+            <h3 class="section-title">🎒 Inventário</h3>
+            <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
+              <div id="inventory-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUNA DIREITA: mapa + status -->
+      <div id="right-sidebar">
+        <aside id="minimap-container">
+          <div id="minimap-header">
+            <div id="minimap-title">🗺️ MAPA</div>
+            <button id="minimap-reset" onclick="MinimapController.resetPositions()" title="Resetar posições do mapa">↺</button>
+          </div>
+          <div id="minimap-viewport">
+            <div id="minimap"></div>
+          </div>
+          <div class="map-legend">
+            <div class="legend-item"><div class="legend-dot player"></div>Você</div>
+            <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
+            <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
+            <div class="legend-item"><span style="font-size:0.6rem">💣</span>Bomba</div>
+          </div>
+        </aside>
+        <!-- Status (HP / Tempo / Peso) -->
         <header id="header">
           <div id="stats">
             <div class="stat">
@@ -1134,55 +1215,6 @@
             </button>
           </div>
         </header>
-        <!-- LOG no topo em destaque -->
-        <div id="log-panel">
-          <h3 class="section-title">📜 Log</h3>
-          <div id="log-container" class="scroll-indicator-container"></div>
-        </div>
-
-        <!-- Sala atual -->
-        <div class="panel" id="location-panel">
-          <h2 id="location-name">Carregando...</h2>
-          <p id="location-description"></p>
-          
-
-          <div id="items-section">
-            <h3 class="section-title">📦 Itens no local</h3>
-            <div class="button-group" id="items-container"></div>
-          </div>
-
-          <div id="characters-section">
-            <h3 class="section-title">👥 Personagens</h3>
-            <div class="button-group" id="characters-container"></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- COLUNA DIREITA: mapa + inventário -->
-      <div id="right-sidebar">
-        <aside id="minimap-container">
-          <div id="minimap-header">
-            <div id="minimap-title">🗺️ MAPA</div>
-            <button id="minimap-reset" onclick="MinimapController.resetPositions()" title="Resetar posições do mapa">↺</button>
-          </div>
-          <div id="minimap-viewport">
-            <div id="minimap"></div>
-          </div>
-          <div class="map-legend">
-            <div class="legend-item"><div class="legend-dot player"></div>Você</div>
-            <div class="legend-item"><div class="legend-dot enemy"></div>Inimigo</div>
-            <div class="legend-item"><div class="legend-dot ally"></div>Aliado</div>
-            <div class="legend-item"><span style="font-size:0.6rem">💣</span>Bomba</div>
-          </div>
-        </aside>
-        <!-- Inventário (card separado) -->
-        <div class="panel" id="inventory-panel">
-          <h3 class="section-title">🎒 Inventário</h3>
-          <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
-            <div id="inventory-list"></div>
-          </div>
-        </div>
       </div>
     </main>
   </div>
