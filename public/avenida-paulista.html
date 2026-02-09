@@ -3509,7 +3509,10 @@ const Render = {
         const needsFlight = targetRoom.requiresFlight && !Rules.canPlayerFly();
         const blockedByShield = roomId === 'teto_masp' && GameState.playerLocation === 'masp' && !GameState.forceShieldDown;
         
-        if (needsFlight || blockedByShield) {
+        // Exceção: Antena → Céu é sempre clicável (Game.move cuida da morte)
+        const isDeadlyJump = GameState.playerLocation === 'antena' && roomId === 'ceu_cidade';
+        
+        if ((needsFlight || blockedByShield) && !isDeadlyJump) {
           roomEl.classList.add('blocked-exit');
           roomEl.title = room.name + (needsFlight ? ' (precisa voar)' : ' (escudo de força)');
         } else {
