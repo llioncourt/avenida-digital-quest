@@ -4287,7 +4287,7 @@ const Game = {
   // Modal de seleção de alvo para Seta Mortal
   openSetaSelectModal: function(targets) {
     const targetButtons = targets.map(t => {
-      return `<button class="btn btn-danger" onclick="Game.useWithTarget('seta_mortal', '${t.id}'); Modals.hide();">
+      return `<button class="btn btn-danger" onclick="Game.useSetaAndClose('${t.id}');">
         ⚔️ ${t.name} (HP: ${t.hp})
       </button>`;
     }).join('');
@@ -4345,6 +4345,13 @@ const Game = {
 
   attack: function(charId) {
     this.processAction(Actions.attack(charId));
+  },
+
+  useSetaAndClose: function(targetId) {
+    this.processAction(Actions.useItem('seta_mortal', targetId));
+    if (!GameState.gameOver) {
+      Modals.hide();
+    }
   },
 
   attackAndClose: function(charId) {
