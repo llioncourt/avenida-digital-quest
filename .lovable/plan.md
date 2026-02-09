@@ -1,43 +1,56 @@
 
-# Bug: Seta Mortal mata a Bruxa mas o jogo nao termina
+# Marcador de Bomba no Mapa e Ruinas apos Explosao
 
-## Causa Raiz
+## O que muda
 
-No botao de selecao de alvo da Seta Mortal (linha ~4290), o `onclick` chama:
+### 1. Marcador de bomba no minimapa
+Quando o Bombardeador armar uma bomba, a sala onde ela esta aparecera com um indicador visual no minimapa -- um icone de bomba pulsante.
 
-```
-Game.useWithTarget('seta_mortal', targetId); Modals.hide();
-```
+### 2. Sala vira ruina apos explosao
+Cada sala ganhara dois novos atributos: `ruinName` e `ruinDescription`. Apos a explosao, a sala muda permanentemente de nome e descricao para refletir a destruicao.
 
-O problema e a sequencia de execucao:
-1. `Game.useWithTarget` processa a acao, mata a bruxa, e `checkGameOver` detecta a vitoria e chama `Modals.showGameOver` (mostra o modal de vitoria)
-2. Logo em seguida, `Modals.hide()` executa e **fecha o modal de vitoria** que acabou de ser aberto
-
-O modal de fim de jogo aparece e desaparece instantaneamente.
-
-## Correcao
+## Detalhes Tecnicos
 
 **Arquivo**: `public/avenida-paulista.html`
 
-Alterar o `onclick` dos botoes da Seta Mortal para **nao chamar `Modals.hide()` depois**, usando a mesma logica que ja existe no `attackAndClose` (linha ~4350):
+### A. Novos atributos em ROOMS_DATA
+Adicionar `ruinName` e `ruinDescription` a cada sala. Exemplos:
 
-```javascript
-// Antes (bugado):
-onclick="Game.useWithTarget('seta_mortal', '${t.id}'); Modals.hide();"
+- **Tunel**: "Tunel Desmoronado" / "O tunel colapsou com a explosao. Escombros e poeira impedem a visao..."
+- **MASP**: "Ruinas do MASP" / "Os icônicos pilares vermelhos estao retorcidos..."
+- **Rua Augusta**: "Rua Augusta Devastada" / "Os grafites coloridos foram cobertos por cinzas..."
+- (e assim por diante para todas as 15 salas)
 
-// Depois (corrigido):
-onclick="Game.useSetaAndClose('${t.id}');"
-```
+### B. Marcador de bomba no minimapa
+No metodo `Render.updateMinimap()`, ao desenhar cada sala, verificar se `GameState.armedBomb` existe e se `armedBomb.location === roomId`. Se sim, adicionar a classe CSS `has-bomb` ao elemento da sala.
 
-Criar uma funcao `useSetaAndClose` no objeto `Game` que fecha o modal **somente se o jogo nao acabou**:
-
-```javascript
-useSetaAndClose: function(targetId) {
-  this.processAction(Actions.useItem('seta_mortal', targetId));
-  if (!GameState.gameOver) {
-    Modals.hide();
-  }
+CSS novo:
+```css
+.map-room.has-bomb::after {
+  content: '💣';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.6rem;
+  animation: pulse 1s infinite;
 }
 ```
 
-Mesma abordagem ja usada em `attackAndClose`. Uma mudanca simples de 2 pontos no arquivo.
+### C. Explosao transforma sala em ruina
+No metodo `processBombTimer()`, apos a explosao (linha ~3056), adicionar logica para mudar nome e descricao da sala:
+
+```javascript
+const room = GameState.rooms[bombLocation];
+if (room.ruinName) {
+  room.name = room.ruinName;
+  room.description = room.ruinDescription;
+  room.isRuined = true;
+}
+```
+
+### D. Legenda do mapa
+Adicionar entrada na legenda do minimapa para o marcador de bomba.
+
+### Resultado
+- Jogador ve no mapa exatamente onde a bomba esta armada (icone pulsante)
+- Apos a explosao, a sala muda de nome e descricao permanentemente, dando peso narrativo ao evento
