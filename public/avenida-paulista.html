@@ -187,6 +187,19 @@
       padding-bottom: 0.3rem;
     }
 
+    #log-panel .section-title {
+      font-size: 1.1rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-dim));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      border-bottom: 2px solid var(--accent-gold-dim);
+      padding-bottom: 0.4rem;
+    }
+
     .button-group {
       display: flex;
       flex-wrap: wrap;
@@ -319,10 +332,19 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.5rem;
+      padding: 0.4rem 0.5rem;
       background: var(--bg-tertiary);
       border-radius: var(--radius);
       border: 1px solid var(--border-color);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .inventory-item > div:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .inventory-item-name {
@@ -339,11 +361,13 @@
     .inventory-actions {
       display: flex;
       gap: 0.3rem;
+      flex-shrink: 0;
     }
 
     .btn-small {
-      font-size: 0.7rem;
-      padding: 0.3rem 0.5rem;
+      font-size: 1rem;
+      padding: 0.2rem 0.4rem;
+      line-height: 1;
     }
 
     /* ========== LOG PANEL (no topo do game-panel, em destaque) ========== */
@@ -1207,12 +1231,14 @@
                 <div class="witch-orb"></div>
               </div>
             </div>
-            <button id="sound-toggle" onclick="SoundSystem.toggle()" title="Ligar/Desligar som" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
-              🔊
-            </button>
-            <button id="music-toggle" onclick="MusicSystem.toggle()" title="Desligar música de fundo" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
-              🎵
-            </button>
+            <div style="display:flex; gap:0.3rem; flex-shrink:0; margin-left:auto;">
+              <button id="sound-toggle" onclick="SoundSystem.toggle()" title="Ligar/Desligar som" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
+                🔊
+              </button>
+              <button id="music-toggle" onclick="MusicSystem.toggle()" title="Desligar música de fundo" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;">
+                🎵
+              </button>
+            </div>
           </div>
         </header>
       </div>
@@ -3515,7 +3541,7 @@ const Render = {
     container.innerHTML = GameState.playerInventory.map(itemId => {
       const item = GameState.items[itemId];
       const useBtn = item.isUsable ? 
-        `<button class="btn btn-small" onclick="Game.use('${item.id}')">Usar</button>` : '';
+        `<button class="btn btn-small" onclick="Game.use('${item.id}')" title="Usar">✋</button>` : '';
       return `<div class="inventory-item">
         <div>
           <span class="inventory-item-name">${item.name}</span>
@@ -3523,7 +3549,7 @@ const Render = {
         </div>
         <div class="inventory-actions">
           ${useBtn}
-          <button class="btn btn-small" onclick="Game.drop('${item.id}')">Largar</button>
+          <button class="btn btn-small" onclick="Game.drop('${item.id}')" title="Largar">📤</button>
         </div>
       </div>`;
     }).join('');
