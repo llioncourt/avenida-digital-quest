@@ -1,18 +1,24 @@
 
-# Alinhar a Base do Inventário com o Game Panel
 
-## Problema
-O card do inventário na coluna direita termina acima da base do card principal (game-panel) à esquerda. As duas colunas não estão com a mesma altura.
+# Inventário com Altura Fixa e Indicador de Scroll
+
+## Problemas
+1. Conforme itens são coletados, o inventário cresce e comprime o minimapa -- o inventário precisa de uma altura máxima fixa.
+2. Falta um indicador visual sutil para quando há itens escondidos abaixo da área visível do inventário.
 
 ## Solução
-Garantir que o flexbox do `#main-content` estique ambas as colunas igualmente, e que o sidebar ocupe toda a altura disponível corretamente.
 
-## Mudanças Técnicas
+### 1. Altura fixa para o inventário
+Definir `max-height: 180px` no `#inventory-panel` para que ele nunca ultrapasse esse tamanho, independente de quantos itens o jogador colete. O minimapa continuará com `flex: 1` ocupando todo o espaço restante sem ser comprimido.
+
+### 2. Indicador sutil de scroll
+O sistema de scroll indicators (gradiente na base) já existe no CSS (`.scroll-indicator-container` / `.has-overflow-below`). O `inventory-scroll-wrap` já tem a classe correta. O problema é que o container pai (`#inventory-panel`) precisa ter `overflow: hidden` e o `inventory-scroll-wrap` precisa ter altura limitada para que o overflow seja detectado. Basta garantir que o `max-height` no painel pai limita o espaço e o scroll-wrap interno faz o scroll com o indicador de gradiente.
+
+## Mudancas Tecnicas
 
 **Arquivo**: `public/avenida-paulista.html`
 
-1. **`#main-content`**: Adicionar `align-items: stretch` (explícito, para garantir)
-2. **`#right-sidebar`**: Trocar `height: 100%` por `min-height: 0` -- deixar o flexbox do pai controlar a altura, em vez de forçar 100%
-3. **`#inventory-panel`**: Se necessário, ajustar para que o inventário cresça até preencher o espaço -- em vez de `max-height: 200px`, usar algo como `flex: 0 0 auto` com `min-height` para quando tiver poucos itens, e deixar o mapa (`flex: 1`) absorver o restante
+1. **`#inventory-panel`** (linha ~259): Adicionar `max-height: 180px` de volta, manter `flex-shrink: 0`
+2. Verificar que o `inventory-scroll-wrap` com `overflow-y: auto` e o indicador de gradiente (`::after`) continuam funcionando corretamente -- ja estao configurados, so precisam do container com altura limitada para ativar
 
-Isso fará com que a coluna direita tenha exatamente a mesma altura da coluna esquerda, e o inventário ficará ancorado na base, alinhado com o final do game-panel.
+Resultado: o inventario nunca comprime o mapa, e quando ha itens ocultos abaixo, aparece o gradiente sutil na base indicando que ha mais conteudo.
