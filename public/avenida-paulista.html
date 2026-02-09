@@ -2162,6 +2162,7 @@ const GameState = {
   // Estado do jogo
   gameOver: false,
   victory: false,
+  deathReason: null,
 
   // Efeitos temporários do jogador
   playerDefenseBonus: 0,
@@ -2328,7 +2329,9 @@ const Rules = {
       GameState.gameOver = true;
       GameState.victory = false;
       SoundSystem.playDeath();
-      return { ended: true, victory: false, reason: 'Você foi derrotado! A escuridão consome São Paulo...' };
+      const reason = GameState.deathReason || 'Você foi derrotado! A escuridão consome São Paulo...';
+      GameState.deathReason = null;
+      return { ended: true, victory: false, reason: reason };
     }
     
     // Derrota: bruxa completou o portal
@@ -2689,7 +2692,8 @@ const Actions = {
         const player = GameState.characters.player;
         player.hp = 0;
         player.isAlive = false;
-        GameState.playerLocation = roomId; // Cai no céu antes de morrer
+        GameState.playerLocation = roomId;
+        GameState.deathReason = '🪂 Você olhou para baixo, olhou para cima, bateu os braços com convicção... e descobriu que humanos não voam. A gravidade, sempre pontual, fez seu trabalho. Você se espatifou no asfalto da Avenida Paulista como um saco de batatas com sonhos de águia.';
         return {
           success: true,
           message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
@@ -2777,6 +2781,7 @@ const Actions = {
       const player = GameState.characters.player;
       player.hp = 0;
       player.isAlive = false;
+      GameState.deathReason = '🪂 Largou a asa delta. No ar. Voando. Brilhante decisão estratégica. A lei da gravidade, que não aceita suborno, entrou em vigor imediatamente.';
       
       return {
         success: true,
@@ -4098,6 +4103,7 @@ const Game = {
     GameState.lastWitchWordTime = 0;
     GameState.gameOver = false;
     GameState.victory = false;
+    GameState.deathReason = null;
     GameState.playerInventory = [];
     GameState.playerDefenseBonus = 0;
     GameState.playerDefenseBonusTurns = 0;
