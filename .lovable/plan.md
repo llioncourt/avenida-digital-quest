@@ -1,74 +1,56 @@
 
 
-# Bug: Bomba nao mata jogador e modal de explosao nao aparece
+# Ajuste de Layout + Titulo do Log
 
-## Causa Raiz
-
-Quando a bomba explode com o jogador na sala, o `checkGameOver()` mostra o modal de game over, mas logo depois (200ms) o `processBombTimer` chama `Modals.show()` com o resumo da explosao, sobrescrevendo o modal de game over. Resultado: nenhum modal fica visivel.
-
-## Correcao
+## Duas mudancas combinadas
 
 **Arquivo**: `public/avenida-paulista.html`
 
-### A. Modal de explosao com botao "Continuar"
+### 1. Novo Layout dos Paineis
 
-O modal de resumo da explosao sempre aparece primeiro, com um botao "Continuar". Quando o jogador clica:
-- Se ele morreu na explosao: fecha o modal de resumo e mostra o modal de game over
-- Se ele sobreviveu: simplesmente fecha o modal
+Reorganizar a estrutura HTML e CSS para o layout:
 
-### B. Mensagem de morte no modal
-
-Quando o jogador esta na sala da bomba, o modal inclui uma mensagem destacada:
-
-```
-💀 VOCE FOI ATINGIDO PELA EXPLOSAO!
-```
-
-### C. Sequencia corrigida no processBombTimer
-
-```javascript
-// 1. Processar destruicao (itens, personagens, dano ao jogador)
-// ... logica existente ...
-
-// 2. Transformar sala em ruina
-const room = GameState.rooms[bombLocation];
-if (room.ruinName) {
-  room.name = room.ruinName;
-  room.description = room.ruinDescription;
-  room.isRuined = true;
-}
-
-// 3. Montar conteudo do modal
-let content = '...lista de vitimas e itens...';
-if (playerInRoom) {
-  content = '<p style="color:#ff4444;font-size:1.2rem;font-weight:bold;">💀 VOCÊ FOI ATINGIDO PELA EXPLOSÃO!</p>' + content;
-}
-
-// 4. Adicionar botao "Continuar" ao conteudo
-const playerDied = playerInRoom && !GameState.characters.player.isAlive;
-content += '<button class="modal-btn" onclick="Game.closeExplosionModal(' + playerDied + ')">Continuar</button>';
-
-// 5. Mostrar modal de resumo (sem fechar automaticamente)
-Modals.show('💥 EXPLOSÃO!', content);
+```text
+┌──────────────────────┬──────────────────────┐
+│  Avenida Paulista    │                      │
+│  (Log)               │    Minimapa          │
+├──────────┬───────────┤                      │
+│ Game     │ Inventario├──────────────────────┤
+│ Card     │           │  Status              │
+│          │           │  (HP / Tempo / Peso) │
+└──────────┴───────────┴──────────────────────┘
 ```
 
-### D. Nova funcao Game.closeExplosionModal
+**Estrutura HTML:**
+- `#main-content` com duas colunas: `#left-column` e `#right-sidebar`
+- `#left-column`: `#log-panel` (topo) + `#left-bottom` (Game Card e Inventario lado a lado)
+- `#right-sidebar`: `#minimap-container` (topo) + `#header` status (embaixo)
 
-```javascript
-closeExplosionModal: function(playerDied) {
-  Modals.hide();
-  if (playerDied) {
-    Game.checkGameOver();
-  }
-}
+**Movimentacoes:**
+- `#header` (status) sai do `#game-panel` e vai para o final do `#right-sidebar`
+- `#inventory-panel` sai do `#right-sidebar` e vai para `#left-bottom`, ao lado do `#location-panel`
+
+**CSS principal:**
+- `#main-content`: flex row, gap 1rem
+- `#left-column`: flex column, flex 1
+- `#left-bottom`: flex row, gap 1rem, flex 1
+- `#right-sidebar`: flex column, largura fixa ~320px
+- `#inventory-panel`: remover max-height de 180px
+- Responsivo (mobile): tudo empilha verticalmente
+
+### 2. Titulo do Log: "Avenida Paulista"
+
+Na linha 1139 do HTML, trocar:
+
+```html
+<h3 class="section-title">📜 Log</h3>
 ```
 
-### E. Nao chamar checkGameOver automaticamente durante a explosao
+Por:
 
-Adiar/impedir o checkGameOver que roda automaticamente apos o dano da bomba, para que o modal de resumo da explosao apareca primeiro e o jogador tenha controle sobre quando prosseguir.
+```html
+<h3 class="section-title">Avenida Paulista</h3>
+```
 
-### Resultado
-- Jogador na sala da bomba: ve o modal "EXPLOSAO!" com mensagem de morte, vitimas e itens. Clica "Continuar" e ve o modal de game over
-- Jogador fora da sala: ve o modal de resumo com vitimas e itens. Clica "Continuar" e segue jogando
-- Sem timers, sem corrida de modais -- o jogador controla o ritmo
+Remove o icone de pergaminho e a palavra "Log", substituindo por "Avenida Paulista" como titulo do card.
 
