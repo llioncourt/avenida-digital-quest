@@ -1204,8 +1204,25 @@
         </div>
       </div>
 
-      <!-- COLUNA DIREITA: mapa + status -->
+      <!-- COLUNA DIREITA: status + mapa -->
       <div id="right-sidebar">
+        <!-- Status (HP / Tempo / Peso) -->
+        <header id="header">
+          <div id="stats">
+            <div class="stat">
+              <span class="stat-label">🕐</span>
+              <span class="stat-value" id="time-display">17:00</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">❤️</span>
+              <span class="stat-value" id="hp-display">100/100</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">⚖️</span>
+              <span class="stat-value" id="weight-display">0/50</span>
+            </div>
+          </div>
+        </header>
         <aside id="minimap-container">
           <div id="minimap-header">
             <div style="position:absolute; left:0; display:flex; align-items:center; gap:0.3rem;" title="Palavras mágicas da Bruxa">
@@ -1230,23 +1247,6 @@
             <div class="legend-item"><span style="font-size:0.6rem">💣</span>Bomba</div>
           </div>
         </aside>
-        <!-- Status (HP / Tempo / Peso) -->
-        <header id="header">
-          <div id="stats">
-            <div class="stat">
-              <span class="stat-label">🕐</span>
-              <span class="stat-value" id="time-display">17:00</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">❤️</span>
-              <span class="stat-value" id="hp-display">100/100</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">⚖️</span>
-              <span class="stat-value" id="weight-display">0/50</span>
-            </div>
-          </div>
-        </header>
       </div>
     </main>
   </div>
@@ -2314,7 +2314,7 @@ const GameState = {
   // Contador de palavras da bruxa (0-4)
   witchWords: 0,
   lastWitchWordTime: 0,
-  witchWordCooldown: 40, // minutos mínimos entre palavras
+  witchWordCooldown: 80, // minutos mínimos entre palavras
 
   // Palavra mágica do demônio
   demonMagicWord: '',
