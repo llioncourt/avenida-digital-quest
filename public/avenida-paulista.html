@@ -726,6 +726,18 @@
         left: -8px;
       }
 
+      .map-room .item-indicator {
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.45rem;
+        z-index: 25;
+        white-space: nowrap;
+        pointer-events: none;
+        line-height: 1;
+      }
+
       @keyframes bomb-pulse {
         0%, 100% { opacity: 1; transform: scale(1); }
         50% { opacity: 0.5; transform: scale(1.3); }
@@ -1304,6 +1316,7 @@
                 Aliado
               </div>
               <div class="legend-item"><span style="font-size:0.6rem">💣</span>Bomba</div>
+              <div class="legend-item"><span style="font-size:0.6rem">📦</span>Item</div>
             </div>
           </aside>
         </div>
@@ -1748,6 +1761,14 @@
         'KRONOS', 'LEVIATHAN', 'MORDECAI', 'NEFERTUM', 'OBSCURUM',
         'PANDORA', 'QUINTESSENTIA', 'RUNEMASTER', 'SALAMANDRA', 'THAUMIEL'
       ];
+
+      // Ícones de itens para o minimapa
+      const ITEM_ICONS = {
+        espada: '⚔️', escudo: '🛡️', kit_saude: '🩹',
+        kit_bomba: '🔧', livro: '📖', asa_delta: '🪂',
+        cera_magica: '🕯️', seta_mortal: '🏹',
+        mascara_gas: '😷', hipnodisco: '💿', bomba: '💣'
+      };
 
       // ============================================================================
       // SCREEN EFFECTS - Efeitos visuais na tela
@@ -2423,7 +2444,10 @@
         armedBomb: null,
 
         // Flag: jogador leu o livro mágico
-        hasReadMagicBook: false
+        hasReadMagicBook: false,
+
+        // Itens descobertos pelo jogador (IDs)
+        discoveredItems: new Set()
       };
 
       // ============================================================================
@@ -3561,8 +3585,6 @@
         },
 
 
-
-
         updateItems: function() {
           const container = document.getElementById('items-container');
           const currentRoom = GameState.rooms[GameState.playerLocation];
@@ -3804,9 +3826,26 @@
               roomEl.classList.add('has-bomb');
             }
 
+            // Indicadores de itens descobertos nesta sala
+            const roomItems = Object.values(GameState.items).filter(function(item) {
+              return GameState.discoveredItems.has(item.id) &&
+                     item.location === roomId &&
+                     !item.isDestroyed &&
+                     !item.isAnimated &&
+                     !GameState.playerInventory.includes(item.id);
+            });
+
             // Nome abreviado da sala
             const shortName = this.getShortRoomName(room.name);
             roomEl.textContent = shortName;
+
+            // Adicionar indicador APÓS textContent (senão seria apagado)
+            if (roomItems.length > 0) {
+              const indicator = document.createElement('span');
+              indicator.className = 'item-indicator';
+              indicator.textContent = roomItems.map(function(i) { return ITEM_ICONS[i.id] || '📦'; }).join('');
+              roomEl.appendChild(indicator);
+            }
 
             container.appendChild(roomEl);
           });
@@ -4395,6 +4434,7 @@
           GameState.forceShieldDown = false;
           GameState.armedBomb = null;
           GameState.hasReadMagicBook = false;
+          GameState.discoveredItems = new Set();
 
           // Gerar palavra mágica do demônio
           GameState.demonMagicWord = Utils.randomChoice(MAGIC_WORDS);
@@ -4407,6 +4447,13 @@
           Log.add('Bem-vindo à Avenida Paulista!', 'success');
           Log.add('A Bruxa está no topo do MASP tentando abrir um portal dimensional.', 'warning');
           Log.add('Você deve derrotá-la antes que ela complete o ritual!', 'info');
+
+          // Descobrir itens na sala inicial
+          Object.values(GameState.items).forEach(function(item) {
+            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
+              GameState.discoveredItems.add(item.id);
+            }
+          });
 
           // Atualizar UI
           Render.update();
@@ -4488,6 +4535,13 @@
               Modals.showGameOver(gameCheck.reason);
             }
           }
+
+          // Descobrir itens na sala atual
+          Object.values(GameState.items).forEach(function(item) {
+            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
+              GameState.discoveredItems.add(item.id);
+            }
+          });
 
           Render.update();
         },
