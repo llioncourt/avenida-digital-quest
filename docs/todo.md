@@ -8,3 +8,7 @@
 - [ ] Make the interface flash white if player is attacked
 - [ ] Make NPC interact more
 
+	| Syntax | Description |
+| ----------- | ----------- |
+| Header | Title |
+| Paragraph | Text |
