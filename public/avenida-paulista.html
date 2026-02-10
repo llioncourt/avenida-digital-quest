@@ -2954,6 +2954,7 @@
               player.hp = 0;
               player.isAlive = false;
               GameState.playerLocation = roomId;
+              GameState.characters.player.location = roomId;
               GameState.deathReason = '🪂 Você olhou para baixo, olhou para cima, bateu os braços com convicção... e descobriu que humanos não voam. A gravidade, sempre pontual, fez seu trabalho. Você se espatifou no asfalto da Avenida Paulista como um saco de batatas com sonhos de águia.';
               return {
                 success: true,
@@ -2962,6 +2963,7 @@
               };
             } else {
               GameState.playerLocation = roomId;
+              GameState.characters.player.location = roomId;
               return {
                 success: true,
                 message: 'Você salta da Antena e a ASA DELTA te carrega pelos céus de São Paulo!',
@@ -2984,6 +2986,7 @@
           }
 
           GameState.playerLocation = roomId;
+          GameState.characters.player.location = roomId;
           SoundSystem.playMove();
           return {
             success: true,
@@ -3258,6 +3261,7 @@
             .map(char => char.name);
 
           const victims = [];
+          const playerInBombRoom = GameState.playerLocation === bombLocation;
 
           // Matar TODOS os personagens no local (incluindo player e aliados)
           Object.values(GameState.characters).forEach(char => {
@@ -3267,6 +3271,15 @@
               victims.push(char.name);
             }
           });
+
+          // Proteção extra: garantir que o player morra se estiver na sala
+          if (playerInBombRoom && GameState.characters.player.isAlive) {
+            GameState.characters.player.hp = 0;
+            GameState.characters.player.isAlive = false;
+            if (!victims.includes(GameState.characters.player.name)) {
+              victims.push(GameState.characters.player.name);
+            }
+          }
 
           // Destruir TODOS os itens no local
           Object.values(GameState.items).forEach(item => {
