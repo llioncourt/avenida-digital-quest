@@ -1,4 +1,7 @@
-#Header
+### This is meant to be an ongoig ToDo List
+#### Check the boxes after completing the tasks
+
+#### Minor Tasks - Highest Priority
 - [ ] Add color theme change on the whole interface on rooms that are destroyed
 - [ ] Add color theme change on the whole interface on rooms that are "on the sky"
 - [ ] Add color theme change on the whole interface on rooms that have an active bomb
