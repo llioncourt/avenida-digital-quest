@@ -1,76 +1,114 @@
 
 
-# Plano: Musica de Game Over + Feedback do Escudo do MASP
+# Icones de Itens no Minimapa
 
-## Resumo
+## O que muda
 
-Duas alteracoes:
-1. **Parar a musica de fundo ao fim do jogo** (vitoria ou derrota) e deixar silencio (placeholders para futuras musicas)
-2. **Dar feedback textual** ao clicar no Teto do MASP bloqueado pelo escudo no minimapa
+Ao entrar em uma sala que tem itens, esses itens ficam "descobertos" e passam a aparecer no minimapa com um icone (similar ao icone da bomba). O icone permanece visivel enquanto o item estiver naquela sala. Se o jogador pegar o item, usar e consumir, ou se o item for destruido, o icone some. Se o jogador largar o item em outra sala, o icone aparece na nova sala.
 
----
+## Como funciona
 
-## Alteracao 1: Musica no Game Over
+1. **Novo estado no GameState**: um Set chamado `discoveredItems` que guarda os IDs dos itens que o jogador ja viu (entrou na sala onde estavam).
 
-**Onde:** Funcao `Modals.showGameOver()` (linha ~4211) e `Rules.checkGameOver()` (linha ~2499)
+2. **Descoberta automatica**: toda vez que o jogador entra em uma sala (`updateGameCard` ou `move`), os itens presentes naquela sala sao adicionados ao `discoveredItems`.
 
-**O que fazer:**
-- Em `Rules.checkGameOver()`, quando o jogo termina (derrota ou vitoria), chamar `MusicSystem.stop()` para parar a musica de fundo
-- Adicionar dois metodos placeholder no `MusicSystem`: `playDefeatMusic()` e `playVictoryMusic()` que por enquanto nao fazem nada (apenas um `console.log` indicando que futuramente terao musica)
-- Chamar `playDefeatMusic()` nas derrotas e `playVictoryMusic()` na vitoria, logo apos parar a musica principal
+3. **Icones no minimapa**: no `updateMinimap`, apos desenhar as salas, verifica quais itens descobertos ainda estao no mundo (tem `location` valido, nao estao destruidos, nao estao no inventario). Para cada um, adiciona um indicador visual na sala correspondente.
 
-**Resultado:** Ao morrer ou vencer, a musica de fundo para e fica silencio. Os placeholders ficam prontos para receber musicas no futuro.
+4. **Emojis por item**: cada item tera um emoji associado para o minimapa:
+   - Espada: "⚔️", Escudo: "🛡️", Kit Saude: "🩹", Kit Bomba: "🔧"
+   - Livro: "📖", Asa Delta: "🪂", Cera Magica: "🕯️", Seta Mortal: "🏹"
+   - Mascara Gas: "😷", Hipnodisco: "💿", Bomba: "💣" (ja existente)
 
----
+5. **Legenda atualizada**: adicionar um item "📦 Item" na legenda do minimapa.
 
-## Alteracao 2: Feedback ao clicar no Teto do MASP com escudo
-
-**Onde:** Handlers de clique/tap no minimapa (linhas ~3963-3967 para mouse, ~4116-4119 para touch)
-
-**O que fazer:**
-- Nos dois handlers (mouseup e touchend), quando o clique/tap e detectado como "clique rapido" em uma sala, alem de verificar `valid-exit`, tambem verificar se e `blocked-exit`
-- Se for `blocked-exit`, chamar `Game.move(this.dragTarget)` que ja retorna a mensagem de bloqueio ("Um ESCUDO DE FORCA magico bloqueia a subida!") via `Actions.moveTo()`, ou alternativamente adicionar uma mensagem ao Log diretamente
-- A abordagem mais limpa: se `roomEl.classList.contains('blocked-exit')`, adicionar uma mensagem no Log via `Log.add()` com o texto apropriado, sem consumir turno
-
-**Resultado:** Ao clicar no Teto do MASP quando o escudo esta ativo, o jogador recebe feedback textual no Log explicando o bloqueio.
-
----
+6. **Reset**: limpar `discoveredItems` ao iniciar novo jogo.
 
 ## Detalhes Tecnicos
 
-### MusicSystem - novos metodos placeholder
+### GameState - novo campo
 
 ```javascript
-playDefeatMusic: function() {
-  // TODO: Adicionar musica de derrota
-  console.log('MusicSystem: Defeat music placeholder');
-},
+discoveredItems: new Set()
+```
 
-playVictoryMusic: function() {
-  // TODO: Adicionar musica de vitoria
-  console.log('MusicSystem: Victory music placeholder');
+Resetado no `Game.init()`.
+
+### Descoberta - no fluxo de entrada na sala
+
+Apos o jogador se mover ou ao iniciar o jogo, chamar uma funcao que verifica itens na sala atual e adiciona ao Set:
+
+```javascript
+// Em Rules ou Actions, apos mover
+Object.values(GameState.items).forEach(item => {
+  if (item.location === GameState.playerLocation && !item.isDestroyed) {
+    GameState.discoveredItems.add(item.id);
+  }
+});
+```
+
+### CSS - novo estilo para itens no mapa
+
+Adicionar uma classe `has-item` com um pseudo-elemento ou elementos filhos para mostrar os emojis dos itens. Como uma sala pode ter multiplos itens, a abordagem sera inserir spans filhos dentro do elemento da sala (diferente da bomba que usa `::after`).
+
+```css
+.map-room .item-indicator {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  z-index: 25;
+  white-space: nowrap;
+  pointer-events: none;
 }
 ```
 
-### checkGameOver - parar musica
+### updateMinimap - adicionar indicadores de itens
 
-Nas 3 condicoes de fim de jogo (HP <= 0, witchWords >= 4, bruxa morta):
-- Adicionar `MusicSystem.stop()` antes dos sons de derrota/vitoria
-- Chamar o placeholder correspondente (`playDefeatMusic` ou `playVictoryMusic`)
-
-### Minimap click handlers - feedback do escudo
-
-Nos dois pontos (mouseup linha ~3963, touchend linha ~4116), adicionar um `else if` apos o check de `valid-exit`:
+Dentro do loop de salas, apos verificar bomba armada, adicionar logica para itens descobertos:
 
 ```javascript
-if (roomEl.classList.contains('valid-exit')) {
-  Game.move(this.dragTarget);
-} else if (roomEl.classList.contains('blocked-exit')) {
-  const room = GameState.rooms[this.dragTarget];
-  const msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
-    ? '🛡️ Um escudo de força mágico bloqueia o acesso! Derrote o Feiticeiro para removê-lo.'
-    : '✈️ Você precisa voar para acessar ' + (room ? room.name : 'este local') + '.';
-  Log.add(msg, 'warning');
+// Itens descobertos nesta sala
+const roomItems = Object.values(GameState.items).filter(
+  item => GameState.discoveredItems.has(item.id) &&
+          item.location === roomId &&
+          !item.isDestroyed &&
+          !GameState.playerInventory.includes(item.id)
+);
+if (roomItems.length > 0) {
+  const indicator = document.createElement('span');
+  indicator.className = 'item-indicator';
+  indicator.textContent = roomItems.map(i => ITEM_ICONS[i.id]).join('');
+  roomEl.appendChild(indicator);
 }
 ```
 
+### Mapa de emojis - constante
+
+```javascript
+const ITEM_ICONS = {
+  espada: '⚔️', escudo: '🛡️', kit_saude: '🩹',
+  kit_bomba: '🔧', livro: '📖', asa_delta: '🪂',
+  cera_magica: '🕯️', seta_mortal: '🏹',
+  mascara_gas: '😷', hipnodisco: '💿', bomba: '💣'
+};
+```
+
+### Legenda do minimapa
+
+Adicionar entrada na legenda:
+
+```html
+<div class="legend-item"><span style="font-size:0.6rem">📦</span>Item</div>
+```
+
+### Pontos de atencao
+
+- Itens largados no ceu ja sao destruidos pela logica existente (`item.location = null`), entao o icone some automaticamente.
+- A bomba armada ja tem seu proprio sistema de icone (`has-bomb`), entao a bomba so apareceria como item se estiver no chao sem estar armada.
+- O `discoveredItems` Set precisa ser limpo no `Game.init()`.
+- Itens animados pelo Hipnodisco (`item.isAnimated = true`) nao devem aparecer como itens no mapa.
+
+### Arquivos modificados
+
+- `public/avenida-paulista.html` (unico arquivo - tudo inline)
