@@ -1,4 +1,4 @@
-### This is meant to be an ongoig ToDo List
+### This is meant to be an ongoing ToDo List
 #### Check the boxes after completing the tasks
 
 #### Minor Tasks - Highest Priority
