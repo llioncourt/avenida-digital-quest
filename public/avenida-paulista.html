@@ -4361,7 +4361,7 @@
                 <div>🕐 Hora final:</div><div>${Utils.formatTime(GameState.time)}</div>
                 <div>❤️ HP restante:</div><div>${player.hp}/${player.maxHp}</div>
                 <div>💀 Inimigos derrotados:</div><div>${enemiesDefeated}</div>
-                <div>🤝 Total de aliados:</div><div>${alliesGained}</div>
+                <div>🤝 Aliados conquistados:</div><div>${alliesGained}</div>
                 <div>🎒 Itens no inventário:</div><div>${itemsCollected}</div>
                 <div>🔮 Palavras da Bruxa:</div><div>${GameState.witchWords}/4</div>
               </div>
@@ -4875,21 +4875,17 @@
         storyText: `
       AVENIDA PAULISTA
 
-      No final da década de 80, nas ruas movimentadas de São Paulo, uma terrível BRUXA toma posse do MASP, o icônico museu de arte da Avenida Paulista. Com seus poderes arcanos, ela tenta pronunciar QUATRO PALAVRAS MÁGICAS para abrir um portal dimensional e invocar forças das trevas sobre a cidade.
+      Há muito tempo, nas ruas movimentadas de São Paulo, uma terrível BRUXA tomou posse do MASP, o icônico museu de arte da Avenida Paulista. Com seus poderes arcanos, ela pretende pronunciar QUATRO PALAVRAS MÁGICAS para abrir um portal dimensional e invocar forças das trevas sobre a cidade.
 
 
-
-      Criaturas sobrenaturais passam a vagar pelas ruas. Um DEMÔNIO é visto nas sombras. O FEITICEIRO se esconde no túnel, aguardando o anoitecer. Mas nem tudo está perdido. Aliados improváveis surgem pelo caminho — uma CORUJA sábia, um fiel CACHORRO CARAMELO, e outros heróis urbanos.
-
+      Criaturas sobrenaturais agora vagam pelas ruas. Um DEMÔNIO foi avistado nas sombras. O FEITICEIRO se esconde no Túnel aguardando o anoitecer. Mas nem tudo está perdido. Aliados improváveis podem ser encontrados — uma CORUJA sábia, um fiel CACHORRO CARAMELO, e outros heróis urbanos.
 
 
-      Artefatos místicos estão espalhados pela cidade. Uma ESPADA lendária. Um ESCUDO ancestral. E um LIVRO que guarda o segredo para conter as forças do mal. Você é a última esperança. Explore a cidade, reúna aliados, encontre armas e derrote a Bruxa antes que o ritual seja concluído...
-
+      Artefatos místicos estão espalhados pela cidade. Uma ESPADA lendária. Um ESCUDO ancestral. E um LIVRO que contém o segredo para converter as forças do mal. Você é a última esperança. Explore a cidade, reúna aliados, encontre armas e derrote a Bruxa antes que ela complete seu ritual...
 
 
       O destino de São Paulo está em suas mãos.
-
-
+        `,
         // ========================================
 
         formatStory: function() {
