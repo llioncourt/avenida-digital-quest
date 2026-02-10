@@ -2293,6 +2293,18 @@ const MusicSystem = {
     this.updateButton();
   },
   
+  // Placeholder: música de derrota (silêncio por enquanto)
+  playDefeatMusic: function() {
+    // TODO: Adicionar música de derrota
+    console.log('MusicSystem: Defeat music placeholder');
+  },
+
+  // Placeholder: música de vitória (silêncio por enquanto)
+  playVictoryMusic: function() {
+    // TODO: Adicionar música de vitória
+    console.log('MusicSystem: Victory music placeholder');
+  },
+
   // Toggle
   toggle: function() {
     SoundSystem.resume();
@@ -2504,7 +2516,9 @@ const Rules = {
     if (player.hp <= 0) {
       GameState.gameOver = true;
       GameState.victory = false;
+      MusicSystem.stop();
       SoundSystem.playDeath();
+      MusicSystem.playDefeatMusic();
       const reason = GameState.deathReason || 'Você foi derrotado! A escuridão consome São Paulo...';
       GameState.deathReason = null;
       return { ended: true, victory: false, reason: reason };
@@ -2514,7 +2528,9 @@ const Rules = {
     if (GameState.witchWords >= 4) {
       GameState.gameOver = true;
       GameState.victory = false;
+      MusicSystem.stop();
       SoundSystem.playDeath();
+      MusicSystem.playDefeatMusic();
       return { ended: true, victory: false, reason: 'A Bruxa completou o ritual! O portal dimensional se abre e criaturas das trevas invadem a cidade!' };
     }
     
@@ -2522,7 +2538,9 @@ const Rules = {
     if (witch.hp <= 0) {
       GameState.gameOver = true;
       GameState.victory = true;
+      MusicSystem.stop();
       SoundSystem.playVictory();
+      MusicSystem.playVictoryMusic();
       return { ended: true, victory: true, reason: 'VITÓRIA! Você derrotou a Bruxa e salvou São Paulo!' };
     }
     
@@ -3964,6 +3982,12 @@ const MinimapController = {
           // Verificar se é saída válida
           if (roomEl.classList.contains('valid-exit')) {
             Game.move(this.dragTarget);
+          } else if (roomEl.classList.contains('blocked-exit')) {
+            const room = GameState.rooms[this.dragTarget];
+            const msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
+              ? '🛡️ Um escudo de força mágico bloqueia o acesso! Derrote o Feiticeiro para removê-lo.'
+              : '✈️ Você precisa voar para acessar ' + (room ? room.name : 'este local') + '.';
+            Log.add(msg, 'warning');
           }
         }
       }
@@ -4116,6 +4140,12 @@ const MinimapController = {
             if (deltaX < 10 && deltaY < 10) {
               if (roomEl.classList.contains('valid-exit')) {
                 Game.move(this.dragTarget);
+              } else if (roomEl.classList.contains('blocked-exit')) {
+                const room = GameState.rooms[this.dragTarget];
+                const msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
+                  ? '🛡️ Um escudo de força mágico bloqueia o acesso! Derrote o Feiticeiro para removê-lo.'
+                  : '✈️ Você precisa voar para acessar ' + (room ? room.name : 'este local') + '.';
+                Log.add(msg, 'warning');
               }
             }
           }
