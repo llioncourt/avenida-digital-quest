@@ -1225,9 +1225,104 @@
           opacity: 1;
         }
       }
+      /* ========== RANDOM EVENTS OVERLAYS ========== */
+      #rain-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 100;
+        background: linear-gradient(transparent 0%, rgba(100, 130, 180, 0.08) 100%);
+        opacity: 0;
+        transition: opacity 1.5s ease;
+      }
+      #rain-overlay.active {
+        opacity: 1;
+      }
+      #rain-overlay.active::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          repeating-linear-gradient(
+            transparent,
+            transparent 4px,
+            rgba(170, 200, 255, 0.08) 4px,
+            rgba(170, 200, 255, 0.08) 5px
+          );
+        background-size: 3px 100%;
+        animation: rain-fall 0.4s linear infinite;
+      }
+      #rain-overlay.active::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          repeating-linear-gradient(
+            transparent,
+            transparent 6px,
+            rgba(170, 200, 255, 0.05) 6px,
+            rgba(170, 200, 255, 0.05) 7px
+          );
+        background-size: 5px 100%;
+        animation: rain-fall 0.6s linear infinite;
+        animation-delay: 0.2s;
+      }
+
+      @keyframes rain-fall {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+      }
+
+      #fog-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 99;
+        background: radial-gradient(ellipse at center, rgba(200, 210, 220, 0.12) 0%, rgba(180, 190, 200, 0.06) 50%, transparent 80%);
+        opacity: 0;
+        transition: opacity 2s ease;
+      }
+      #fog-overlay.active {
+        opacity: 1;
+      }
+
+      #whisper-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 98;
+        background: rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transition: opacity 1.5s ease;
+      }
+      #whisper-overlay.active {
+        opacity: 1;
+      }
+
+      .screen-shake {
+        animation: screen-shake 0.3s ease-out !important;
+      }
+
+      @keyframes screen-shake {
+        0%, 100% { transform: translate(0, 0); }
+        10% { transform: translate(-3px, -2px); }
+        20% { transform: translate(4px, 1px); }
+        30% { transform: translate(-2px, 3px); }
+        40% { transform: translate(3px, -1px); }
+        50% { transform: translate(-4px, 2px); }
+        60% { transform: translate(2px, -3px); }
+        70% { transform: translate(-1px, 4px); }
+        80% { transform: translate(3px, -2px); }
+        90% { transform: translate(-2px, 1px); }
+      }
     </style>
   </head>
   <body>
+    <!-- RANDOM EVENTS OVERLAYS -->
+    <div id="rain-overlay"></div>
+    <div id="fog-overlay"></div>
+    <div id="whisper-overlay"></div>
+
     <!-- INTRO STAR WARS -->
     <div id="intro-container">
       <div id="intro-stars"></div>
@@ -1890,6 +1985,494 @@
               noise.start();
               noise.stop(ctx.currentTime + 0.05);
             }, i * 300);
+          }
+        }
+      };
+
+      // ============================================================================
+      // RANDOM EVENTS SYSTEM
+      // ============================================================================
+
+      const RANDOM_EVENTS = {
+        rain: {
+          id: 'rain', name: 'Chuva', category: 'weather',
+          text: ['🌧️ Uma chuva forte começa a cair sobre a Avenida Paulista...', '🌧️ Gotas grossas de chuva batem contra os prédios...', '🌧️ A chuva se intensifica, embaçando a visão...'],
+          endText: ['🌤️ A chuva vai parando aos poucos...', '🌤️ As nuvens se dissipam lentamente.'],
+          duration: { min: 8, max: 15 }, parent: null, children: ['thunder', 'lightning'],
+          chance: 0.08, gameEffect: null
+        },
+        thunder: {
+          id: 'thunder', name: 'Trovão', category: 'weather',
+          text: ['⚡ BOOM! Um trovão ensurdecedor ecoa pela cidade!', '⚡ O céu estremece com um trovão poderoso!', '⚡ Um estrondo massivo faz os prédios vibrarem!'],
+          endText: [], duration: 0, parent: 'rain', children: [],
+          chance: 0.25, gameEffect: null
+        },
+        lightning: {
+          id: 'lightning', name: 'Relâmpago', category: 'weather',
+          text: ['⚡ Um relâmpago corta o céu da Paulista!', '⚡ A luz do relâmpago ilumina toda a avenida!'],
+          endText: [], duration: 0, parent: 'rain', children: [],
+          chance: 0.2, gameEffect: null
+        },
+        siren: {
+          id: 'siren', name: 'Sirene', category: 'urban',
+          text: ['🚨 Uma sirene ecoa ao longe...', '🚨 Sirenes cortam o silêncio da cidade...', '🚨 O som de uma ambulância se aproxima e se afasta...'],
+          endText: ['A sirene vai se distanciando...'],
+          duration: { min: 3, max: 5 }, parent: null, children: [],
+          chance: 0.06, gameEffect: null
+        },
+        wind_howl: {
+          id: 'wind_howl', name: 'Uivo de Vento', category: 'weather',
+          text: ['🌬️ O vento uiva entre os arranha-céus...', '🌬️ Uma rajada forte sacode os galhos das árvores...', '🌬️ O vento geme entre os prédios como uma voz distante...'],
+          endText: ['O vento se acalma aos poucos.'],
+          duration: { min: 2, max: 4 }, parent: null, children: [],
+          chance: 0.07, gameEffect: null
+        },
+        distant_dogs: {
+          id: 'distant_dogs', name: 'Cães Distantes', category: 'urban',
+          text: ['🐕 Latidos distantes ecoam pelas ruas...', '🐕 Cães latem ao longe, um respondendo ao outro...', '🐕 Uma matilha late freneticamente em algum beco próximo...'],
+          endText: [], duration: 0, parent: null, children: [],
+          chance: 0.05, gameEffect: null
+        },
+        crow: {
+          id: 'crow', name: 'Corvos', category: 'urban',
+          text: ['🐦‍⬛ Corvos croacam no alto dos prédios...', '🐦‍⬛ Um bando de corvos levanta voo repentinamente!', '🐦‍⬛ O grasnado de um corvo corta o silêncio...'],
+          endText: [], duration: 0, parent: null, children: [],
+          chance: 0.04, gameEffect: null
+        },
+        earthquake: {
+          id: 'earthquake', name: 'Tremor', category: 'supernatural',
+          text: ['🫨 O chão treme sob seus pés!', '🫨 Um tremor percorre toda a avenida!', '🫨 Os prédios estremecem com um abalo súbito!'],
+          endText: [], duration: 0, parent: null, children: [],
+          chance: 0.03, gameEffect: null
+        },
+        whispers: {
+          id: 'whispers', name: 'Sussurros', category: 'supernatural',
+          text: ['👻 Vozes sussurram coisas incompreensíveis...', '👻 Sussurros parecem vir das paredes...', '👻 Você jura ouvir alguém chamando seu nome...'],
+          endText: ['Os sussurros se dissipam no ar...'],
+          duration: { min: 2, max: 3 }, parent: null, children: [],
+          chance: 0.03, gameEffect: null
+        },
+        fog: {
+          id: 'fog', name: 'Neblina', category: 'weather',
+          text: ['🌫️ Uma neblina densa começa a cobrir a avenida...', '🌫️ A neblina se adensa, reduzindo a visibilidade...', '🌫️ Uma bruma misteriosa envolve os prédios...'],
+          endText: ['🌫️ A neblina vai se dissipando lentamente...'],
+          duration: { min: 6, max: 10 }, parent: null, children: [],
+          chance: 0.05, gameEffect: null
+        }
+      };
+
+      const RandomEvents = {
+        activeEvents: {},
+        activeSounds: {},
+
+        process: function() {
+          if (GameState.gameOver) return;
+
+          // 1. Decrementar e expirar eventos ativos
+          const toRemove = [];
+          Object.keys(this.activeEvents).forEach(function(eventId) {
+            const active = RandomEvents.activeEvents[eventId];
+            if (active.turnsLeft > 0) {
+              active.turnsLeft--;
+              if (active.turnsLeft <= 0) {
+                toRemove.push(eventId);
+              }
+            }
+          });
+          toRemove.forEach(function(eventId) { RandomEvents.endEvent(eventId); });
+
+          // 2. Tentar disparar novos eventos independentes
+          Object.keys(RANDOM_EVENTS).forEach(function(eventId) {
+            const evt = RANDOM_EVENTS[eventId];
+            if (evt.parent) return;
+            if (RandomEvents.isActive(eventId)) return;
+            if (Utils.random() < evt.chance) {
+              RandomEvents.startEvent(eventId);
+            }
+          });
+
+          // 3. Processar filhos de eventos ativos
+          Object.keys(RandomEvents.activeEvents).forEach(function(eventId) {
+            const evt = RANDOM_EVENTS[eventId];
+            if (!evt || !evt.children) return;
+            evt.children.forEach(function(childId) {
+              const child = RANDOM_EVENTS[childId];
+              if (child && Utils.random() < child.chance) {
+                RandomEvents.startEvent(childId);
+              }
+            });
+          });
+        },
+
+        startEvent: function(eventId) {
+          const evt = RANDOM_EVENTS[eventId];
+          if (!evt) return;
+
+          // Para eventos com duração, não iniciar se já ativo
+          if (evt.duration !== 0 && this.isActive(eventId)) return;
+
+          // Calcular duração
+          var turnsLeft = 0;
+          if (typeof evt.duration === 'object') {
+            turnsLeft = Utils.randomInt(evt.duration.min, evt.duration.max);
+          } else {
+            turnsLeft = evt.duration;
+          }
+
+          // Registrar se tem duração
+          if (turnsLeft > 0) {
+            this.activeEvents[eventId] = { turnsLeft: turnsLeft, startedAt: GameState.time };
+          }
+
+          // Texto no log
+          if (evt.text && evt.text.length > 0) {
+            Log.add(Utils.randomChoice(evt.text), 'info');
+          }
+
+          // Som
+          if (this.sounds[eventId]) {
+            this.sounds[eventId]();
+          }
+
+          // Visual
+          if (this.visuals[eventId]) {
+            this.visuals[eventId](true);
+          }
+        },
+
+        endEvent: function(eventId) {
+          var evt = RANDOM_EVENTS[eventId];
+          delete this.activeEvents[eventId];
+
+          // Parar som contínuo
+          this.stopSound(eventId);
+
+          // Texto de fim
+          if (evt && evt.endText && evt.endText.length > 0) {
+            Log.add(Utils.randomChoice(evt.endText), 'info');
+          }
+
+          // Remover visual
+          if (this.visuals[eventId]) {
+            this.visuals[eventId](false);
+          }
+
+          // Encerrar filhos
+          if (evt && evt.children) {
+            var self = this;
+            evt.children.forEach(function(childId) {
+              if (self.isActive(childId)) {
+                self.endEvent(childId);
+              }
+            });
+          }
+        },
+
+        isActive: function(eventId) {
+          return !!this.activeEvents[eventId];
+        },
+
+        stopSound: function(eventId) {
+          if (this.activeSounds[eventId]) {
+            try {
+              this.activeSounds[eventId].forEach(function(node) {
+                if (node.stop) node.stop();
+                if (node.disconnect) node.disconnect();
+              });
+            } catch(e) {}
+            delete this.activeSounds[eventId];
+          }
+        },
+
+        reset: function() {
+          var self = this;
+          Object.keys(this.activeSounds).forEach(function(id) { self.stopSound(id); });
+          this.activeEvents = {};
+          this.activeSounds = {};
+          ['rain-overlay', 'fog-overlay', 'whisper-overlay'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+          });
+        },
+
+        // ====== SONS SINTETIZADOS ======
+        sounds: {
+          rain: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var bufferSize = ctx.sampleRate * 2;
+            var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            var data = buffer.getChannelData(0);
+            for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            var noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            noise.loop = true;
+            var filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 800;
+            var gain = ctx.createGain();
+            gain.gain.value = 0.06 * SoundSystem.masterVolume;
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start();
+            RandomEvents.activeSounds['rain'] = [noise, gain, filter];
+          },
+
+          thunder: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var now = ctx.currentTime;
+            var bufSize = ctx.sampleRate * 2;
+            var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+            var d = buf.getChannelData(0);
+            for (var i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+            var noise = ctx.createBufferSource();
+            noise.buffer = buf;
+            var filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 150;
+            var gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.4 * SoundSystem.masterVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start(now);
+            noise.stop(now + 2.0);
+          },
+
+          lightning: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var now = ctx.currentTime;
+            var bufSize = ctx.sampleRate * 0.1;
+            var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+            var d = buf.getChannelData(0);
+            for (var i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+            var noise = ctx.createBufferSource();
+            noise.buffer = buf;
+            var filter = ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 2000;
+            var gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.3 * SoundSystem.masterVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.1);
+          },
+
+          siren: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = 600;
+            var lfo = ctx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.5;
+            var lfoGain = ctx.createGain();
+            lfoGain.gain.value = 200;
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+            var gain = ctx.createGain();
+            gain.gain.value = 0.08 * SoundSystem.masterVolume;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            lfo.start();
+            osc.start();
+            RandomEvents.activeSounds['siren'] = [osc, lfo, gain, lfoGain];
+          },
+
+          wind_howl: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var bufferSize = ctx.sampleRate * 2;
+            var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            var data = buffer.getChannelData(0);
+            for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            var noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            noise.loop = true;
+            var filter = ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 400;
+            filter.Q.value = 5;
+            var lfo = ctx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.3;
+            var lfoGain = ctx.createGain();
+            lfoGain.gain.value = 200;
+            lfo.connect(lfoGain);
+            lfoGain.connect(filter.frequency);
+            var gain = ctx.createGain();
+            gain.gain.value = 0.07 * SoundSystem.masterVolume;
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            lfo.start();
+            noise.start();
+            RandomEvents.activeSounds['wind_howl'] = [noise, lfo, gain, lfoGain, filter];
+          },
+
+          distant_dogs: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var now = ctx.currentTime;
+            var count = Utils.randomInt(3, 6);
+            for (var i = 0; i < count; i++) {
+              var delay = i * 0.3 + Utils.random() * 0.15;
+              var freq = 800 + Utils.random() * 400;
+              var osc = ctx.createOscillator();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq, now + delay);
+              osc.frequency.linearRampToValueAtTime(freq * 1.3, now + delay + 0.08);
+              osc.frequency.linearRampToValueAtTime(freq, now + delay + 0.15);
+              var gain = ctx.createGain();
+              gain.gain.setValueAtTime(0, now + delay);
+              gain.gain.linearRampToValueAtTime(0.06 * SoundSystem.masterVolume, now + delay + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.15);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now + delay);
+              osc.stop(now + delay + 0.15);
+            }
+          },
+
+          crow: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var now = ctx.currentTime;
+            var count = Utils.randomInt(2, 4);
+            for (var i = 0; i < count; i++) {
+              var delay = i * 0.25;
+              var bufSize = ctx.sampleRate * 0.12;
+              var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+              var d = buf.getChannelData(0);
+              for (var j = 0; j < bufSize; j++) d[j] = Math.random() * 2 - 1;
+              var noise = ctx.createBufferSource();
+              noise.buffer = buf;
+              var filter = ctx.createBiquadFilter();
+              filter.type = 'bandpass';
+              filter.frequency.value = 1200 + Utils.random() * 400;
+              filter.Q.value = 8;
+              var gain = ctx.createGain();
+              gain.gain.setValueAtTime(0.1 * SoundSystem.masterVolume, now + delay);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.12);
+              noise.connect(filter);
+              filter.connect(gain);
+              gain.connect(ctx.destination);
+              noise.start(now + delay);
+              noise.stop(now + delay + 0.12);
+            }
+          },
+
+          earthquake: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var now = ctx.currentTime;
+            var bufSize = ctx.sampleRate * 1;
+            var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+            var d = buf.getChannelData(0);
+            for (var i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+            var noise = ctx.createBufferSource();
+            noise.buffer = buf;
+            var filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 80;
+            var gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.3 * SoundSystem.masterVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start(now);
+            noise.stop(now + 1.0);
+          },
+
+          whispers: function() {
+            if (!SoundSystem.audioCtx || !SoundSystem.enabled) return;
+            var ctx = SoundSystem.audioCtx;
+            SoundSystem.resume();
+            var bufferSize = ctx.sampleRate * 3;
+            var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            var data = buffer.getChannelData(0);
+            for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            var noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            noise.loop = true;
+            var filter = ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 600;
+            filter.Q.value = 3;
+            var lfo = ctx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.8;
+            var lfoGain = ctx.createGain();
+            lfoGain.gain.value = 0.01 * SoundSystem.masterVolume;
+            var gain = ctx.createGain();
+            gain.gain.value = 0.02 * SoundSystem.masterVolume;
+            lfo.connect(lfoGain);
+            lfoGain.connect(gain.gain);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            lfo.start();
+            noise.start();
+            RandomEvents.activeSounds['whispers'] = [noise, lfo, gain, lfoGain, filter];
+          },
+
+          fog: function() { /* Neblina não tem som */ }
+        },
+
+        // ====== EFEITOS VISUAIS ======
+        visuals: {
+          rain: function(active) {
+            var el = document.getElementById('rain-overlay');
+            if (el) el.classList.toggle('active', active);
+          },
+          thunder: function(active) {
+            if (active) {
+              ScreenEffects.flash('rgba(255, 255, 255, 0.8)');
+              var container = document.getElementById('game-container');
+              if (container) {
+                container.classList.add('screen-shake');
+                setTimeout(function() { container.classList.remove('screen-shake'); }, 300);
+              }
+            }
+          },
+          lightning: function(active) {
+            if (active) {
+              ScreenEffects.flash('rgba(200, 220, 255, 0.6)');
+            }
+          },
+          earthquake: function(active) {
+            if (active) {
+              var container = document.getElementById('game-container');
+              if (container) {
+                container.classList.add('screen-shake');
+                setTimeout(function() { container.classList.remove('screen-shake'); }, 400);
+              }
+            }
+          },
+          whispers: function(active) {
+            var el = document.getElementById('whisper-overlay');
+            if (el) el.classList.toggle('active', active);
+          },
+          fog: function(active) {
+            var el = document.getElementById('fog-overlay');
+            if (el) el.classList.toggle('active', active);
           }
         }
       };
@@ -3305,6 +3888,7 @@
           this.processBombardeadorBombs();
           this.processNPCAttacks();
           this.processAllyAttacks();
+          RandomEvents.process();
 
           // WORLD SANITY: validar novamente após eventos (double-check)
           WorldSanity.enforce();
@@ -4565,6 +5149,9 @@
           GameState.armedBomb = null;
           GameState.hasReadMagicBook = false;
           GameState.discoveredItems = new Set();
+
+          // Reset eventos aleatórios
+          RandomEvents.reset();
 
           // Gerar palavra mágica do demônio
           GameState.demonMagicWord = Utils.randomChoice(MAGIC_WORDS);
