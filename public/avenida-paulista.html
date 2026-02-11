@@ -13,7 +13,6 @@
       content="RPG, aventura, jogo, Avenida Paulista, São Paulo, browser game, text adventure, survival"
     />
 
-    <!-- Open Graph -->
     <meta property="og:title" content="Avenida Paulista - Adventure RPG" />
     <meta
       property="og:description"
@@ -22,7 +21,6 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
 
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Avenida Paulista - Adventure RPG" />
     <meta
@@ -182,12 +180,51 @@
         flex-direction: column;
         gap: 1rem;
         min-width: 0;
+        /* Garante que o container ocupe a altura total para dividir */
+        height: 100%;
       }
 
+      /*
+        ALTERAÇÃO: Log Panel agora é flex: 1 (50% do espaço)
+        e removemos max-height fixo.
+      */
+      #log-panel {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        border: 1px solid var(--accent-blue);
+        /* max-height: 150px; <-- REMOVIDO */
+        flex: 1; /* Ocupa espaço flexível */
+        min-height: 0; /* Permite scroll interno */
+        border-radius: var(--radius);
+        padding: 1rem;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #log-container {
+        flex: 1;
+        min-height: 0;
+        max-height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0.5rem;
+        background: var(--bg-primary);
+        border-radius: var(--radius);
+        font-family: var(--font-mono);
+        font-size: 0.9rem; /* Aumentei um pouco a fonte para aproveitar o espaço */
+        line-height: 1.6;
+        word-wrap: break-word;
+        word-break: break-word;
+      }
+
+      /*
+        ALTERAÇÃO: Left Bottom agora é flex: 1 (os outros 50% do espaço)
+      */
       #left-bottom {
         display: flex;
         gap: 1rem;
-        flex: 1;
+        flex: 1; /* Ocupa o restante do espaço vertical */
         min-height: 0;
       }
 
@@ -197,8 +234,11 @@
         min-width: 0;
       }
 
+      /*
+        ALTERAÇÃO: Aumentar largura do inventário horizontalmente
+      */
       #left-bottom #inventory-panel {
-        flex: 0 0 220px;
+        flex: 0 0 340px; /* Aumentado de 220px para 340px */
         max-height: none;
         overflow-y: auto;
       }
@@ -257,17 +297,34 @@
         padding-bottom: 0.3rem;
       }
 
-      #log-panel .section-title {
-        font-size: 1.1rem;
+      /*
+        ALTERAÇÃO: Nova classe de animação para o título do Log
+      */
+      @keyframes modern-pulse {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .modern-pulse-title {
+        font-size: 1.2rem;
         letter-spacing: 3px;
         text-transform: uppercase;
         font-family: var(--font-mono);
-        background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-dim));
+        font-weight: 800;
+        margin: 0;
+        padding: 0;
+        border: none;
+        
+        /* Gradiente animado */
+        background: linear-gradient(270deg, var(--accent-gold), #fff, var(--accent-gold), var(--accent-gold-dim));
+        background-size: 300% 300%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        border-bottom: 2px solid var(--accent-gold-dim);
-        padding-bottom: 0.4rem;
+        
+        animation: modern-pulse 4s ease infinite;
+        text-shadow: 0 0 15px rgba(212, 168, 70, 0.2);
       }
 
       .button-group {
@@ -310,7 +367,7 @@
       }
 
       .btn-item {
-        background: linear-gradient(135deg, #2a2a1a, #1a1a0a);
+        background: linear-gradient(135deg, #2a1a1a, #1a1a0a);
         border-color: var(--accent-gold-dim);
       }
 
@@ -401,8 +458,8 @@
       .inventory-item {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        padding: 0.4rem 0.5rem;
+        align-items: center; /* Alinha o botão de ação verticalmente */
+        padding: 0.6rem 0.5rem; /* Um pouco mais de padding vertical */
         background: var(--bg-tertiary);
         border-radius: var(--radius);
         border: 1px solid var(--border-color);
@@ -413,17 +470,25 @@
       .inventory-item > div:first-child {
         min-width: 0;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        /* text-overflow removido do container pai pois os filhos agora são blocos */
       }
 
+      /*
+        ALTERAÇÃO: Formatação dos itens do inventário
+      */
       .inventory-item-name {
+        display: block; /* Força quebra de linha */
         font-family: var(--font-mono);
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         color: var(--accent-gold);
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .inventory-item-weight {
+        display: block; /* Força quebra de linha (abaixo do nome) */
         font-size: 0.75rem;
         color: var(--text-muted);
       }
@@ -432,6 +497,7 @@
         display: flex;
         gap: 0.3rem;
         flex-shrink: 0;
+        margin-left: 0.5rem;
       }
 
       .btn-small {
@@ -440,36 +506,7 @@
         line-height: 1;
       }
 
-      /* ========== LOG PANEL (no topo do game-panel, em destaque) ========== */
-      #log-panel {
-        background: linear-gradient(135deg, #1a1a2e, #16213e);
-        border: 1px solid var(--accent-blue);
-        max-height: 150px;
-        flex-shrink: 0;
-        border-radius: var(--radius);
-        padding: 1rem;
-        box-shadow: var(--shadow);
-        overflow: hidden; /* Impedir que conteúdo vaze */
-        display: flex;
-        flex-direction: column;
-      }
-
-      #log-container {
-        flex: 1;
-        min-height: 0; /* Importante para flex children */
-        max-height: 100%; /* Respeitar o pai */
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 0.5rem;
-        background: var(--bg-primary);
-        border-radius: var(--radius);
-        font-family: var(--font-mono);
-        font-size: 0.8rem;
-        line-height: 1.5;
-        word-wrap: break-word;
-        word-break: break-word;
-      }
-
+      /* ========== LOG ENTRY STYLES ========== */
       .log-entry {
         padding: 0.2rem 0;
         border-bottom: 1px solid var(--border-color);
@@ -482,7 +519,8 @@
 
       .log-time {
         color: var(--text-muted);
-        font-size: 0.7rem;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
       }
 
       .log-action { color: var(--accent-blue); }
@@ -972,21 +1010,26 @@
           flex-direction: column;
         }
 
+        /* Em mobile, restauramos o comportamento original 
+           para que os cards empilhem corretamente sem forçar 50/50 
+        */
+        #log-panel {
+           max-height: 250px;
+           flex: 0 0 auto;
+        }
+
         #left-bottom {
           flex-direction: column;
+          flex: 0 0 auto;
         }
 
         #left-bottom #inventory-panel {
           flex: 0 0 auto;
+          width: 100%; /* Largura total em mobile */
         }
 
         #right-sidebar {
           width: 100% !important;
-        }
-
-        #log-panel {
-          max-width: none;
-          max-height: 250px;
         }
 
         #stats {
@@ -1318,30 +1361,24 @@
     </style>
   </head>
   <body>
-    <!-- RANDOM EVENTS OVERLAYS -->
     <div id="rain-overlay"></div>
     <div id="fog-overlay"></div>
     <div id="whisper-overlay"></div>
 
-    <!-- INTRO STAR WARS -->
     <div id="intro-container">
       <div id="intro-stars"></div>
       <button id="intro-skip" onclick="IntroSystem.skip()">PULAR ▶</button>
       <div id="intro-crawl"></div>
     </div>
 
-    <!-- Overlay de glitch -->
     <div id="glitch-overlay"></div>
 
     <div id="game-container">
-      <!-- MAIN CONTENT -->
       <main id="main-content">
-        <!-- COLUNA ESQUERDA -->
         <div id="left-column">
-          <!-- LOG no topo em destaque -->
           <div id="log-panel">
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-              <h3 class="section-title" style="margin:0; border:none; padding:0;">Avenida Paulista</h3>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 0.5rem;">
+              <h3 class="modern-pulse-title">Avenida Paulista</h3>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
                 <button
                   id="sound-toggle"
@@ -1364,9 +1401,7 @@
             <div id="log-container" class="scroll-indicator-container"></div>
           </div>
 
-          <!-- Game Card + Inventário lado a lado -->
           <div id="left-bottom">
-            <!-- Sala atual -->
             <div class="panel" id="location-panel">
               <h2 id="location-name">Carregando...</h2>
               <p id="location-description"></p>
@@ -1382,7 +1417,6 @@
               </div>
             </div>
 
-            <!-- Inventário -->
             <div class="panel" id="inventory-panel">
               <h3 class="section-title">🎒 Inventário</h3>
               <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
@@ -1392,9 +1426,7 @@
           </div>
         </div>
 
-        <!-- COLUNA DIREITA: status + mapa -->
         <div id="right-sidebar">
-          <!-- Status (HP / Tempo / Peso) -->
           <header id="header">
             <div id="stats">
               <div class="stat">
@@ -1454,7 +1486,6 @@
       </main>
     </div>
 
-    <!-- MODAL OVERLAY -->
     <div id="modal-overlay">
       <div id="modal">
         <h2 id="modal-title">Título</h2>
@@ -1462,7 +1493,6 @@
       </div>
     </div>
 
-    <!-- SPEAK MODAL -->
     <div id="modal-overlay" id="speak-modal-overlay" class="speak-modal-overlay">
       <div id="modal" class="speak-modal-box">
         <h2>💬 Falar Palavra</h2>
