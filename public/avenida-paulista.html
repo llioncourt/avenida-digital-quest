@@ -80,6 +80,42 @@
         margin: 0 auto;
         padding: 1rem;
         gap: 1rem;
+        transition: --bg-primary 0.5s ease, --bg-secondary 0.5s ease, --bg-tertiary 0.5s ease,
+                    --text-primary 0.5s ease, --text-secondary 0.5s ease, --border-color 0.5s ease,
+                    --accent-gold 0.5s ease;
+      }
+
+      /* Sala destruida - tons avermelhados/cinzentos */
+      #game-container.theme-ruins {
+        --bg-primary: #1a0a0a;
+        --bg-secondary: #201010;
+        --bg-tertiary: #2a1515;
+        --text-primary: #d0b0b0;
+        --text-secondary: #907070;
+        --border-color: #3a2020;
+        --accent-gold: #a06040;
+      }
+
+      /* Ceu - tons azuis etéreos */
+      #game-container.theme-sky {
+        --bg-primary: #0a0f1a;
+        --bg-secondary: #101825;
+        --bg-tertiary: #152030;
+        --text-primary: #c0d8f0;
+        --text-secondary: #7090b0;
+        --border-color: #203050;
+        --accent-gold: #60a0d0;
+      }
+
+      /* Bomba ativa na sala - tons alaranjados tensos */
+      #game-container.theme-bomb {
+        --bg-primary: #1a100a;
+        --bg-secondary: #201810;
+        --bg-tertiary: #2a2015;
+        --text-primary: #f0d0a0;
+        --text-secondary: #b08050;
+        --border-color: #3a2a10;
+        --accent-gold: #e08020;
       }
 
       /* ========== HEADER (compacto, dentro do game-panel) ========== */
@@ -2495,6 +2531,45 @@
       };
 
       // ============================================================================
+      // NPC_PHRASES - Frases aleatórias dos NPCs
+      // ============================================================================
+
+      const NPC_PHRASES = {
+        feiticeiro: {
+          move: ['Os astros me guiam...', 'Preciso encontrar meus ingredientes.', 'O vento sussurra segredos.'],
+          attack: ['Sinta o poder arcano!', 'Você não deveria estar aqui!', 'As trevas te consomem!'],
+          encounter: ['Hmm, um visitante...', 'Cuidado por onde anda, mortal.', 'Você busca poder? Ou destruição?']
+        },
+        aguia: {
+          move: ['*bate as asas majestosamente*', '*planeia sobre os prédios*'],
+          attack: ['*mergulha com garras afiadas*', '*grita agudamente*'],
+          encounter: ['*observa você com olhos penetrantes*', '*pia ameaçadoramente*']
+        },
+        bombardeador: {
+          move: ['Hehe... mais um lugar para explodir!', 'Onde armamos a próxima?', 'BOOM BOOM!'],
+          attack: ['Experimenta esse gás!', 'HORA DA EXPLOSÃO!', 'Ninguém escapa das minhas bombas!'],
+          encounter: ['Ah, mais um alvo...', 'Veio querer brincar com fogo?', 'Você tá no raio da explosão!']
+        },
+        bruxa: {
+          attack: ['As trevas te CONSOMEM!', 'Sinta a fúria do portal!', 'MORRA, mortal insignificante!'],
+          encounter: ['Você ousa me desafiar?', 'O portal está quase aberto...', 'Você chegou tarde demais!']
+        },
+        demonio: {
+          move: ['*um rugido ecoou pela cidade*', '*chamas brotam das sombras*'],
+          attack: ['ARRRGH!', '*cospe fogo infernal*', 'Sua alma é MINHA!'],
+          encounter: ['*os olhos brilham em vermelho sangue*', '*o chão treme sob seus pés*']
+        },
+        coruja: {
+          move: ['*voa silenciosamente*', '*pia suavemente na noite*'],
+          encounter: ['*pisca os olhos sábios para você*', '*pousa no seu ombro brevemente*']
+        },
+        cachorro: {
+          move: ['*abana o rabo e trota alegremente*', '*fareja o chão curioso*'],
+          encounter: ['*late alegremente ao te ver!*', '*abana o rabo com força*', '*lambe sua mão*']
+        }
+      };
+
+      // ============================================================================
       // RULES - Regras e validações do jogo
       // ============================================================================
 
@@ -3409,7 +3484,24 @@
               });
 
               if (validExits.length > 0) {
+                const prevLocation = char.location;
                 char.location = Utils.randomChoice(validExits);
+
+                // NPC fala ao se mover (30% de chance)
+                if (Utils.random() < 0.3) {
+                  const phrases = NPC_PHRASES[char.id];
+                  if (phrases && phrases.move) {
+                    Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.move)}"`, 'info');
+                  }
+                }
+
+                // NPC encontra o jogador na nova sala
+                if (char.location === GameState.playerLocation && prevLocation !== GameState.playerLocation) {
+                  const phrases = NPC_PHRASES[char.id];
+                  if (phrases && phrases.encounter) {
+                    Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.encounter)}"`, 'info');
+                  }
+                }
               }
             }
           });
@@ -3482,8 +3574,17 @@
                 player.isAlive = false;
               }
 
-              // Som de receber dano
+              // Som de receber dano + flash branco
               SoundSystem.playHit();
+              ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
+
+              // Frase de ataque do NPC
+              if (Utils.random() < 0.5) {
+                const phrases = NPC_PHRASES[char.id];
+                if (phrases && phrases.attack) {
+                  Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.attack)}"`, 'info');
+                }
+              }
 
               Log.add(`${char.name} te ataca causando ${damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
             }
@@ -3571,12 +3672,28 @@
         update: function() {
           this.updateHeader();
           this.updateLocation();
-
+          this.updateTheme();
           this.updateItems();
           this.updateCharacters();
           this.updateInventory();
           this.updateWitchIndicator();
           this.updateMinimap();
+        },
+
+        updateTheme: function() {
+          const container = document.getElementById('game-container');
+          container.classList.remove('theme-ruins', 'theme-sky', 'theme-bomb');
+
+          const room = GameState.rooms[GameState.playerLocation];
+
+          // Prioridade: bomba > ruinas > ceu
+          if (GameState.armedBomb && GameState.armedBomb.location === GameState.playerLocation) {
+            container.classList.add('theme-bomb');
+          } else if (room.isRuined) {
+            container.classList.add('theme-ruins');
+          } else if (room.requiresFlight) {
+            container.classList.add('theme-sky');
+          }
         },
 
         updateHeader: function() {
@@ -4561,7 +4678,21 @@
 
         // Ações do jogador
         move: function(roomId) {
+          const prevRoom = GameState.playerLocation;
           this.processAction(Actions.moveTo(roomId));
+
+          // NPCs na nova sala falam ao encontrar o jogador
+          if (GameState.playerLocation !== prevRoom) {
+            Object.values(GameState.characters).forEach(function(char) {
+              if (char.id === 'player') return;
+              if (!char.isAlive) return;
+              if (char.location !== GameState.playerLocation) return;
+              const phrases = NPC_PHRASES[char.id];
+              if (phrases && phrases.encounter && Utils.random() < 0.5) {
+                Log.add('💬 ' + char.name + ': "' + Utils.randomChoice(phrases.encounter) + '"', 'info');
+              }
+            });
+          }
         },
 
         pickup: function(itemId) {
