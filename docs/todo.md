@@ -9,4 +9,4 @@
 - [x] Make NPC interact more
 - [x] Add random events
 - [x] Change layout to add vertical space to the log card. Reduce both roon card, and inventory card vertically to compensate. Also increase the inventory card size horizontally a bit for a better fit of menu items. Set the item weight bellow the item name
-- [ ] Cleanup old obsolete code (Speak Modal, is an example), do a complete scan and cleanup, with out breaking anything.
+- [x] Cleanup old obsolete code (Speak Modal, is an example), do a complete scan and cleanup, with out breaking anything.

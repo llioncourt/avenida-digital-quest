@@ -897,27 +897,6 @@
         box-shadow: 0 0 8px rgba(64, 160, 96, 0.6);
       }
 
-      #command-input-container {
-        display: flex;
-        gap: 0.5rem;
-      }
-
-      #command-input {
-        flex: 1;
-        font-family: var(--font-mono);
-        font-size: 0.9rem;
-        padding: 0.5rem;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        background: var(--bg-tertiary);
-        color: var(--text-primary);
-      }
-
-      #command-input:focus {
-        outline: none;
-        border-color: var(--accent-gold);
-      }
-
       #action-buttons {
         display: flex;
         gap: 0.5rem;
@@ -966,28 +945,6 @@
 
       #modal .btn {
         margin: 0.5rem;
-      }
-
-      /* ========== SPEAK MODAL ========== */
-      #speak-modal {
-        display: none;
-      }
-
-      #speak-modal.active {
-        display: flex;
-      }
-
-      #speak-input {
-        width: 100%;
-        font-family: var(--font-mono);
-        font-size: 1rem;
-        padding: 0.75rem;
-        margin-bottom: 1rem;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        background: var(--bg-tertiary);
-        color: var(--text-primary);
-        text-align: center;
       }
 
       /* ========== CHARACTER MODAL ========== */
@@ -1490,18 +1447,6 @@
       <div id="modal">
         <h2 id="modal-title">Título</h2>
         <div id="modal-content"></div>
-      </div>
-    </div>
-
-    <div id="modal-overlay" id="speak-modal-overlay" class="speak-modal-overlay">
-      <div id="modal" class="speak-modal-box">
-        <h2>💬 Falar Palavra</h2>
-        <p>Digite a palavra que deseja falar:</p>
-        <input type="text" id="speak-input" placeholder="Digite aqui..." autocomplete="off" />
-        <div>
-          <button class="btn" onclick="Game.executeSpeakCommand()">Falar</button>
-          <button class="btn" onclick="Game.closeSpeakModal()">Cancelar</button>
-        </div>
       </div>
     </div>
 
@@ -2885,7 +2830,7 @@
             const lastNote = notes[notes.length - 1];
             this.duration = lastNote ? lastNote.t + lastNote.d : 0;
             this.isLoaded = true;
-            console.log(`MusicSystem: Loaded ${notes.length} notes, duration: ${this.duration.toFixed(2)}s`);
+            
 
             // Iniciar música automaticamente após carregar
             this.start();
@@ -2977,7 +2922,7 @@
         // Iniciar música
         start: function() {
           if (!this.isLoaded) {
-            console.log('MusicSystem: Not loaded yet');
+            
             return;
           }
 
@@ -3009,13 +2954,13 @@
         // Placeholder: música de derrota (silêncio por enquanto)
         playDefeatMusic: function() {
           // TODO: Adicionar música de derrota
-          console.log('MusicSystem: Defeat music placeholder');
+          
         },
 
         // Placeholder: música de vitória (silêncio por enquanto)
         playVictoryMusic: function() {
           // TODO: Adicionar música de vitória
-          console.log('MusicSystem: Victory music placeholder');
+          
         },
 
         // Toggle
@@ -5430,88 +5375,6 @@
           Modals.showCharacter(charId);
         },
 
-        // Modal de falar
-        openSpeakModal: function() {
-          const speakOverlay = document.querySelectorAll('#modal-overlay')[1];
-          if (speakOverlay) {
-            speakOverlay.classList.add('active');
-            document.getElementById('speak-input').focus();
-          }
-        },
-
-        closeSpeakModal: function() {
-          const speakOverlay = document.querySelectorAll('#modal-overlay')[1];
-          if (speakOverlay) {
-            speakOverlay.classList.remove('active');
-            document.getElementById('speak-input').value = '';
-          }
-        },
-
-        executeSpeakCommand: function() {
-          const input = document.getElementById('speak-input');
-          const word = input.value.trim();
-          if (word) {
-            this.speak(word);
-          }
-          this.closeSpeakModal();
-        },
-
-        // Processar comando de texto
-        processCommand: function() {
-          const input = document.getElementById('command-input');
-          const cmd = input.value.trim().toUpperCase();
-          input.value = '';
-
-          if (!cmd) return;
-
-          // Comandos de texto
-          if (cmd.startsWith('FALAR ')) {
-            this.speak(cmd.substring(6));
-          } else if (cmd.startsWith('PEGAR ')) {
-            const itemName = cmd.substring(6);
-            const item = Object.values(GameState.items).find(
-              i => i.name.toUpperCase() === itemName && i.location === GameState.playerLocation
-            );
-            if (item) this.pickup(item.id);
-            else Log.add(`Item "${itemName}" não encontrado aqui.`, 'warning');
-          } else if (cmd.startsWith('USAR ')) {
-            const itemName = cmd.substring(5);
-            const item = Object.values(GameState.items).find(
-              i => i.name.toUpperCase() === itemName && GameState.playerInventory.includes(i.id)
-            );
-            if (item) this.use(item.id);
-            else Log.add(`Você não tem "${itemName}".`, 'warning');
-          } else if (cmd.startsWith('LARGAR ')) {
-            const itemName = cmd.substring(7);
-            const item = Object.values(GameState.items).find(
-              i => i.name.toUpperCase() === itemName && GameState.playerInventory.includes(i.id)
-            );
-            if (item) this.drop(item.id);
-            else Log.add(`Você não tem "${itemName}".`, 'warning');
-          } else if (cmd.startsWith('ATACAR ')) {
-            const charName = cmd.substring(7);
-            const char = Object.values(GameState.characters).find(
-              c => c.name.toUpperCase() === charName && c.location === GameState.playerLocation && c.isAlive
-            );
-            if (char) this.attack(char.id);
-            else Log.add(`"${charName}" não está aqui.`, 'warning');
-          } else if (cmd.startsWith('IR ')) {
-            const roomName = cmd.substring(3);
-            const room = GameState.rooms[GameState.playerLocation];
-            const exit = Object.entries(room.exits).find(
-              ([label]) => label.toUpperCase() === roomName
-            );
-            if (exit) this.move(exit[1]);
-            else Log.add(`Saída "${roomName}" não encontrada.`, 'warning');
-          } else if (cmd === 'AJUDA' || cmd === 'HELP') {
-            Log.add('Comandos: IR [saída], PEGAR [item], LARGAR [item], USAR [item], ATACAR [personagem], FALAR [palavra]', 'info');
-          } else {
-            Log.add(`Comando não reconhecido: "${cmd}". Digite AJUDA para ver os comandos.`, 'warning');
-          }
-
-          Render.update();
-        },
-
         // Confirmar reinício
         confirmRestart: function() {
           if (GameState.gameOver) {
@@ -5732,34 +5595,11 @@
           el.addEventListener('scroll', () => GameUI.updateScrollIndicators());
         });
 
-        // Enter no input de comando (se existir)
-        const commandInput = document.getElementById('command-input');
-        if (commandInput) {
-          commandInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-              Game.processCommand();
-            }
-          });
-        }
-
-        // Enter no input de falar (se existir)
-        const speakInput = document.getElementById('speak-input');
-        if (speakInput) {
-          speakInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-              Game.executeSpeakCommand();
-            }
-          });
-        }
-
         // Fechar modal ao clicar fora
-        document.querySelectorAll('#modal-overlay').forEach(overlay => {
-          overlay.addEventListener('click', function(e) {
-            if (e.target === this) {
-              Modals.hide();
-              Game.closeSpeakModal();
-            }
-          });
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+          if (e.target === this) {
+            Modals.hide();
+          }
         });
       });
     </script>
