@@ -314,14 +314,14 @@
         margin: 0;
         padding: 0;
         border: none;
-        
+
         /* Gradiente animado */
         background: linear-gradient(270deg, var(--accent-gold), #fff, var(--accent-gold), var(--accent-gold-dim));
         background-size: 300% 300%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        
+
         animation: modern-pulse 4s ease infinite;
         text-shadow: 0 0 15px rgba(212, 168, 70, 0.2);
       }
@@ -943,8 +943,8 @@
           flex-direction: column;
         }
 
-        /* Em mobile, restauramos o comportamento original 
-           para que os cards empilhem corretamente sem forçar 50/50 
+        /* Em mobile, restauramos o comportamento original
+           para que os cards empilhem corretamente sem forçar 50/50
         */
         #log-panel {
            max-height: 250px;
@@ -2700,7 +2700,7 @@
       const MusicSystem = {
         isPlaying: false,
         isLoaded: false,
-        volume: 0.15,
+        volume: 0.10,
         notes: [],
         duration: 0,
         scheduledOscs: [],
@@ -2792,7 +2792,7 @@
             const lastNote = notes[notes.length - 1];
             this.duration = lastNote ? lastNote.t + lastNote.d : 0;
             this.isLoaded = true;
-            
+
 
             // Iniciar música automaticamente após carregar
             this.start();
@@ -2884,7 +2884,7 @@
         // Iniciar música
         start: function() {
           if (!this.isLoaded) {
-            
+
             return;
           }
 
@@ -2916,13 +2916,13 @@
         // Placeholder: música de derrota (silêncio por enquanto)
         playDefeatMusic: function() {
           // TODO: Adicionar música de derrota
-          
+
         },
 
         // Placeholder: música de vitória (silêncio por enquanto)
         playVictoryMusic: function() {
           // TODO: Adicionar música de vitória
-          
+
         },
 
         // Toggle
