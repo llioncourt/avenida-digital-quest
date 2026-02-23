@@ -1277,6 +1277,145 @@
         80% { transform: translate(3px, -2px); }
         90% { transform: translate(-2px, 1px); }
       }
+
+      /* ========== COMBAT MODAL ========== */
+      #combat-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.92);
+        z-index: 200;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      #combat-modal-overlay.active {
+        display: flex;
+      }
+
+      #combat-modal {
+        display: flex;
+        gap: 2rem;
+        align-items: stretch;
+        max-width: 700px;
+        width: 95%;
+      }
+
+      .combat-card {
+        flex: 1;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        min-width: 200px;
+      }
+
+      .combat-card.attacker {
+        border-color: var(--accent-red);
+        box-shadow: 0 0 20px rgba(201, 64, 64, 0.3);
+      }
+
+      .combat-card.defender {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 20px rgba(64, 128, 192, 0.3);
+      }
+
+      .combat-card-title {
+        font-family: var(--font-mono);
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .combat-card.attacker .combat-card-title {
+        color: var(--accent-red);
+      }
+
+      .combat-card.defender .combat-card-title {
+        color: var(--accent-blue);
+      }
+
+      .combat-line {
+        opacity: 0;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        margin-bottom: 0.4rem;
+        color: var(--text-secondary);
+      }
+
+      .combat-line.visible {
+        opacity: 1;
+        animation: combat-type-in 0.3s ease-out;
+      }
+
+      .combat-line.combat-total {
+        color: var(--accent-gold);
+        font-weight: bold;
+        font-size: 0.95rem;
+        margin-top: 0.3rem;
+      }
+
+      .combat-line.combat-separator {
+        border-top: 1px solid var(--border-color);
+        padding-top: 0.4rem;
+        margin-top: 0.4rem;
+      }
+
+      .combat-line.combat-result-damage {
+        color: var(--accent-red);
+        font-weight: bold;
+        font-size: 1rem;
+      }
+
+      .combat-line.combat-result-hp {
+        color: var(--accent-green);
+        font-weight: bold;
+      }
+
+      .combat-line.combat-result-defeated {
+        color: var(--accent-red);
+        font-weight: bold;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+      }
+
+      @keyframes combat-type-in {
+        from { opacity: 0; transform: translateX(-10px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+
+      #combat-confirm-btn {
+        display: none;
+        font-family: var(--font-mono);
+        font-size: 1.1rem;
+        font-weight: bold;
+        padding: 0.8rem 2.5rem;
+        border: 2px solid var(--accent-gold);
+        border-radius: var(--radius);
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        animation: combat-blink 0.6s ease-in-out infinite alternate;
+      }
+
+      @keyframes combat-blink {
+        0% { background: var(--accent-red); color: white; border-color: var(--accent-red); }
+        100% { background: var(--accent-gold); color: black; border-color: var(--accent-gold); }
+      }
+
+      @media (max-width: 500px) {
+        #combat-modal {
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .combat-card {
+          min-width: unset;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1410,6 +1549,14 @@
         <h2 id="modal-title">Título</h2>
         <div id="modal-content"></div>
       </div>
+    </div>
+
+    <div id="combat-modal-overlay">
+      <div id="combat-modal">
+        <div id="combat-card-attacker" class="combat-card attacker"></div>
+        <div id="combat-card-defender" class="combat-card defender"></div>
+      </div>
+      <button id="combat-confirm-btn" onclick="CombatModal.confirm()">CONFIRMAR</button>
     </div>
 
     <script>
@@ -2687,6 +2834,42 @@
           gain.gain.linearRampToValueAtTime(0, now + 0.2);
           osc.start(now);
           osc.stop(now + 0.2);
+        },
+
+        playCombatImpact: function() {
+          // Heavy boom: noise burst + deep oscillator
+          const noise = this.createNoise(0.4, 0.5);
+          if (noise) {
+            const now = noise.ctx.currentTime;
+            noise.gain.gain.setValueAtTime(0.5 * this.masterVolume, now);
+            noise.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            noise.noise.start(now);
+            noise.noise.stop(now + 0.4);
+          }
+
+          // Deep sub bass
+          const result = this.createOsc('sine', 50, 0.5, 0.6);
+          if (result) {
+            const { osc, gain, ctx } = result;
+            const now = ctx.currentTime;
+            osc.frequency.setValueAtTime(50, now);
+            osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+            gain.gain.setValueAtTime(0.6 * this.masterVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+          }
+
+          // Mid crunch
+          const result2 = this.createOsc('sawtooth', 150, 0.3, 0.4);
+          if (result2) {
+            const { osc, gain, ctx } = result2;
+            const now = ctx.currentTime;
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+          }
         }
       };
 
@@ -3725,45 +3908,66 @@
 
           // Calcular dano
           const attackPower = Rules.getPlayerAttackPower();
+          const player = GameState.characters.player;
           const damage = Math.max(1, attackPower - target.defensePower);
+          const killed = target.hp - damage <= 0;
 
-          // Som de ataque
-          SoundSystem.playAttack();
-
-          target.hp -= damage;
-          if (target.hp <= 0) {
-            target.hp = 0;
-            target.isAlive = false;
-            // Som de derrota de inimigo
-            SoundSystem.playEnemyDefeat();
-
-            // Efeito de glitch ao derrotar o Bombardeador
-            if (target.id === 'bombardeador') {
-              GlitchEffect.trigger(3000);
-            }
-          }
-
-          const status = target.isAlive ? `(HP restante: ${target.hp})` : '(DERROTADO!)';
-
-          // Verificar se atacou a bruxa (pode invocar demônio)
-          if (target.id === 'bruxa' && target.isAlive && !GameState.demonSummoned) {
-            GameState.demonSummoned = true;
-            const demon = GameState.characters.demonio;
-            demon.location = target.location;
-            demon.isSummoned = true;
-
-            return {
-              success: true,
-              message: `Você atacou ${target.name} causando ${damage} de dano! ${status} A BRUXA invoca o DEMÔNIO para protegê-la!`,
-              advanceTime: true
-            };
-          }
-
-          return {
-            success: true,
-            message: `Você atacou ${target.name} causando ${damage} de dano! ${status}`,
-            advanceTime: true
+          // Preparar dados para o modal
+          const attackerData = {
+            name: '🗡️ JOGADOR',
+            hp: player.hp, maxHp: player.maxHp,
+            attackPower: player.attackPower,
+            items: CombatModal.getPlayerAttackItems(),
+            totalAttack: attackPower
           };
+          const defenderData = {
+            name: '🛡️ ' + target.name.toUpperCase(),
+            hp: target.hp, maxHp: target.maxHp,
+            defensePower: target.defensePower,
+            items: [],
+            totalDefense: target.defensePower
+          };
+
+          // Check if attacking bruxa triggers demon
+          let extraMessage = null;
+          if (target.id === 'bruxa' && !killed && !GameState.demonSummoned) {
+            extraMessage = '⚡ A BRUXA invoca o DEMÔNIO!';
+          }
+
+          const combatResult = {
+            damage: damage,
+            killed: killed,
+            remainingHp: Math.max(0, target.hp - damage),
+            targetId: characterId,
+            extraMessage: extraMessage
+          };
+
+          // Apply callback: actually apply the damage when confirmed
+          const applyCallback = function(result) {
+            const t = GameState.characters[result.targetId];
+            if (!t) return;
+            t.hp -= result.damage;
+            if (t.hp <= 0) {
+              t.hp = 0;
+              t.isAlive = false;
+              SoundSystem.playEnemyDefeat();
+              if (t.id === 'bombardeador') {
+                GlitchEffect.trigger(3000);
+              }
+            }
+            // Demon summoning
+            if (t.id === 'bruxa' && t.isAlive && !GameState.demonSummoned) {
+              GameState.demonSummoned = true;
+              const demon = GameState.characters.demonio;
+              demon.location = t.location;
+              demon.isSummoned = true;
+            }
+            Log.add(`Você atacou ${t.name} causando ${result.damage} de dano! ${result.killed ? '(DERROTADO!)' : '(HP: ' + t.hp + ')'}`, 'action');
+          };
+
+          CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
+
+          return { success: true, message: '', advanceTime: true, combatModal: true };
         },
 
         // Falar palavra
@@ -3794,6 +3998,301 @@
             message: `Você diz "${word}"... Nada acontece.`,
             advanceTime: true
           };
+        }
+      };
+
+      // ============================================================================
+      // COMBAT MODAL - Modal cinematográfico de combate
+      // ============================================================================
+
+      const CombatModal = {
+        isOpen: false,
+        phase: 0, // 0=showing stats, 1=waiting confirm1, 2=showing result, 3=waiting confirm2
+        pendingCombat: null,
+        typeTimers: [],
+        queue: [],
+        musicWasPlaying: false,
+
+        // Get player attack item details
+        getPlayerAttackItems: function() {
+          const items = [];
+          GameState.playerInventory.forEach(function(itemId) {
+            const item = GameState.items[itemId];
+            if (item && item.attackPower > 0) {
+              items.push({ name: item.name, bonus: item.attackPower });
+            }
+          });
+          return items;
+        },
+
+        // Get player defense item details
+        getPlayerDefenseItems: function() {
+          const items = [];
+          GameState.playerInventory.forEach(function(itemId) {
+            const item = GameState.items[itemId];
+            if (item && item.defensePower > 0) {
+              items.push({ name: item.name, bonus: item.defensePower });
+            }
+          });
+          if (GameState.playerDefenseBonus > 0) {
+            items.push({ name: 'Cera Mágica', bonus: GameState.playerDefenseBonus });
+          }
+          return items;
+        },
+
+        enqueue: function(attackerData, defenderData, combatResult, applyCallback) {
+          this.queue.push({ attackerData: attackerData, defenderData: defenderData, combatResult: combatResult, applyCallback: applyCallback });
+          if (!this.isOpen) {
+            this.processNext();
+          }
+        },
+
+        processNext: function() {
+          if (this.queue.length === 0) {
+            // Resume music only after all combats
+            if (this.musicWasPlaying) {
+              MusicSystem.start();
+              this.musicWasPlaying = false;
+            }
+            return;
+          }
+          var next = this.queue.shift();
+          this.open(next.attackerData, next.defenderData, next.combatResult, next.applyCallback);
+        },
+
+        open: function(attackerData, defenderData, combatResult, applyCallback) {
+          this.isOpen = true;
+          this.phase = 0;
+          this.pendingCombat = { attacker: attackerData, defender: defenderData, result: combatResult, applyCallback: applyCallback };
+
+          // Pause music
+          if (MusicSystem.isPlaying) {
+            this.musicWasPlaying = true;
+            MusicSystem.stop();
+          }
+
+          // Clear cards
+          document.getElementById('combat-card-attacker').innerHTML = '';
+          document.getElementById('combat-card-defender').innerHTML = '';
+          document.getElementById('combat-confirm-btn').style.display = 'none';
+          document.getElementById('combat-modal-overlay').classList.add('active');
+
+          this.showStats();
+        },
+
+        showStats: function() {
+          var self = this;
+          var atk = this.pendingCombat.attacker;
+          var def = this.pendingCombat.defender;
+
+          // Build attacker lines
+          var attackerLines = [
+            { text: atk.name, cls: 'combat-card-title' },
+            { text: '❤️ HP: ' + atk.hp + '/' + atk.maxHp, cls: '' },
+            { text: '───────────', cls: 'combat-separator' },
+            { text: '⚔️ Ataque Base: ' + atk.attackPower, cls: '' }
+          ];
+          if (atk.items && atk.items.length > 0) {
+            atk.items.forEach(function(item) {
+              attackerLines.push({ text: '  📦 +' + item.bonus + ' (' + item.name + ')', cls: '' });
+            });
+          }
+          attackerLines.push({ text: 'TOTAL: ' + atk.totalAttack, cls: 'combat-total' });
+
+          // Build defender lines
+          var defenderLines = [
+            { text: def.name, cls: 'combat-card-title' },
+            { text: '❤️ HP: ' + def.hp + '/' + def.maxHp, cls: '' },
+            { text: '───────────', cls: 'combat-separator' },
+            { text: '🛡️ Defesa Base: ' + def.defensePower, cls: '' }
+          ];
+          if (def.items && def.items.length > 0) {
+            def.items.forEach(function(item) {
+              defenderLines.push({ text: '  📦 +' + item.bonus + ' (' + item.name + ')', cls: '' });
+            });
+          }
+          defenderLines.push({ text: 'TOTAL: ' + def.totalDefense, cls: 'combat-total' });
+
+          // Render attacker card
+          var atkCard = document.getElementById('combat-card-attacker');
+          attackerLines.forEach(function(line) {
+            var div = document.createElement('div');
+            if (line.cls === 'combat-card-title') {
+              div.className = 'combat-card-title';
+            } else {
+              div.className = 'combat-line' + (line.cls ? ' ' + line.cls : '');
+            }
+            div.textContent = line.text;
+            atkCard.appendChild(div);
+          });
+
+          // Render defender card
+          var defCard = document.getElementById('combat-card-defender');
+          defenderLines.forEach(function(line) {
+            var div = document.createElement('div');
+            if (line.cls === 'combat-card-title') {
+              div.className = 'combat-card-title';
+            } else {
+              div.className = 'combat-line' + (line.cls ? ' ' + line.cls : '');
+            }
+            div.textContent = line.text;
+            defCard.appendChild(div);
+          });
+
+          // Animate lines progressively
+          var allLines = atkCard.querySelectorAll('.combat-line');
+          var defLines = defCard.querySelectorAll('.combat-line');
+          var totalLines = allLines.length + defLines.length;
+          var delay = 0;
+
+          // Attacker title appears instantly
+          var atkTitle = atkCard.querySelector('.combat-card-title');
+          if (atkTitle) {
+            atkTitle.style.opacity = '0';
+            self.typeTimers.push(setTimeout(function() {
+              atkTitle.style.opacity = '1';
+              atkTitle.style.animation = 'combat-type-in 0.3s ease-out';
+            }, 100));
+            delay = 400;
+          }
+
+          // Attacker stat lines
+          for (var i = 0; i < allLines.length; i++) {
+            (function(line, d) {
+              self.typeTimers.push(setTimeout(function() {
+                line.classList.add('visible');
+              }, d));
+            })(allLines[i], delay);
+            delay += 250;
+          }
+
+          // Defender title
+          var defTitle = defCard.querySelector('.combat-card-title');
+          if (defTitle) {
+            defTitle.style.opacity = '0';
+            self.typeTimers.push(setTimeout(function() {
+              defTitle.style.opacity = '1';
+              defTitle.style.animation = 'combat-type-in 0.3s ease-out';
+            }, delay));
+            delay += 300;
+          }
+
+          // Defender stat lines
+          for (var j = 0; j < defLines.length; j++) {
+            (function(line, d) {
+              self.typeTimers.push(setTimeout(function() {
+                line.classList.add('visible');
+              }, d));
+            })(defLines[j], delay);
+            delay += 250;
+          }
+
+          // Show confirm button after all lines
+          self.typeTimers.push(setTimeout(function() {
+            self.phase = 1;
+            var btn = document.getElementById('combat-confirm-btn');
+            btn.textContent = '⚔️ CONFIRMAR';
+            btn.style.display = 'inline-block';
+          }, delay + 300));
+        },
+
+        confirm: function() {
+          SoundSystem.playCombatImpact();
+
+          if (this.phase === 1) {
+            // Hide confirm button
+            document.getElementById('combat-confirm-btn').style.display = 'none';
+            this.phase = 2;
+            // Apply the combat
+            if (this.pendingCombat.applyCallback) {
+              this.pendingCombat.applyCallback(this.pendingCombat.result);
+            }
+            this.showResult();
+          } else if (this.phase === 3) {
+            this.close();
+          }
+        },
+
+        showResult: function() {
+          var self = this;
+          var result = this.pendingCombat.result;
+          var defCard = document.getElementById('combat-card-defender');
+
+          // Build result lines
+          var resultLines = [
+            { text: '───────────', cls: 'combat-separator' },
+            { text: '💥 DANO RECEBIDO: ' + result.damage, cls: 'combat-result-damage' }
+          ];
+
+          if (result.killed) {
+            resultLines.push({ text: '💀 DERROTADO!', cls: 'combat-result-defeated' });
+          } else {
+            resultLines.push({ text: '❤️ HP RESTANTE: ' + result.remainingHp + '/' + this.pendingCombat.defender.maxHp, cls: 'combat-result-hp' });
+          }
+
+          // Extra message (e.g. demon summoned)
+          if (result.extraMessage) {
+            resultLines.push({ text: result.extraMessage, cls: 'combat-result-damage' });
+          }
+
+          var delay = 0;
+          resultLines.forEach(function(line) {
+            var div = document.createElement('div');
+            div.className = 'combat-line ' + line.cls;
+            div.textContent = line.text;
+            defCard.appendChild(div);
+
+            (function(el, d) {
+              self.typeTimers.push(setTimeout(function() {
+                el.classList.add('visible');
+              }, d));
+            })(div, delay);
+            delay += 300;
+          });
+
+          // Show second confirm button
+          self.typeTimers.push(setTimeout(function() {
+            self.phase = 3;
+            var btn = document.getElementById('combat-confirm-btn');
+            btn.textContent = '✓ CONFIRMAR';
+            btn.style.display = 'inline-block';
+          }, delay + 300));
+        },
+
+        close: function() {
+          this.isOpen = false;
+          this.phase = 0;
+          document.getElementById('combat-modal-overlay').classList.remove('active');
+          document.getElementById('combat-confirm-btn').style.display = 'none';
+          this.typeTimers.forEach(function(t) { clearTimeout(t); });
+          this.typeTimers = [];
+
+          // Update UI after combat
+          Render.update();
+
+          // Check game over
+          if (!GameState._explosionInProgress) {
+            var gameCheck = Rules.checkGameOver();
+            if (gameCheck.ended) {
+              Modals.showGameOver(gameCheck.reason);
+              return;
+            }
+          }
+
+          // Process next in queue
+          this.processNext();
+        },
+
+        reset: function() {
+          this.isOpen = false;
+          this.phase = 0;
+          this.pendingCombat = null;
+          this.queue = [];
+          this.musicWasPlaying = false;
+          this.typeTimers.forEach(function(t) { clearTimeout(t); });
+          this.typeTimers = [];
+          document.getElementById('combat-modal-overlay').classList.remove('active');
+          document.getElementById('combat-confirm-btn').style.display = 'none';
         }
       };
 
@@ -4089,31 +4588,60 @@
                 }
               }
 
-              player.hp -= damage;
-              if (player.hp <= 0) {
-                player.hp = 0;
-                player.isAlive = false;
-              }
-
-              // Som de receber dano + flash branco
-              SoundSystem.playHit();
-              ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
+              const playerDefense = Rules.getPlayerDefensePower();
+              const killed = player.hp - damage <= 0;
 
               // Frase de ataque do NPC
+              let attackPhrase = null;
               if (Utils.random() < 0.5) {
                 const phrases = NPC_PHRASES[char.id];
                 if (phrases && phrases.attack) {
-                  Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.attack)}"`, 'info');
+                  attackPhrase = Utils.randomChoice(phrases.attack);
                 }
               }
 
-              Log.add(`${char.name} te ataca causando ${damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
+              const attackerData = {
+                name: '🗡️ ' + char.name.toUpperCase(),
+                hp: char.hp, maxHp: char.maxHp,
+                attackPower: char.attackPower,
+                items: [],
+                totalAttack: char.attackPower
+              };
+              const defenderData = {
+                name: '🛡️ JOGADOR',
+                hp: player.hp, maxHp: player.maxHp,
+                defensePower: player.defensePower,
+                items: CombatModal.getPlayerDefenseItems(),
+                totalDefense: playerDefense
+              };
+              const combatResult = {
+                damage: damage,
+                killed: killed,
+                remainingHp: Math.max(0, player.hp - damage),
+                targetId: 'player',
+                extraMessage: attackPhrase ? ('💬 "' + attackPhrase + '"') : null
+              };
+
+              const applyCallback = function(result) {
+                player.hp -= result.damage;
+                if (player.hp <= 0) {
+                  player.hp = 0;
+                  player.isAlive = false;
+                }
+                SoundSystem.playHit();
+                ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
+                Log.add(`${char.name} te ataca causando ${result.damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
+              };
+
+              CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
             }
           });
         },
 
         // Ataques dos aliados contra inimigos
         processAllyAttacks: function() {
+          const playerRoom = GameState.playerLocation;
+
           Object.values(GameState.characters).forEach(ally => {
             if (ally.id === 'player') return;
             if (!ally.isAlive) return;
@@ -4135,19 +4663,59 @@
             if (Utils.random() < 0.5) {
               const target = Utils.randomChoice(enemiesInRoom);
               const damage = Math.max(1, ally.attackPower - target.defensePower);
+              const killed = target.hp - damage <= 0;
 
-              target.hp -= damage;
-              if (target.hp <= 0) {
-                target.hp = 0;
-                target.isAlive = false;
-                Log.add(`${ally.name} derrotou ${target.name}!`, 'success');
+              // Se o jogador está na mesma sala, mostrar modal
+              if (ally.location === playerRoom) {
+                const attackerData = {
+                  name: '🗡️ ' + ally.name.toUpperCase(),
+                  hp: ally.hp, maxHp: ally.maxHp,
+                  attackPower: ally.attackPower,
+                  items: [],
+                  totalAttack: ally.attackPower
+                };
+                const defenderData = {
+                  name: '🛡️ ' + target.name.toUpperCase(),
+                  hp: target.hp, maxHp: target.maxHp,
+                  defensePower: target.defensePower,
+                  items: [],
+                  totalDefense: target.defensePower
+                };
+                const combatResult = {
+                  damage: damage,
+                  killed: killed,
+                  remainingHp: Math.max(0, target.hp - damage),
+                  targetId: target.id,
+                  extraMessage: null
+                };
 
-                // Efeito de glitch ao derrotar o Bombardeador
-                if (target.id === 'bombardeador') {
-                  GlitchEffect.trigger(3000);
-                }
+                const applyCallback = function(result) {
+                  const t = GameState.characters[result.targetId];
+                  if (!t) return;
+                  t.hp -= result.damage;
+                  if (t.hp <= 0) {
+                    t.hp = 0;
+                    t.isAlive = false;
+                    Log.add(`${ally.name} derrotou ${t.name}!`, 'success');
+                    if (t.id === 'bombardeador') {
+                      GlitchEffect.trigger(3000);
+                    }
+                  } else {
+                    Log.add(`${ally.name} atacou ${t.name} causando ${result.damage} de dano! (HP: ${t.hp})`, 'success');
+                  }
+                };
+
+                CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
               } else {
-                Log.add(`${ally.name} atacou ${target.name} causando ${damage} de dano! (HP: ${target.hp})`, 'success');
+                // Player not in room - apply directly without modal
+                target.hp -= damage;
+                if (target.hp <= 0) {
+                  target.hp = 0;
+                  target.isAlive = false;
+                  if (target.id === 'bombardeador') {
+                    GlitchEffect.trigger(3000);
+                  }
+                }
               }
             }
           });
@@ -5087,6 +5655,9 @@
           GameState.hasReadMagicBook = false;
           GameState.discoveredItems = new Set();
 
+          // Reset combat modal
+          CombatModal.reset();
+
           // Reset eventos aleatórios
           RandomEvents.reset();
 
@@ -5173,6 +5744,22 @@
 
         // Processar resultado de ação
         processAction: function(result) {
+          // Combat modal handles its own flow
+          if (result.combatModal) {
+            // Still advance time
+            if (result.success && result.advanceTime) {
+              Events.advanceTime();
+            }
+            // Discover items
+            Object.values(GameState.items).forEach(function(item) {
+              if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
+                GameState.discoveredItems.add(item.id);
+              }
+            });
+            Render.update();
+            return;
+          }
+
           if (result.message) {
             const type = result.success ? 'action' : 'warning';
             Log.add(result.message, type);
@@ -5322,11 +5909,9 @@
         },
 
         attackAndClose: function(charId) {
+          // Close the character info modal first, combat modal will handle the rest
+          Modals.hide();
           this.processAction(Actions.attack(charId));
-          // Só fecha o modal se o jogo NÃO acabou (game over mostra seu próprio modal)
-          if (!GameState.gameOver) {
-            Modals.hide();
-          }
         },
 
         speak: function(word) {
