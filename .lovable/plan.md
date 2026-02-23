@@ -1,81 +1,326 @@
 
 
-# Scan Completo de Código Morto - avenida-paulista.html
+# Modal de Combate Cinematografico
 
-## Resumo dos Achados
+## O que muda
 
-Após análise minuciosa do arquivo, identifiquei várias categorias de código morto e órfão que podem ser removidos com segurança, sem afetar a funcionalidade do jogo.
+Toda vez que ocorre um combate (jogador atacando inimigo, NPC atacando jogador, ou aliado atacando inimigo na mesma sala do jogador), aparece um modal exclusivo no estilo "confronto" com dois cards lado a lado: atacante a esquerda, defensor a direita. O modal pausa a musica, nao pode ser fechado sem completar o fluxo, e usa animacao de "digitando" para revelar informacoes progressivamente.
 
-## 1. CSS Classes Órfãs (Definidas mas Nunca Usadas no HTML)
+## Fluxo do Modal
 
-### Classes não encontradas no HTML:
-- **`.btn-exit`** (linhas 359-367) - Estilo para botões de saída do jogo. Nunca é aplicada em nenhum elemento HTML. Não há buttons com classe `btn-exit`.
-- **`.map-room.has-enemy`** (linhas 730-732) - Comentário vazio, sem estilos. O indicador de inimigo é feito via `::after` (linha 734-745), não precisa dessa classe vazia.
-- **`.map-room.has-ally`** (linhas 752-754) - Comentário vazio, sem estilos. O indicador de aliado é feito via `::after` (linha 756-766), não precisa dessa classe vazia.
-- **`.map-room.has-both`** (linhas 768-770) - Comentário vazio, sem estilos. O indicador bicolor é feito via `::after` (linha 772-783), não precisa dessa classe vazia.
+```text
+1. Modal abre -> Musica pausa
+2. Card do ATACANTE aparece (animacao de digitando):
+   - Nome do personagem (titulo)
+   - HP atual/max
+   - Poder de Ataque (base + itens detalhados)
+3. Card do DEFENSOR aparece (animacao de digitando):
+   - Nome do personagem (titulo)
+   - HP atual/max
+   - Poder de Defesa (base + itens detalhados)
+4. Botao "CONFIRMAR" aparece piscando (cores alternadas)
+5. Jogador clica CONFIRMAR -> som impactante
+6. Resultado do dano aparece no card do defensor (animacao digitando):
+   - Dano causado
+   - HP restante ou "DERROTADO!"
+7. Segundo botao "CONFIRMAR" aparece piscando
+8. Jogador clica segundo CONFIRMAR -> som impactante -> modal fecha -> musica retoma
+```
 
-**Impacto:** Essas classes são puramente estruturais/comentários. Remover não afeta nada. O código que usa `.map-room` continua funcionando normalmente.
+## Detalhes Tecnicos
 
-## 2. Keyframes e Animações Potencialmente Não Usadas
+### CSS do Modal de Combate
 
-### Keyframes órfãs identificadas:
-- **`@keyframes glitch-offset`** (linhas 1060-1072) - Definida mas nunca referenciada em nenhuma animação CSS. A classe `.glitch-active` usa `glitch-skew` e `glitch-color`, mas não `glitch-offset`.
+Novo modal separado do modal generico existente para nao interferir:
 
-**Impacto:** Removal de 13 linhas de CSS inerte. O glitch effect continua funcionando normalmente com os outros dois keyframes.
+```css
+#combat-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 200; /* acima de tudo */
+  justify-content: center;
+  align-items: center;
+}
 
-## 3. Comentários de Código Residuais
+#combat-modal-overlay.active {
+  display: flex;
+}
 
-Existem vários blocos de comentários descritivos que são literais/informativos mas não contêm código:
+#combat-modal {
+  display: flex;
+  gap: 2rem;
+  align-items: stretch;
+  max-width: 700px;
+  width: 95%;
+}
 
-- **Linha 731-732:** Comentários vazios em `.map-room.has-enemy` dizendo "Bolinha indicadora de inimigo" 
-- **Linha 753-754:** Comentários vazios em `.map-room.has-ally` dizendo "Bolinha indicadora de aliado"
-- **Linha 769-770:** Comentários vazios em `.map-room.has-both` dizendo "Bolinha bicolor"
+.combat-card {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  min-width: 200px;
+}
 
-Esses podem ser removidos junto com as classes órfãs.
+.combat-card.attacker {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 20px rgba(201, 64, 64, 0.3);
+}
 
-## 4. Código Comentado Funcional
+.combat-card.defender {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 20px rgba(64, 128, 192, 0.3);
+}
 
-- **Linha 194:** `/* max-height: 150px; <-- REMOVIDO */` - Comentário histórico sobre remoção de propriedade. Pode ser removido.
-- **Linha 473:** `/* text-overflow removido do container pai pois os filhos agora são blocos */` - Comentário histórico. Pode ser removido.
+/* Animacao de digitando */
+.combat-line {
+  opacity: 0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
 
-## 5. Possível Código Morto Condicional
+.combat-line.visible {
+  opacity: 1;
+  animation: combat-type-in 0.3s ease-out;
+}
 
-Verificação: A função `Game.move()` (linha 5242) tem lógica de "encounter" para NPCs que falam ao encontrar o jogador. Isso está ATIVO e funciona corretamente.
+@keyframes combat-type-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 
-## O Que NÃO Deve Ser Removido
+/* Botao piscando com cores alternadas */
+.combat-confirm-btn {
+  /* animacao de piscar alternando cores */
+  animation: combat-blink 0.6s ease-in-out infinite alternate;
+}
 
-- ✅ **`glitch-active` e seus keyframes `glitch-skew`, `glitch-color`** - Usados para efeito de glitch ao derrotar Bombardeador
-- ✅ **`screen-shake`** - Usado por `ScreenEffects.flash()` e eventos aleatórios
-- ✅ **`.log-entry`, `.log-action`, `.log-success`, etc.** - Todos usados dinamicamente pelo Log
-- ✅ **`.btn-item`, `.btn-character`, `.btn-danger`** - Todos usados em renderização dinâmica
-- ✅ **Todos os overlays (`#rain-overlay`, `#fog-overlay`, `#whisper-overlay`)** - Usados pelo RandomEvents
-- ✅ **`NPC_PHRASES` e lógica de NPCs** - Sistema de diálogo dos NPCs está ativo
+@keyframes combat-blink {
+  0% { background: var(--accent-red); color: white; }
+  100% { background: var(--accent-gold); color: black; }
+}
+```
 
-## Ordem de Remoção
+### HTML
 
-1. **Remover classe vazia `.map-room.has-enemy` (linhas 730-732)**
-2. **Remover classe vazia `.map-room.has-ally` (linhas 752-754)**
-3. **Remover classe vazia `.map-room.has-both` (linhas 768-770)**
-4. **Remover CSS class `.btn-exit` (linhas 359-367)** - Nunca usada
-5. **Remover keyframe `@keyframes glitch-offset` (linhas 1060-1072)** - Nunca referenciada
-6. **Remover comentários históricos** (linhas 194, 473) - Limpar código
+Adicionar ao body, logo apos os overlays existentes:
 
-## Arquivos Afetados
+```html
+<div id="combat-modal-overlay">
+  <div id="combat-modal">
+    <div id="combat-card-attacker" class="combat-card attacker"></div>
+    <div id="combat-card-defender" class="combat-card defender"></div>
+  </div>
+  <div id="combat-confirm-container" style="position: absolute; bottom: 15%; width: 100%; text-align: center;">
+    <button id="combat-confirm-btn" class="btn combat-confirm-btn" style="display: none;"></button>
+  </div>
+</div>
+```
 
-- `public/avenida-paulista.html` (único arquivo)
+### Objeto CombatModal
 
-## Total de Linhas a Remover
+Nova entidade JavaScript que gerencia todo o fluxo:
 
-- Aproximadamente **40-50 linhas** de CSS puro e comentários inúteis
-- Zero linhas de JavaScript (todo código JS está sendo usado)
-- Zero linhas de HTML
+```javascript
+const CombatModal = {
+  isOpen: false,
+  phase: 0, // 0=mostrando stats, 1=aguardando confirm1, 2=mostrando resultado, 3=aguardando confirm2
+  pendingCombat: null, // dados do combate pendente
+  typeTimers: [], // timers da animacao de digitacao
 
-## Impacto de Segurança
+  // Abrir modal de combate
+  open: function(attackerData, defenderData, combatResult) {
+    this.isOpen = true;
+    this.phase = 0;
+    this.pendingCombat = { attacker: attackerData, defender: defenderData, result: combatResult };
+    
+    MusicSystem.stop(); // Pausar musica
+    document.getElementById('combat-modal-overlay').classList.add('active');
+    
+    this.showStats();
+  },
 
-**Nenhum impacto negativo esperado:**
-- As remoções não afetam lógica do jogo
-- Não removem funcionalidades utilizadas
-- Não removem event listeners
-- Não removem dados ou estruturas do GameState
-- Remocão é puramente cosmética/limpeza
+  // Mostrar stats com animacao de digitando
+  showStats: function() {
+    // Construir linhas do atacante e defensor
+    // Revelar cada linha com delay progressivo (200-300ms entre linhas)
+    // Ao terminar, mostrar botao CONFIRMAR piscando
+  },
+
+  // Processar clique no confirmar
+  confirm: function() {
+    SoundSystem.playCombatImpact(); // som impactante
+    
+    if (this.phase === 1) {
+      // Mostrar resultado do dano no card do defensor
+      this.phase = 2;
+      this.showResult();
+    } else if (this.phase === 3) {
+      // Fechar modal
+      this.close();
+    }
+  },
+
+  // Mostrar resultado do combate
+  showResult: function() {
+    // Adicionar linhas de resultado no card do defensor com animacao
+    // Mostrar segundo botao CONFIRMAR
+  },
+
+  // Fechar modal
+  close: function() {
+    this.isOpen = false;
+    document.getElementById('combat-modal-overlay').classList.remove('active');
+    MusicSystem.start(); // Retomar musica
+    this.typeTimers.forEach(t => clearTimeout(t));
+    this.typeTimers = [];
+  }
+};
+```
+
+### Som de Impacto
+
+Adicionar novo som no SoundSystem:
+
+```javascript
+playCombatImpact: function() {
+  // Som grave e pesado: ruido branco curto + oscilador grave
+  // Tipo "BOOM" de confirmacao dramatica
+}
+```
+
+### Integracao com o Combate Existente
+
+Modificar **tres pontos** do codigo:
+
+**1. `Actions.attack()` (jogador ataca inimigo):**
+Em vez de aplicar dano diretamente e retornar resultado, coletar os dados e abrir o CombatModal. O dano so e aplicado APOS o primeiro CONFIRMAR (ou pode ser pre-calculado e mostrado no modal).
+
+Abordagem escolhida: **Pre-calcular o dano**, abrir o modal com todos os dados, e aplicar o dano somente quando o jogador confirma o resultado. Isso mantem a dramaticidade.
+
+```javascript
+attack: function(characterId) {
+  // ... validacoes existentes ...
+  const attackPower = Rules.getPlayerAttackPower();
+  const damage = Math.max(1, attackPower - target.defensePower);
+  
+  // Preparar dados para o modal
+  const attackerData = {
+    name: 'JOGADOR',
+    hp: player.hp, maxHp: player.maxHp,
+    attackPower: player.attackPower,
+    itemBonus: attackPower - player.attackPower,
+    totalAttack: attackPower
+  };
+  const defenderData = {
+    name: target.name,
+    hp: target.hp, maxHp: target.maxHp,
+    defensePower: target.defensePower,
+    totalDefense: target.defensePower
+  };
+  const combatResult = { damage, targetId: characterId, killed: target.hp - damage <= 0 };
+  
+  CombatModal.open(attackerData, defenderData, combatResult);
+  // Retornar sem aplicar dano ainda - CombatModal.confirm() aplicara
+  return { success: true, message: '', advanceTime: true, combatModal: true };
+}
+```
+
+**2. `Events.processNPCAttacks()` (NPC ataca jogador):**
+Quando um NPC ataca o jogador na mesma sala, abrir o CombatModal mostrando o NPC como atacante e o jogador como defensor.
+
+Como podem haver multiplos NPCs atacando, enfileirar os combates (queue). Cada combate abre seu modal, e so ao fechar o anterior o proximo abre.
+
+**3. `Events.processAllyAttacks()` (aliado ataca inimigo):**
+Se o jogador esta na mesma sala, mostrar o CombatModal. Se nao esta, aplicar dano normalmente sem modal.
+
+### Fila de Combates
+
+Para lidar com multiplos combates no mesmo turno (NPCs + aliados):
+
+```javascript
+CombatModal.queue = [];
+
+CombatModal.enqueue = function(attackerData, defenderData, combatResult, applyCallback) {
+  this.queue.push({ attackerData, defenderData, combatResult, applyCallback });
+  if (!this.isOpen) {
+    this.processNext();
+  }
+};
+
+CombatModal.processNext = function() {
+  if (this.queue.length === 0) {
+    MusicSystem.start(); // Retomar musica so apos todos os combates
+    return;
+  }
+  const next = this.queue.shift();
+  this.open(next.attackerData, next.defenderData, next.combatResult, next.applyCallback);
+};
+```
+
+### Detalhes dos Cards
+
+**Card Atacante (esquerda):**
+```text
+[NOME DO ATACANTE]
+---
+HP: 100/100
+---
+Ataque Base: 10
+Itens: +5 (Espada)
+TOTAL: 15
+```
+
+**Card Defensor (direita):**
+```text
+[NOME DO DEFENSOR]
+---
+HP: 50/50
+---
+Defesa Base: 6
+Itens: +3 (Escudo)
+TOTAL: 9
+```
+
+**Resultado (aparece no card defensor apos primeiro confirmar):**
+```text
+---
+DANO RECEBIDO: 6
+HP RESTANTE: 44/50
+(ou "DERROTADO!" se morreu)
+```
+
+### Calculo de Bonus de Itens
+
+Para mostrar quais itens contribuem para ataque/defesa:
+
+```javascript
+// Atacante (jogador): listar itens com attackPower > 0
+// Defensor (jogador): listar itens com defensePower > 0
+// NPCs: mostrar apenas o valor base (nao tem itens)
+```
+
+### O que processAction precisa fazer
+
+O `Game.processAction` precisa saber que quando `result.combatModal === true`, nao deve processar a mensagem normalmente - o CombatModal cuida de tudo.
+
+## Ordem de Implementacao
+
+1. CSS do combat modal (overlay, cards, animacoes, botao piscante)
+2. HTML do combat modal (overlay + cards + botao)
+3. Som `playCombatImpact` no SoundSystem
+4. Objeto `CombatModal` com toda a logica (open, showStats, confirm, showResult, close, queue)
+5. Modificar `Actions.attack()` para usar CombatModal
+6. Modificar `Events.processNPCAttacks()` para usar CombatModal
+7. Modificar `Events.processAllyAttacks()` para usar CombatModal (quando jogador presente)
+8. Ajustar `Game.processAction()` para tratar `combatModal: true`
+9. Reset no `Game.init()`
+
+## Arquivo Modificado
+
+- `public/avenida-paulista.html` (unico arquivo - tudo inline)
 
