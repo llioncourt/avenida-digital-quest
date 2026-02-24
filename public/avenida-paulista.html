@@ -3330,6 +3330,207 @@
           wind.start(now);
         },
 
+        // Som épico: Hipnodisco desativa escudo do Feiticeiro
+        playHypnoShield: function() {
+          if (!this.enabled || !this.audioCtx) return;
+          this.resume();
+          var ctx = this.audioCtx;
+          var now = ctx.currentTime;
+          var master = ctx.createGain();
+          master.gain.value = 0.3 * this.masterVolume;
+          master.connect(ctx.destination);
+
+          // Camada 1: Sweep ascendente (energia crescendo)
+          var sweep = ctx.createOscillator();
+          var sweepGain = ctx.createGain();
+          var sweepFilter = ctx.createBiquadFilter();
+          sweep.type = 'sawtooth';
+          sweep.frequency.setValueAtTime(80, now);
+          sweep.frequency.exponentialRampToValueAtTime(2000, now + 2.0);
+          sweepFilter.type = 'bandpass';
+          sweepFilter.frequency.setValueAtTime(200, now);
+          sweepFilter.frequency.exponentialRampToValueAtTime(3000, now + 2.0);
+          sweepFilter.Q.value = 4;
+          sweepGain.gain.setValueAtTime(0, now);
+          sweepGain.gain.linearRampToValueAtTime(0.15, now + 0.3);
+          sweepGain.gain.linearRampToValueAtTime(0.1, now + 1.8);
+          sweepGain.gain.linearRampToValueAtTime(0, now + 2.2);
+          sweep.connect(sweepFilter);
+          sweepFilter.connect(sweepGain);
+          sweepGain.connect(master);
+          sweep.start(now);
+          sweep.stop(now + 2.2);
+
+          // Camada 2: Ondas pulsantes (energia sendo drenada)
+          for (var i = 0; i < 5; i++) {
+            var pulse = ctx.createOscillator();
+            var pGain = ctx.createGain();
+            pulse.type = 'sine';
+            pulse.frequency.value = 300 + i * 100;
+            var pStart = 0.2 + i * 0.35;
+            pGain.gain.setValueAtTime(0, now + pStart);
+            pGain.gain.linearRampToValueAtTime(0.2, now + pStart + 0.05);
+            pGain.gain.linearRampToValueAtTime(0, now + pStart + 0.25);
+            pulse.connect(pGain);
+            pGain.connect(master);
+            pulse.start(now + pStart);
+            pulse.stop(now + pStart + 0.25);
+          }
+
+          // Camada 3: Explosão grave final (escudo quebrando)
+          var boom = ctx.createOscillator();
+          var boomGain = ctx.createGain();
+          boom.type = 'sawtooth';
+          boom.frequency.setValueAtTime(150, now + 2.2);
+          boom.frequency.exponentialRampToValueAtTime(30, now + 3.0);
+          boomGain.gain.setValueAtTime(0, now + 2.2);
+          boomGain.gain.linearRampToValueAtTime(0.35, now + 2.25);
+          boomGain.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
+          boom.connect(boomGain);
+          boomGain.connect(master);
+          boom.start(now + 2.2);
+          boom.stop(now + 3.0);
+
+          // Ruído de impacto
+          var noiseDur = 0.5;
+          var noiseBuf = ctx.createBuffer(1, ctx.sampleRate * noiseDur, ctx.sampleRate);
+          var noiseData = noiseBuf.getChannelData(0);
+          for (var n = 0; n < noiseData.length; n++) {
+            noiseData[n] = (Math.random() * 2 - 1) * 0.5;
+          }
+          var noise = ctx.createBufferSource();
+          noise.buffer = noiseBuf;
+          var noiseFilter = ctx.createBiquadFilter();
+          noiseFilter.type = 'lowpass';
+          noiseFilter.frequency.value = 400;
+          var noiseGain = ctx.createGain();
+          noiseGain.gain.setValueAtTime(0, now + 2.2);
+          noiseGain.gain.linearRampToValueAtTime(0.15, now + 2.25);
+          noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.7);
+          noise.connect(noiseFilter);
+          noiseFilter.connect(noiseGain);
+          noiseGain.connect(master);
+          noise.start(now + 2.2);
+        },
+
+        // Som "ooohhh" sintético: Hipnodisco dá vida a objeto
+        playHypnoAnimate: function() {
+          if (!this.enabled || !this.audioCtx) return;
+          this.resume();
+          var ctx = this.audioCtx;
+          var now = ctx.currentTime;
+          var master = ctx.createGain();
+          master.gain.value = 0.25 * this.masterVolume;
+          master.connect(ctx.destination);
+
+          // Coro sintético "ooohhh" - múltiplos osciladores harmônicos com filtro modulado
+          var baseFreqs = [130, 196, 262, 330, 392];
+          baseFreqs.forEach(function(freq, idx) {
+            var osc = ctx.createOscillator();
+            var g = ctx.createGain();
+            var filter = ctx.createBiquadFilter();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq;
+            // Detune leve para som coral
+            osc.detune.value = (Math.random() - 0.5) * 15;
+            filter.type = 'lowpass';
+            // Modulação do filtro para efeito "ooohhh"
+            filter.frequency.setValueAtTime(200, now);
+            filter.frequency.linearRampToValueAtTime(800, now + 0.8);
+            filter.frequency.linearRampToValueAtTime(400, now + 1.5);
+            filter.frequency.linearRampToValueAtTime(600, now + 2.0);
+            filter.frequency.linearRampToValueAtTime(200, now + 2.5);
+            filter.Q.value = 3;
+            var startDelay = idx * 0.08;
+            g.gain.setValueAtTime(0, now + startDelay);
+            g.gain.linearRampToValueAtTime(0.12, now + startDelay + 0.4);
+            g.gain.linearRampToValueAtTime(0.15, now + 1.2);
+            g.gain.linearRampToValueAtTime(0.08, now + 2.0);
+            g.gain.linearRampToValueAtTime(0, now + 2.5);
+            osc.connect(filter);
+            filter.connect(g);
+            g.connect(master);
+            osc.start(now + startDelay);
+            osc.stop(now + 2.5);
+          });
+
+          // Brilhos mágicos esparsos
+          for (var i = 0; i < 5; i++) {
+            var sparkle = ctx.createOscillator();
+            var sGain = ctx.createGain();
+            sparkle.type = 'sine';
+            sparkle.frequency.value = 800 + Math.random() * 1500;
+            var sStart = 0.5 + Math.random() * 1.5;
+            sGain.gain.setValueAtTime(0, now + sStart);
+            sGain.gain.linearRampToValueAtTime(0.06, now + sStart + 0.03);
+            sGain.gain.linearRampToValueAtTime(0, now + sStart + 0.2);
+            sparkle.connect(sGain);
+            sGain.connect(master);
+            sparkle.start(now + sStart);
+            sparkle.stop(now + sStart + 0.2);
+          }
+        },
+
+        // Som hipnótico: espiral descendente para hipnotizar inimigo
+        playHypnoEnemy: function() {
+          if (!this.enabled || !this.audioCtx) return;
+          this.resume();
+          var ctx = this.audioCtx;
+          var now = ctx.currentTime;
+          var master = ctx.createGain();
+          master.gain.value = 0.3 * this.masterVolume;
+          master.connect(ctx.destination);
+
+          // Espiral descendente com osciladores detuned
+          var spiralFreqs = [600, 605, 610];
+          spiralFreqs.forEach(function(freq) {
+            var osc = ctx.createOscillator();
+            var g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.3, now + 2.0);
+            // Tremolo rápido
+            var trem = ctx.createOscillator();
+            var tremG = ctx.createGain();
+            trem.frequency.value = 8;
+            tremG.gain.value = 0.3;
+            trem.connect(tremG);
+            tremG.connect(g.gain);
+            g.gain.setValueAtTime(0, now);
+            g.gain.linearRampToValueAtTime(0.15, now + 0.2);
+            g.gain.linearRampToValueAtTime(0.1, now + 1.5);
+            g.gain.linearRampToValueAtTime(0, now + 2.0);
+            osc.connect(g);
+            g.connect(master);
+            trem.start(now);
+            osc.start(now);
+            trem.stop(now + 2.0);
+            osc.stop(now + 2.0);
+          });
+
+          // Camada wobble grave
+          var wobble = ctx.createOscillator();
+          var wGain = ctx.createGain();
+          wobble.type = 'triangle';
+          wobble.frequency.setValueAtTime(200, now);
+          wobble.frequency.exponentialRampToValueAtTime(60, now + 2.0);
+          var wLfo = ctx.createOscillator();
+          var wLfoG = ctx.createGain();
+          wLfo.frequency.value = 6;
+          wLfoG.gain.value = 30;
+          wLfo.connect(wLfoG);
+          wLfoG.connect(wobble.frequency);
+          wGain.gain.setValueAtTime(0, now);
+          wGain.gain.linearRampToValueAtTime(0.12, now + 0.3);
+          wGain.gain.linearRampToValueAtTime(0, now + 2.0);
+          wobble.connect(wGain);
+          wGain.connect(master);
+          wLfo.start(now);
+          wobble.start(now);
+          wLfo.stop(now + 2.0);
+          wobble.stop(now + 2.0);
+        },
+
         playBombTick: function() {
           const result = this.createOsc('sine', 800, 0.05, 0.3);
           if (!result) return;
@@ -5028,6 +5229,12 @@
             if (feiticeiro.location === playerRoom && feiticeiro.isAlive && !GameState.forceShieldDown) {
               GameState.forceShieldDown = true;
               consumeHipnodisco();
+              SoundSystem.playHypnoShield();
+              // Flash ciano pulsante (3x) + flash branco final
+              ScreenEffects.flash('rgba(0, 255, 255, 0.5)');
+              setTimeout(function() { ScreenEffects.flash('rgba(0, 255, 255, 0.4)'); }, 300);
+              setTimeout(function() { ScreenEffects.flash('rgba(0, 255, 255, 0.3)'); }, 600);
+              setTimeout(function() { ScreenEffects.flash('rgba(255, 255, 255, 0.7)'); }, 2200);
               return {
                 success: true,
                 message: 'O HIPNODISCO gira diante do FEITICEIRO... Seus olhos brilham! "Eu conheço esse artefato! Em troca da sua magia, vou remover o ESCUDO DE FORÇA que protege o Teto do MASP!" O Feiticeiro conjura um feitiço e o escudo se dissipa!',
@@ -5049,6 +5256,11 @@
             }
             consumeHipnodisco();
             enemy.isAlly = true;
+            SoundSystem.playHypnoEnemy();
+            // Flash roxo/magenta pulsante (controle mental)
+            ScreenEffects.flash('rgba(180, 0, 255, 0.5)');
+            setTimeout(function() { ScreenEffects.flash('rgba(200, 0, 220, 0.4)'); }, 250);
+            setTimeout(function() { ScreenEffects.flash('rgba(160, 0, 255, 0.3)'); }, 500);
             return {
               success: true,
               message: `O HIPNODISCO gira... ${enemy.name} está hipnotizado e agora é seu aliado!`,
@@ -5060,6 +5272,11 @@
           const item = GameState.items[targetId];
           if (item && item.location === playerRoom && !item.isAnimated) {
             consumeHipnodisco();
+            SoundSystem.playHypnoAnimate();
+            // Flash verde-esmeralda pulsante (energia vital)
+            ScreenEffects.flash('rgba(0, 200, 100, 0.5)');
+            setTimeout(function() { ScreenEffects.flash('rgba(0, 220, 120, 0.4)'); }, 300);
+            setTimeout(function() { ScreenEffects.flash('rgba(0, 255, 150, 0.3)'); }, 600);
 
             // Criar um novo personagem baseado no item
             const animatedId = 'animated_' + item.id + '_' + Date.now();
@@ -5343,6 +5560,7 @@
             killed: killed,
             remainingHp: Math.max(0, target.hp - damage),
             targetId: characterId,
+            attackerId: 'player',
             extraMessage: extraMessage,
             playerIsAttacker: true
           };
@@ -5482,6 +5700,18 @@
             return;
           }
           var next = this.queue.shift();
+
+          // Atualizar HP para refletir estado atual (combates anteriores podem ter alterado)
+          var atkChar = GameState.characters[next.combatResult.attackerId];
+          if (atkChar) next.attackerData.hp = atkChar.hp;
+          var defId = next.combatResult.targetId;
+          var defChar = GameState.characters[defId];
+          if (defChar) {
+            next.defenderData.hp = defChar.hp;
+            next.combatResult.remainingHp = Math.max(0, defChar.hp - next.combatResult.damage);
+            next.combatResult.killed = defChar.hp - next.combatResult.damage <= 0;
+          }
+
           this.open(next.attackerData, next.defenderData, next.combatResult, next.applyCallback);
         },
 
@@ -6114,6 +6344,7 @@
                 killed: killed,
                 remainingHp: Math.max(0, player.hp - damage),
                 targetId: 'player',
+                attackerId: char.id,
                 extraMessage: attackPhrase ? ('💬 "' + attackPhrase + '"') : null,
                 playerIsAttacker: false
               };
@@ -6200,6 +6431,7 @@
                   killed: killed,
                   remainingHp: Math.max(0, target.hp - damage),
                   targetId: target.id,
+                  attackerId: ally.id,
                   extraMessage: null,
                   playerIsAttacker: true
                 };
