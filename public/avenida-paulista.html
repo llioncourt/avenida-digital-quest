@@ -6260,7 +6260,7 @@
           container.innerHTML = this.entries.map(entry =>
             `<div class="log-entry">
               <span class="log-time">[${entry.time}]</span>
-              <span class="log-${entry.type}">${entry.message}</span>
+              <span class="log-${entry.type}">${entry.message.replace(/\*([^*]+)\*/g, '<em>$1</em>')}</span>
             </div>`
           ).join('');
           container.scrollTop = container.scrollHeight;
