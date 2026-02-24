@@ -1,84 +1,37 @@
-## Sistema de Golpes Aleatorios e Agressividade dos NPCs
 
-### O que muda
 
-Cada NPC ganha uma lista de **golpes** (ataques e defesas) com nomes tematicos e valores variados, alem de um parametro de **agressividade** que controla a frequencia com que atacam.
+## Tres Ajustes: Game Over, Golpes e Demonio
 
-### Como funciona
+### 1. Botao "Jogar Novamente" so aparece apos a musica
 
-**Golpes**: Cada NPC tera um array `moves` com golpes de ataque e defesa. Quando um NPC ataca ou defende, um golpe aleatorio e escolhido, e seu valor substitui o `attackPower`/`defensePower` fixo naquele combate. Os valores serao medianos (proximos do valor base atual), variando para cima e para baixo.
+O botao sera criado com `display: none` e um `setTimeout` vai mostra-lo apos `GameOverMusicSystem.duration` segundos (a duracao exata da MIDI). Isso cria um efeito cinematografico onde o jogador absorve o momento antes de poder reiniciar.
 
-**Agressividade**: O parametro `aggression` (0.0 a 1.0) substitui os valores fixos de 40% (inimigos) e 50% (aliados) como chance de atacar por turno.
+**Arquivo:** `public/avenida-paulista.html`
+- Em `Modals.showGameOver()`, adicionar `style="display:none"` ao botao "Jogar Novamente"
+- Adicionar um `setTimeout` que mostra o botao apos `GameOverMusicSystem.duration * 1000` ms
 
-### Tabela de NPCs e Golpes
+### 2. Remover prefixo "Golpe: " dos nomes de golpes
 
-```text
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| NPC           | ATK  | DEF    | GOLPES DE ATAQUE                            | GOLPES DE DEFESA                            |
-|               | base | base   | (nome / dano)                               | (nome / valor)                              |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| Feiticeiro    |  12  |   8    | Raio Arcano (10), Chama Mistica (14),       | Barreira Magica (7), Escudo Runa (9),       |
-|               |      |        | Explosao Eterea (16), Toque Sombrio (8)     | Manto Arcano (11)                           |
-| Agressiv: 0.35|      |        |                                             |                                             |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| Aguia         |  18  |   4    | Mergulho Rasante (16), Garras Afiadas (20), | Esquiva Aerea (3), Voo Evasivo (5),         |
-|               |      |        | Bico de Aco (14), Ataque Celeste (22)       | Penas de Ferro (6)                          |
-| Agressiv: 0.50|      |        |                                             |                                             |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| Bombardeador  |  20  |   6    | Bomba de Gas (18), Granada Toxica (22),     | Colete Reforçado (5), Esquiva Tatica (7),   |
-|               |      |        | Chuva Quimica (24), Estilhaco (16)          | Fumaca Protetora (8)                        |
-| Agressiv: 0.45|      |        |                                             |                                             |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| Bruxa         |  25  |  15    | Maldição Sombria (22), Raio do Portal (28), | Escudo das Trevas (13), Campo de Força (17),|
-|               |      |        | Toque da Morte (30), Feitiço Obscuro (20)   | Aura Negra (15), Manto Dimensional (18)     |
-| Agressiv: 0.55|      |        |                                             |                                             |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| Demonio       |  35  |  20    | Chamas Infernais (32), Garra Demoníaca (38),| Pele de Lava (18), Escudo Infernal (22),    |
-|               |      |        | Rugido Abissal (30), Fúria do Abismo (40)   | Sombra Protetora (20), Aura do Caos (24)    |
-| Agressiv: 0.60|      |        |                                             |                                             |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| Coruja (ally) |   8  |   3    | Bicada Rapida (6), Garras Noturnas (10),    | Voo Silencioso (2), Penas Magicas (4),      |
-|               |      |        | Ataque Surpresa (9), Rasante Lunar (7)      | Esquiva Noturna (5)                         |
-| Agressiv: 0.50|      |        |                                             |                                             |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-| Cachorro(ally)|   6  |   2    | Mordida Feroz (5), Investida (7),           | Esquiva Agil (1), Rosnar (3),               |
-|               |      |        | Patada (4), Salto Selvagem (8)              | Recuar Esperto (4)                          |
-| Agressiv: 0.60|      |        |                                             |                                             |
-+---------------+------+--------+---------------------------------------------+---------------------------------------------+
-```
+No modal de combate, onde aparece "Golpe: Garras Afiadas (20)", vai passar a mostrar apenas "Garras Afiadas (20)" — mais limpo e o icone ja indica se e ataque ou defesa.
 
-Todos os valores sao ajustaveis. O jogador continua com ataque/defesa fixos (baseados em itens).
+**Arquivo:** `public/avenida-paulista.html`
+- Linha do atacante: trocar `'⚔️ Golpe: ' + atk.moveName` por `'⚔️ ' + atk.moveName`
+- Linha do defensor: trocar `'🛡️ Golpe: ' + def.moveName` por `'🛡️ ' + def.moveName`
 
-### Detalhes tecnicos
+### 3. Demonio convertido ataca a Bruxa
 
-**1. Estrutura de dados** -- Adicionar a cada NPC em `GameState.characters`:
+A logica de aliados ja permite atacar a Bruxa quando o escudo esta desativado. Porem, o Demonio pode vagar para outra sala (30% de chance por turno de mover). Para garantir que ele ataque a Bruxa:
 
-```javascript
-feiticeiro: {
-  // ... campos existentes ...
-  aggression: 0.35,
-  moves: {
-    attack: [
-      { name: 'Raio Arcano', power: 10 },
-      { name: 'Chama Mistica', power: 14 },
-      { name: 'Explosao Eterea', power: 16 },
-      { name: 'Toque Sombrio', power: 8 }
-    ],
-    defense: [
-      { name: 'Barreira Magica', power: 7 },
-      { name: 'Escudo Runa', power: 9 },
-      { name: 'Manto Arcano', power: 11 }
-    ]
-  }
-}
-```
+- Impedir que o Demonio convertido saia da sala da Bruxa enquanto ela estiver viva (remover ele do sistema de movimentacao aleatoria quando `isAlly && bruxa.isAlive`)
+- Aumentar a prioridade: quando o Demonio convertido esta na mesma sala da Bruxa e o escudo esta desativado, ele SEMPRE a ataca (ignora o check de `aggression` contra a Bruxa especificamente)
 
-**2. processNPCAttacks** -- Substituir `char.attackPower` por um golpe aleatorio escolhido de `char.moves.attack`, e `0.4` por `char.aggression`. Usar o `defensePower` do defensor tambem de forma aleatoria se ele tiver `moves.defense`. O nome do golpe aparece no modal e no log.
+Isso garante que converter o Demonio tenha um impacto estrategico real no combate contra a Bruxa.
 
-**3. processAllyAttacks** -- Mesma logica: escolher golpe aleatorio de `ally.moves.attack`, usar `ally.aggression` no lugar de `0.5`.
+### Resumo tecnico das alteracoes
 
-**4. Actions.attack (jogador atacando)** -- Quando o jogador ataca, o defensor usa um golpe de defesa aleatorio em vez do `defensePower` fixo.
+Todas em `public/avenida-paulista.html`:
 
-**5. Modal de combate** -- Mostrar o nome do golpe usado no card do atacante/defensor (ex: "Ataque: Garras Afiadas (20)").
-
-**6. Calculo de dano** -- Formula permanece `Math.max(1, attackMove.power - defenseMove.power)`.
+1. `Modals.showGameOver` -- botao com `display:none` + `setTimeout` para revelar
+2. `CombatModal` render -- remover string "Golpe: " das duas linhas (ataque e defesa)
+3. `Rules.processMovement` -- skip do Demonio convertido enquanto Bruxa vive
+4. `Rules.processAllyAttacks` -- Demonio convertido ignora `aggression` ao atacar a Bruxa
