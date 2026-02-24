@@ -5510,7 +5510,7 @@
             { text: '───────────', cls: 'combat-separator' }
           ];
           if (atk.moveName) {
-            attackerLines.push({ text: '⚔️ Golpe: ' + atk.moveName + ' (' + atk.attackPower + ')', cls: '' });
+            attackerLines.push({ text: '⚔️ ' + atk.moveName + ' (' + atk.attackPower + ')', cls: '' });
           } else {
             attackerLines.push({ text: '⚔️ Ataque Base: ' + atk.attackPower, cls: '' });
           }
@@ -5528,7 +5528,7 @@
             { text: '───────────', cls: 'combat-separator' }
           ];
           if (def.moveName) {
-            defenderLines.push({ text: '🛡️ Golpe: ' + def.moveName + ' (' + def.defensePower + ')', cls: '' });
+            defenderLines.push({ text: '🛡️ ' + def.moveName + ' (' + def.defensePower + ')', cls: '' });
           } else {
             defenderLines.push({ text: '🛡️ Defesa Base: ' + def.defensePower, cls: '' });
           }
@@ -5956,6 +5956,9 @@
             // Demônio só existe se invocado
             if (char.id === 'demonio' && !char.isSummoned) return;
 
+            // Demônio convertido fica na sala da Bruxa enquanto ela estiver viva
+            if (char.id === 'demonio' && char.isAlly && GameState.characters.bruxa.isAlive) return;
+
             // 30% de chance de mover
             if (Utils.random() < 0.3) {
               const currentRoom = GameState.rooms[char.location];
@@ -6138,10 +6141,15 @@
 
             if (enemiesInRoom.length === 0) return;
 
+            // Demônio convertido SEMPRE ataca a Bruxa (ignora aggression)
+            const hasBruxaTarget = ally.id === 'demonio' && enemiesInRoom.some(e => e.id === 'bruxa');
             // Usar aggression do aliado (fallback 0.5)
             const aggression = ally.aggression !== undefined ? ally.aggression : 0.5;
-            if (Utils.random() < aggression) {
-              const target = Utils.randomChoice(enemiesInRoom);
+            if (hasBruxaTarget || Utils.random() < aggression) {
+              // Demônio convertido prioriza a Bruxa
+              const target = (ally.id === 'demonio' && hasBruxaTarget)
+                ? enemiesInRoom.find(e => e.id === 'bruxa')
+                : Utils.randomChoice(enemiesInRoom);
 
               // Escolher golpe de ataque aleatório do aliado
               const attackMove = ally.moves && ally.moves.attack && ally.moves.attack.length > 0
@@ -7075,10 +7083,15 @@
           const content = `
             <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${reason}</p>
             ${summaryStats}
-            <button class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="margin-top: 1rem;">
+            <button id="restart-btn" class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="margin-top: 1rem; display: none;">
               🔄 Jogar Novamente
             </button>
           `;
+          // Mostrar botão somente após a música de game over terminar
+          setTimeout(() => {
+            const btn = document.getElementById('restart-btn');
+            if (btn) btn.style.display = '';
+          }, (GameOverMusicSystem.duration || 10) * 1000);
           this.show(title, content);
         },
 
