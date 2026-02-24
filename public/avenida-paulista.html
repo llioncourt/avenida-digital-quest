@@ -2961,6 +2961,236 @@
           osc.stop(now + 0.5);
         },
 
+        // Som de convocação do demônio - grave, ameaçador, crescente
+        playDemonSummon: function() {
+          if (!this.enabled || !this.audioCtx) return;
+          this.resume();
+          var ctx = this.audioCtx;
+          var now = ctx.currentTime;
+          var master = ctx.createGain();
+          master.gain.value = 0.3 * this.masterVolume;
+          master.connect(ctx.destination);
+
+          // Camada 1: Rugido grave crescente (sawtooth sub-baixo)
+          var roar = ctx.createOscillator();
+          var roarGain = ctx.createGain();
+          roar.type = 'sawtooth';
+          roar.frequency.setValueAtTime(30, now);
+          roar.frequency.exponentialRampToValueAtTime(80, now + 1.5);
+          roar.frequency.exponentialRampToValueAtTime(50, now + 2.5);
+          roarGain.gain.setValueAtTime(0, now);
+          roarGain.gain.linearRampToValueAtTime(0.5, now + 0.8);
+          roarGain.gain.linearRampToValueAtTime(0.3, now + 2.0);
+          roarGain.gain.linearRampToValueAtTime(0, now + 3.0);
+          roar.connect(roarGain);
+          roarGain.connect(master);
+          roar.start(now);
+          roar.stop(now + 3.0);
+
+          // Camada 2: Dissonância infernal (duas frequências próximas = batimento)
+          var dis1 = ctx.createOscillator();
+          var dis2 = ctx.createOscillator();
+          var disGain = ctx.createGain();
+          dis1.type = 'square';
+          dis2.type = 'square';
+          dis1.frequency.value = 110;
+          dis2.frequency.value = 116; // batimento de ~6Hz = tremor sinistro
+          disGain.gain.setValueAtTime(0, now + 0.3);
+          disGain.gain.linearRampToValueAtTime(0.2, now + 1.0);
+          disGain.gain.linearRampToValueAtTime(0.15, now + 2.0);
+          disGain.gain.linearRampToValueAtTime(0, now + 2.8);
+          dis1.connect(disGain);
+          dis2.connect(disGain);
+          disGain.connect(master);
+          dis1.start(now + 0.3);
+          dis2.start(now + 0.3);
+          dis1.stop(now + 2.8);
+          dis2.stop(now + 2.8);
+
+          // Camada 3: Ruído de fogo/portal (ruído filtrado com sweep)
+          var fireDur = 3.0;
+          var fireBuf = ctx.createBuffer(1, ctx.sampleRate * fireDur, ctx.sampleRate);
+          var fireData = fireBuf.getChannelData(0);
+          for (var i = 0; i < fireData.length; i++) {
+            fireData[i] = (Math.random() * 2 - 1) * 0.5;
+          }
+          var fire = ctx.createBufferSource();
+          fire.buffer = fireBuf;
+          var fireFilter = ctx.createBiquadFilter();
+          fireFilter.type = 'bandpass';
+          fireFilter.frequency.setValueAtTime(200, now);
+          fireFilter.frequency.exponentialRampToValueAtTime(800, now + 1.5);
+          fireFilter.frequency.exponentialRampToValueAtTime(300, now + 3.0);
+          fireFilter.Q.value = 2;
+          var fireGain = ctx.createGain();
+          fireGain.gain.setValueAtTime(0, now);
+          fireGain.gain.linearRampToValueAtTime(0.12, now + 0.5);
+          fireGain.gain.linearRampToValueAtTime(0.08, now + 2.0);
+          fireGain.gain.linearRampToValueAtTime(0, now + 3.0);
+          fire.connect(fireFilter);
+          fireFilter.connect(fireGain);
+          fireGain.connect(master);
+          fire.start(now);
+
+          // Camada 4: Impacto grave final (boom de chegada)
+          var boom = ctx.createOscillator();
+          var boomGain = ctx.createGain();
+          boom.type = 'sine';
+          boom.frequency.setValueAtTime(60, now + 2.0);
+          boom.frequency.exponentialRampToValueAtTime(25, now + 3.0);
+          boomGain.gain.setValueAtTime(0, now + 2.0);
+          boomGain.gain.linearRampToValueAtTime(0.4, now + 2.1);
+          boomGain.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
+          boom.connect(boomGain);
+          boomGain.connect(master);
+          boom.start(now + 2.0);
+          boom.stop(now + 3.0);
+
+          // Camada 5: Voz demoníaca (oscillador modulado)
+          var voice = ctx.createOscillator();
+          var voiceLfo = ctx.createOscillator();
+          var voiceLfoGain = ctx.createGain();
+          var voiceGain = ctx.createGain();
+          voice.type = 'sawtooth';
+          voice.frequency.value = 85;
+          voiceLfo.frequency.value = 7;
+          voiceLfoGain.gain.value = 30;
+          voiceLfo.connect(voiceLfoGain);
+          voiceLfoGain.connect(voice.frequency);
+          voiceGain.gain.setValueAtTime(0, now + 1.0);
+          voiceGain.gain.linearRampToValueAtTime(0.1, now + 1.5);
+          voiceGain.gain.linearRampToValueAtTime(0.06, now + 2.5);
+          voiceGain.gain.linearRampToValueAtTime(0, now + 3.0);
+          voice.connect(voiceGain);
+          voiceGain.connect(master);
+          voiceLfo.start(now + 1.0);
+          voice.start(now + 1.0);
+          voiceLfo.stop(now + 3.0);
+          voice.stop(now + 3.0);
+        },
+
+        // Som de conversão do demônio - divino, purificador, ascendente
+        playDemonConvert: function() {
+          if (!this.enabled || !this.audioCtx) return;
+          this.resume();
+          var ctx = this.audioCtx;
+          var now = ctx.currentTime;
+          var master = ctx.createGain();
+          master.gain.value = 0.25 * this.masterVolume;
+          master.connect(ctx.destination);
+
+          // Camada 1: Acorde maior ascendente (purificação)
+          var holyNotes = [
+            { freq: 261.6, start: 0, dur: 3.0 },     // Dó
+            { freq: 329.6, start: 0.15, dur: 2.8 },   // Mi
+            { freq: 392.0, start: 0.3, dur: 2.6 },    // Sol
+            { freq: 523.3, start: 0.5, dur: 2.4 },    // Dó oitava
+            { freq: 659.3, start: 0.7, dur: 2.0 },    // Mi alto
+          ];
+          holyNotes.forEach(function(n) {
+            var osc = ctx.createOscillator();
+            var g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = n.freq;
+            g.gain.setValueAtTime(0, now + n.start);
+            g.gain.linearRampToValueAtTime(0.2, now + n.start + 0.2);
+            g.gain.linearRampToValueAtTime(0.12, now + n.start + n.dur * 0.5);
+            g.gain.linearRampToValueAtTime(0, now + n.start + n.dur);
+            osc.connect(g);
+            g.connect(master);
+            osc.start(now + n.start);
+            osc.stop(now + n.start + n.dur);
+          });
+
+          // Camada 2: Shimmer celestial (osciladores agudos com tremolo)
+          for (var i = 0; i < 6; i++) {
+            var shimmer = ctx.createOscillator();
+            var sGain = ctx.createGain();
+            shimmer.type = 'sine';
+            shimmer.frequency.value = 1000 + Math.random() * 1500;
+            var trem = ctx.createOscillator();
+            var tremG = ctx.createGain();
+            trem.frequency.value = 4 + Math.random() * 4;
+            tremG.gain.value = 0.1;
+            trem.connect(tremG);
+            tremG.connect(sGain.gain);
+            var sStart = 0.2 + Math.random() * 1.5;
+            var sDur = 0.3 + Math.random() * 0.5;
+            sGain.gain.setValueAtTime(0, now + sStart);
+            sGain.gain.linearRampToValueAtTime(0.06, now + sStart + 0.05);
+            sGain.gain.linearRampToValueAtTime(0, now + sStart + sDur);
+            shimmer.connect(sGain);
+            sGain.connect(master);
+            trem.start(now + sStart);
+            shimmer.start(now + sStart);
+            trem.stop(now + sStart + sDur);
+            shimmer.stop(now + sStart + sDur);
+          }
+
+          // Camada 3: Sweep ascendente de luz (filtrado)
+          var sweep = ctx.createOscillator();
+          var sweepFilter = ctx.createBiquadFilter();
+          var sweepGain = ctx.createGain();
+          sweep.type = 'sawtooth';
+          sweep.frequency.setValueAtTime(200, now);
+          sweep.frequency.exponentialRampToValueAtTime(2000, now + 2.0);
+          sweepFilter.type = 'lowpass';
+          sweepFilter.frequency.setValueAtTime(300, now);
+          sweepFilter.frequency.exponentialRampToValueAtTime(4000, now + 1.5);
+          sweepFilter.frequency.exponentialRampToValueAtTime(800, now + 2.5);
+          sweepFilter.Q.value = 3;
+          sweepGain.gain.setValueAtTime(0, now);
+          sweepGain.gain.linearRampToValueAtTime(0.08, now + 0.5);
+          sweepGain.gain.linearRampToValueAtTime(0, now + 2.5);
+          sweep.connect(sweepFilter);
+          sweepFilter.connect(sweepGain);
+          sweepGain.connect(master);
+          sweep.start(now);
+          sweep.stop(now + 2.5);
+
+          // Camada 4: Sino celestial duplo (revelação)
+          var bell1 = ctx.createOscillator();
+          var bell2 = ctx.createOscillator();
+          var bellGain = ctx.createGain();
+          bell1.type = 'sine';
+          bell1.frequency.value = 1046.5; // Dó6
+          bell2.type = 'sine';
+          bell2.frequency.value = 1568.0; // Sol6
+          bellGain.gain.setValueAtTime(0, now + 1.8);
+          bellGain.gain.linearRampToValueAtTime(0.25, now + 1.85);
+          bellGain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
+          bell1.connect(bellGain);
+          bell2.connect(bellGain);
+          bellGain.connect(master);
+          bell1.start(now + 1.8);
+          bell2.start(now + 1.8);
+          bell1.stop(now + 3.2);
+          bell2.stop(now + 3.2);
+
+          // Camada 5: Vento purificador
+          var windDur = 3.0;
+          var windBuf = ctx.createBuffer(1, ctx.sampleRate * windDur, ctx.sampleRate);
+          var windData = windBuf.getChannelData(0);
+          for (var w = 0; w < windData.length; w++) {
+            windData[w] = (Math.random() * 2 - 1) * 0.3;
+          }
+          var wind = ctx.createBufferSource();
+          wind.buffer = windBuf;
+          var windFilter = ctx.createBiquadFilter();
+          windFilter.type = 'highpass';
+          windFilter.frequency.value = 2000;
+          windFilter.Q.value = 1;
+          var windGain = ctx.createGain();
+          windGain.gain.setValueAtTime(0, now);
+          windGain.gain.linearRampToValueAtTime(0.04, now + 0.5);
+          windGain.gain.linearRampToValueAtTime(0.03, now + 2.0);
+          windGain.gain.linearRampToValueAtTime(0, now + 3.0);
+          wind.connect(windFilter);
+          windFilter.connect(windGain);
+          windGain.connect(master);
+          wind.start(now);
+        },
+
         playBombTick: function() {
           const result = this.createOsc('sine', 800, 0.05, 0.3);
           if (!result) return;
@@ -4996,6 +5226,9 @@
               const demon = GameState.characters.demonio;
               demon.location = t.location;
               demon.isSummoned = true;
+              SoundSystem.playDemonSummon();
+              ScreenEffects.flash('rgba(139, 0, 0, 0.6)'); // Flash vermelho escuro
+              Log.add('🔥 A Bruxa invoca o DEMÔNIO! O chão treme e chamas brotam das sombras!', 'danger');
             }
             Log.add(`Você atacou ${t.name} causando ${result.damage} de dano! ${result.killed ? '(DERROTADO!)' : '(HP: ' + t.hp + ')'}`, 'action');
           };
@@ -5020,6 +5253,8 @@
           if (demon.location === GameState.playerLocation && demon.isAlive && demon.isSummoned) {
             if (word === GameState.demonMagicWord) {
               demon.isAlly = true;
+              SoundSystem.playDemonConvert();
+              ScreenEffects.flash('rgba(255, 215, 0, 0.5)'); // Flash dourado
               return {
                 success: true,
                 message: `Você pronuncia "${word}"... O DEMÔNIO estremece e seus olhos brilham! Ele foi CONVERTIDO e agora é seu aliado!`,
