@@ -1,37 +1,46 @@
 
 
-## Tres Ajustes: Game Over, Golpes e Demonio
+## Correcao de 2 Bugs: Escudo vs Demonio e Ordem de Morte
 
-### 1. Botao "Jogar Novamente" so aparece apos a musica
+### Bug 1: Demonio convertido nao ataca a Bruxa quando escudo esta ativo
 
-O botao sera criado com `display: none` e um `setTimeout` vai mostra-lo apos `GameOverMusicSystem.duration` segundos (a duracao exata da MIDI). Isso cria um efeito cinematografico onde o jogador absorve o momento antes de poder reiniciar.
+**Causa**: Na linha 6139 de `processAllyAttacks`, a Bruxa e filtrada fora da lista de inimigos quando `!GameState.forceShieldDown` (escudo ativo). O escudo deveria bloquear apenas o **acesso fisico do jogador** ao teto do MASP, nao os ataques dos aliados que ja estao na sala.
+
+**Correcao**: Remover a restricao do escudo do filtro de `enemiesInRoom` dentro de `processAllyAttacks`. O Demonio ja esta na sala da Bruxa (foi invocado la), entao ele deve poder ataca-la independente do estado do escudo.
+
+Especificamente, trocar:
+```
+!(c.id === 'bruxa' && !GameState.forceShieldDown)
+```
+por nenhuma restricao (remover essa linha do filtro).
+
+O escudo continua bloqueando o acesso do jogador ao teto via MASP (logica em `Rules.move`), mas aliados que ja estao na sala atacam normalmente.
+
+### Bug 2: NPCs mortos ainda atacam o jogador
+
+**Causa**: O sistema de combate usa uma fila (queue). Quando o jogador ataca e mata um NPC, o dano so e aplicado no `applyCallback` (quando o modal e confirmado). Porem, `processNPCAttacks` roda no mesmo turno e ve o NPC ainda vivo porque o callback nao executou ainda.
+
+**Correcao**: Em `processNPCAttacks`, antes de enfileirar o ataque do NPC, verificar se ja existe um combate na fila que vai matar esse NPC. Se o `combatResult.killed === true` e o `targetId` corresponde ao NPC, pular o ataque dele.
+
+Criar uma funcao auxiliar no `CombatModal`:
+```javascript
+isTargetedForKill: function(charId) {
+  return this.queue.some(function(item) {
+    return item.combatResult.targetId === charId && item.combatResult.killed;
+  });
+}
+```
+
+E no loop de `processNPCAttacks`, adicionar logo apos os checks iniciais:
+```javascript
+if (CombatModal.isTargetedForKill(char.id)) return;
+```
+
+### Resumo tecnico
 
 **Arquivo:** `public/avenida-paulista.html`
-- Em `Modals.showGameOver()`, adicionar `style="display:none"` ao botao "Jogar Novamente"
-- Adicionar um `setTimeout` que mostra o botao apos `GameOverMusicSystem.duration * 1000` ms
 
-### 2. Remover prefixo "Golpe: " dos nomes de golpes
+1. `processAllyAttacks` (linha ~6139) -- remover filtro `!(c.id === 'bruxa' && !GameState.forceShieldDown)` do array de inimigos
+2. `CombatModal` -- adicionar metodo `isTargetedForKill(charId)` que verifica a fila
+3. `processNPCAttacks` (linha ~6046) -- adicionar check `if (CombatModal.isTargetedForKill(char.id)) return;` apos `if (!char.isAlive) return;`
 
-No modal de combate, onde aparece "Golpe: Garras Afiadas (20)", vai passar a mostrar apenas "Garras Afiadas (20)" — mais limpo e o icone ja indica se e ataque ou defesa.
-
-**Arquivo:** `public/avenida-paulista.html`
-- Linha do atacante: trocar `'⚔️ Golpe: ' + atk.moveName` por `'⚔️ ' + atk.moveName`
-- Linha do defensor: trocar `'🛡️ Golpe: ' + def.moveName` por `'🛡️ ' + def.moveName`
-
-### 3. Demonio convertido ataca a Bruxa
-
-A logica de aliados ja permite atacar a Bruxa quando o escudo esta desativado. Porem, o Demonio pode vagar para outra sala (30% de chance por turno de mover). Para garantir que ele ataque a Bruxa:
-
-- Impedir que o Demonio convertido saia da sala da Bruxa enquanto ela estiver viva (remover ele do sistema de movimentacao aleatoria quando `isAlly && bruxa.isAlive`)
-- Aumentar a prioridade: quando o Demonio convertido esta na mesma sala da Bruxa e o escudo esta desativado, ele SEMPRE a ataca (ignora o check de `aggression` contra a Bruxa especificamente)
-
-Isso garante que converter o Demonio tenha um impacto estrategico real no combate contra a Bruxa.
-
-### Resumo tecnico das alteracoes
-
-Todas em `public/avenida-paulista.html`:
-
-1. `Modals.showGameOver` -- botao com `display:none` + `setTimeout` para revelar
-2. `CombatModal` render -- remover string "Golpe: " das duas linhas (ataque e defesa)
-3. `Rules.processMovement` -- skip do Demonio convertido enquanto Bruxa vive
-4. `Rules.processAllyAttacks` -- Demonio convertido ignora `aggression` ao atacar a Bruxa
