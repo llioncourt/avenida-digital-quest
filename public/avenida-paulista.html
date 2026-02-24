@@ -5423,6 +5423,12 @@
         queue: [],
         musicWasPlaying: false,
 
+        isTargetedForKill: function(charId) {
+          return this.queue.some(function(item) {
+            return item.combatResult.targetId === charId && item.combatResult.killed;
+          });
+        },
+
         // Get player attack item details
         getPlayerAttackItems: function() {
           const items = [];
@@ -6044,6 +6050,7 @@
           Object.values(GameState.characters).forEach(char => {
             if (char.id === 'player') return;
             if (!char.isAlive) return;
+            if (CombatModal.isTargetedForKill(char.id)) return;
             if (char.isAlly) return;
             if (char.location !== playerRoom) return;
 
@@ -6135,8 +6142,7 @@
               c => c.id !== 'player' &&
                    c.location === ally.location &&
                    c.isAlive &&
-                   !c.isAlly &&
-                   !(c.id === 'bruxa' && !GameState.forceShieldDown)
+                   !c.isAlly
             );
 
             if (enemiesInRoom.length === 0) return;
