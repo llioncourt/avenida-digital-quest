@@ -1,95 +1,84 @@
+## Sistema de Golpes Aleatorios e Agressividade dos NPCs
 
-# Substituir Som do Confirmar por MIDI Embutido (ClickMusicSystem)
+### O que muda
 
-## Resumo
+Cada NPC ganha uma lista de **golpes** (ataques e defesas) com nomes tematicos e valores variados, alem de um parametro de **agressividade** que controla a frequencia com que atacam.
 
-Substituir o som procedural `SoundSystem.playCombatImpact()` (noise burst + oscilladores) por um novo `ClickMusicSystem` que toca o MIDI `Samplab_click.mid` embutido em Base64, seguindo o padrao exato dos outros sistemas (DefeatMusicSystem, VictoryMusicSystem).
+### Como funciona
 
-## Mudancas no arquivo `public/avenida-paulista.html`
+**Golpes**: Cada NPC tera um array `moves` com golpes de ataque e defesa. Quando um NPC ataca ou defende, um golpe aleatorio e escolhido, e seu valor substitui o `attackPower`/`defensePower` fixo naquele combate. Os valores serao medianos (proximos do valor base atual), variando para cima e para baixo.
 
-### 1. Constante CLICK_MIDI_BASE64
+**Agressividade**: O parametro `aggression` (0.0 a 1.0) substitui os valores fixos de 40% (inimigos) e 50% (aliados) como chance de atacar por turno.
 
-Converter o arquivo `Samplab_click.mid` para Base64 e adicionar como constante logo apos `VICTORY_MIDI_BASE64` (linha ~3145).
+### Tabela de NPCs e Golpes
 
-```javascript
-const CLICK_MIDI_BASE64 = "...base64 do midi...";
+```text
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| NPC           | ATK  | DEF    | GOLPES DE ATAQUE                            | GOLPES DE DEFESA                            |
+|               | base | base   | (nome / dano)                               | (nome / valor)                              |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| Feiticeiro    |  12  |   8    | Raio Arcano (10), Chama Mistica (14),       | Barreira Magica (7), Escudo Runa (9),       |
+|               |      |        | Explosao Eterea (16), Toque Sombrio (8)     | Manto Arcano (11)                           |
+| Agressiv: 0.35|      |        |                                             |                                             |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| Aguia         |  18  |   4    | Mergulho Rasante (16), Garras Afiadas (20), | Esquiva Aerea (3), Voo Evasivo (5),         |
+|               |      |        | Bico de Aco (14), Ataque Celeste (22)       | Penas de Ferro (6)                          |
+| Agressiv: 0.50|      |        |                                             |                                             |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| Bombardeador  |  20  |   6    | Bomba de Gas (18), Granada Toxica (22),     | Colete Reforçado (5), Esquiva Tatica (7),   |
+|               |      |        | Chuva Quimica (24), Estilhaco (16)          | Fumaca Protetora (8)                        |
+| Agressiv: 0.45|      |        |                                             |                                             |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| Bruxa         |  25  |  15    | Maldição Sombria (22), Raio do Portal (28), | Escudo das Trevas (13), Campo de Força (17),|
+|               |      |        | Toque da Morte (30), Feitiço Obscuro (20)   | Aura Negra (15), Manto Dimensional (18)     |
+| Agressiv: 0.55|      |        |                                             |                                             |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| Demonio       |  35  |  20    | Chamas Infernais (32), Garra Demoníaca (38),| Pele de Lava (18), Escudo Infernal (22),    |
+|               |      |        | Rugido Abissal (30), Fúria do Abismo (40)   | Sombra Protetora (20), Aura do Caos (24)    |
+| Agressiv: 0.60|      |        |                                             |                                             |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| Coruja (ally) |   8  |   3    | Bicada Rapida (6), Garras Noturnas (10),    | Voo Silencioso (2), Penas Magicas (4),      |
+|               |      |        | Ataque Surpresa (9), Rasante Lunar (7)      | Esquiva Noturna (5)                         |
+| Agressiv: 0.50|      |        |                                             |                                             |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
+| Cachorro(ally)|   6  |   2    | Mordida Feroz (5), Investida (7),           | Esquiva Agil (1), Rosnar (3),               |
+|               |      |        | Patada (4), Salto Selvagem (8)              | Recuar Esperto (4)                          |
+| Agressiv: 0.60|      |        |                                             |                                             |
++---------------+------+--------+---------------------------------------------+---------------------------------------------+
 ```
 
-### 2. Objeto ClickMusicSystem
+Todos os valores sao ajustaveis. O jogador continua com ataque/defesa fixos (baseados em itens).
 
-Criado logo apos o `VictoryMusicSystem` (linha ~3600+), seguindo o mesmo padrao exato:
+### Detalhes tecnicos
 
-- Parser MIDI identico (header, tracks, varlen, note on/off)
-- Sintese via Web Audio API
-- **Timbre percussivo/impactante**: square (principal) + triangle (corpo) -- curto e marcante, como um "click" de confirmacao
-- **SEM loop**: toca uma vez so e para
-- Carregamento via Base64 embutido (funciona offline)
-- Expoe `this.duration` apos parsear
+**1. Estrutura de dados** -- Adicionar a cada NPC em `GameState.characters`:
 
 ```javascript
-const ClickMusicSystem = {
-  isPlaying: false,
-  isLoaded: false,
-  volume: 0.15,
-  notes: [],
-  duration: 0,
-  scheduledOscs: [],
-
-  init: function() { this.loadMIDI(); },
-  loadMIDI: function() { /* parse CLICK_MIDI_BASE64, mesmo codigo */ },
-  playNote: function(note, startTime, duration, velocity) {
-    // Timbre percussivo: square (principal) + triangle (corpo)
-    osc1.type = 'square';
-    osc2.type = 'triangle';
-    osc2.frequency.value = freq; // mesma oitava
-  },
-  scheduleNotes: function() { /* agenda notas, SEM loop */ },
-  start: function() { /* inicia reproducao unica */ },
-  stop: function() { /* para osciladores */ }
-};
+feiticeiro: {
+  // ... campos existentes ...
+  aggression: 0.35,
+  moves: {
+    attack: [
+      { name: 'Raio Arcano', power: 10 },
+      { name: 'Chama Mistica', power: 14 },
+      { name: 'Explosao Eterea', power: 16 },
+      { name: 'Toque Sombrio', power: 8 }
+    ],
+    defense: [
+      { name: 'Barreira Magica', power: 7 },
+      { name: 'Escudo Runa', power: 9 },
+      { name: 'Manto Arcano', power: 11 }
+    ]
+  }
+}
 ```
 
-### 3. Substituir chamada em CombatModal.confirm()
+**2. processNPCAttacks** -- Substituir `char.attackPower` por um golpe aleatorio escolhido de `char.moves.attack`, e `0.4` por `char.aggression`. Usar o `defensePower` do defensor tambem de forma aleatoria se ele tiver `moves.defense`. O nome do golpe aparece no modal e no log.
 
-Na linha ~4746, trocar:
+**3. processAllyAttacks** -- Mesma logica: escolher golpe aleatorio de `ally.moves.attack`, usar `ally.aggression` no lugar de `0.5`.
 
-```javascript
-// ANTES:
-SoundSystem.playCombatImpact();
+**4. Actions.attack (jogador atacando)** -- Quando o jogador ataca, o defensor usa um golpe de defesa aleatorio em vez do `defensePower` fixo.
 
-// DEPOIS:
-ClickMusicSystem.start();
-```
+**5. Modal de combate** -- Mostrar o nome do golpe usado no card do atacante/defensor (ex: "Ataque: Garras Afiadas (20)").
 
-### 4. Stops de seguranca
-
-Adicionar `ClickMusicSystem.stop()` em:
-- `CombatModal.close()`
-- `CombatModal.reset()`
-
-### 5. Inicializacao
-
-Em `Game.init()`, adicionar:
-```javascript
-ClickMusicSystem.init();
-```
-
-## Timbre do ClickMusicSystem
-
-- **MusicSystem** (fundo): triangle + sine = suave, ambiente
-- **CombatMusicSystem** (abertura combate): sawtooth + square = agressivo
-- **DefeatMusicSystem** (jogador leva dano): triangle + sine grave = sombrio
-- **VictoryMusicSystem** (jogador causa dano): square + sawtooth brilhante = triunfante
-- **ClickMusicSystem** (botao confirmar): square + triangle = percussivo, marcante
-
-## Ordem de Implementacao
-
-1. Converter MIDI para Base64 e adicionar constante `CLICK_MIDI_BASE64`
-2. Criar `ClickMusicSystem` com parser, timbre percussivo e reproducao unica
-3. Substituir `SoundSystem.playCombatImpact()` por `ClickMusicSystem.start()` em `CombatModal.confirm()`
-4. Adicionar stops de seguranca em close/reset
-5. Inicializar em `Game.init()`
-
-## Arquivo Modificado
-
-- `public/avenida-paulista.html` (unico arquivo - tudo inline, MIDI embutido em Base64)
+**6. Calculo de dano** -- Formula permanece `Math.max(1, attackMove.power - defenseMove.power)`.
