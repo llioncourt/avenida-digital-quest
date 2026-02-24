@@ -2279,6 +2279,45 @@
           });
         },
 
+        // Pause all continuous ambient sounds (for combat)
+        pauseAllSounds: function() {
+          var self = this;
+          Object.keys(this.activeSounds).forEach(function(id) {
+            var nodes = self.activeSounds[id];
+            if (nodes) {
+              nodes.forEach(function(node) {
+                // Mute gain nodes instead of stopping (so we can resume)
+                if (node instanceof GainNode) {
+                  node._savedGain = node.gain.value;
+                  node.gain.setValueAtTime(0, SoundSystem.audioCtx.currentTime);
+                }
+              });
+            }
+          });
+        },
+
+        // Resume all continuous ambient sounds (after combat)
+        resumeAllSounds: function() {
+          var self = this;
+          Object.keys(this.activeSounds).forEach(function(id) {
+            var nodes = self.activeSounds[id];
+            if (nodes) {
+              nodes.forEach(function(node) {
+                if (node instanceof GainNode && node._savedGain !== undefined) {
+                  node.gain.setValueAtTime(node._savedGain, SoundSystem.audioCtx.currentTime);
+                  delete node._savedGain;
+                }
+              });
+            }
+          });
+        },
+
+        // Stop all sounds permanently (for game over)
+        stopAllSounds: function() {
+          var self = this;
+          Object.keys(this.activeSounds).forEach(function(id) { self.stopSound(id); });
+        },
+
         // ====== SONS SINTETIZADOS ======
         sounds: {
           rain: function() {
@@ -5318,6 +5357,8 @@
               MusicSystem.start();
               this.musicWasPlaying = false;
             }
+            // Resume ambient sounds after all combats
+            RandomEvents.resumeAllSounds();
             return;
           }
           var next = this.queue.shift();
@@ -5334,6 +5375,9 @@
             this.musicWasPlaying = true;
             MusicSystem.stop();
           }
+
+          // Pause ambient sounds during combat
+          RandomEvents.pauseAllSounds();
 
           // Start combat music
           CombatMusicSystem.start();
@@ -6856,6 +6900,8 @@
         showGameOver: function(reason) {
           const isVictory = GameState.victory;
           const title = isVictory ? '🏆 VITÓRIA!' : '💀 FIM DE JOGO';
+          // Stop all ambient sounds permanently
+          RandomEvents.stopAllSounds();
           // Tocar música de game over ao exibir o modal
           GameOverMusicSystem.start();
           const player = GameState.characters.player;
