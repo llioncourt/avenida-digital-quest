@@ -1874,7 +1874,21 @@
           canFly: false,
           isAlive: true,
           isAlly: false,
-          lastBoss: false
+          lastBoss: false,
+          aggression: 0.35,
+          moves: {
+            attack: [
+              { name: 'Raio Arcano', power: 10 },
+              { name: 'Chama Mistica', power: 14 },
+              { name: 'Explosao Eterea', power: 16 },
+              { name: 'Toque Sombrio', power: 8 }
+            ],
+            defense: [
+              { name: 'Barreira Magica', power: 7 },
+              { name: 'Escudo Runa', power: 9 },
+              { name: 'Manto Arcano', power: 11 }
+            ]
+          }
         },
         aguia: {
           id: 'aguia',
@@ -1888,7 +1902,21 @@
           canFly: true,
           isAlive: true,
           isAlly: false,
-          lastBoss: false
+          lastBoss: false,
+          aggression: 0.50,
+          moves: {
+            attack: [
+              { name: 'Mergulho Rasante', power: 16 },
+              { name: 'Garras Afiadas', power: 20 },
+              { name: 'Bico de Aco', power: 14 },
+              { name: 'Ataque Celeste', power: 22 }
+            ],
+            defense: [
+              { name: 'Esquiva Aerea', power: 3 },
+              { name: 'Voo Evasivo', power: 5 },
+              { name: 'Penas de Ferro', power: 6 }
+            ]
+          }
         },
         bombardeador: {
           id: 'bombardeador',
@@ -1905,8 +1933,22 @@
           lastBoss: false,
           usesGas: true,
           canCreateBombs: true,
-          lastBombCreation: 0, // Turno da última bomba criada
-          bombCooldown: 60 // Cooldown em minutos entre bombas
+          lastBombCreation: 0,
+          bombCooldown: 60,
+          aggression: 0.45,
+          moves: {
+            attack: [
+              { name: 'Bomba de Gas', power: 18 },
+              { name: 'Granada Toxica', power: 22 },
+              { name: 'Chuva Quimica', power: 24 },
+              { name: 'Estilhaco', power: 16 }
+            ],
+            defense: [
+              { name: 'Colete Reforcado', power: 5 },
+              { name: 'Esquiva Tatica', power: 7 },
+              { name: 'Fumaca Protetora', power: 8 }
+            ]
+          }
         },
         bruxa: {
           id: 'bruxa',
@@ -1921,7 +1963,22 @@
           isAlive: true,
           isAlly: false,
           lastBoss: true,
-          immuneToHypnosis: true
+          immuneToHypnosis: true,
+          aggression: 0.55,
+          moves: {
+            attack: [
+              { name: 'Maldicao Sombria', power: 22 },
+              { name: 'Raio do Portal', power: 28 },
+              { name: 'Toque da Morte', power: 30 },
+              { name: 'Feitico Obscuro', power: 20 }
+            ],
+            defense: [
+              { name: 'Escudo das Trevas', power: 13 },
+              { name: 'Campo de Forca', power: 17 },
+              { name: 'Aura Negra', power: 15 },
+              { name: 'Manto Dimensional', power: 18 }
+            ]
+          }
         },
         demonio: {
           id: 'demonio',
@@ -1937,7 +1994,22 @@
           isAlly: false,
           lastBoss: false,
           isSummoned: false,
-          immuneToHypnosis: true
+          immuneToHypnosis: true,
+          aggression: 0.60,
+          moves: {
+            attack: [
+              { name: 'Chamas Infernais', power: 32 },
+              { name: 'Garra Demoniaca', power: 38 },
+              { name: 'Rugido Abissal', power: 30 },
+              { name: 'Furia do Abismo', power: 40 }
+            ],
+            defense: [
+              { name: 'Pele de Lava', power: 18 },
+              { name: 'Escudo Infernal', power: 22 },
+              { name: 'Sombra Protetora', power: 20 },
+              { name: 'Aura do Caos', power: 24 }
+            ]
+          }
         },
         coruja: {
           id: 'coruja',
@@ -1951,7 +2023,21 @@
           canFly: true,
           isAlive: true,
           isAlly: true,
-          lastBoss: false
+          lastBoss: false,
+          aggression: 0.50,
+          moves: {
+            attack: [
+              { name: 'Bicada Rapida', power: 6 },
+              { name: 'Garras Noturnas', power: 10 },
+              { name: 'Ataque Surpresa', power: 9 },
+              { name: 'Rasante Lunar', power: 7 }
+            ],
+            defense: [
+              { name: 'Voo Silencioso', power: 2 },
+              { name: 'Penas Magicas', power: 4 },
+              { name: 'Esquiva Noturna', power: 5 }
+            ]
+          }
         },
         cachorro: {
           id: 'cachorro',
@@ -1965,7 +2051,21 @@
           canFly: false,
           isAlive: true,
           isAlly: true,
-          lastBoss: false
+          lastBoss: false,
+          aggression: 0.60,
+          moves: {
+            attack: [
+              { name: 'Mordida Feroz', power: 5 },
+              { name: 'Investida', power: 7 },
+              { name: 'Patada', power: 4 },
+              { name: 'Salto Selvagem', power: 8 }
+            ],
+            defense: [
+              { name: 'Esquiva Agil', power: 1 },
+              { name: 'Rosnar', power: 3 },
+              { name: 'Recuar Esperto', power: 4 }
+            ]
+          }
         }
       };
 
@@ -5203,10 +5303,16 @@
             return { success: false, message: `${target.name} é seu aliado! Você não pode atacá-lo.` };
           }
 
-          // Calcular dano
+          // Calcular dano - defensor usa golpe aleatório
           const attackPower = Rules.getPlayerAttackPower();
           const player = GameState.characters.player;
-          const damage = Math.max(1, attackPower - target.defensePower);
+
+          // Escolher golpe de defesa aleatório do alvo
+          const defenseMove = target.moves && target.moves.defense && target.moves.defense.length > 0
+            ? Utils.randomChoice(target.moves.defense)
+            : { name: 'Defesa', power: target.defensePower };
+
+          const damage = Math.max(1, attackPower - defenseMove.power);
           const killed = target.hp - damage <= 0;
 
           // Preparar dados para o modal
@@ -5220,9 +5326,10 @@
           const defenderData = {
             name: '🛡️ ' + target.name.toUpperCase(),
             hp: target.hp, maxHp: target.maxHp,
-            defensePower: target.defensePower,
+            defensePower: defenseMove.power,
+            moveName: defenseMove.name,
             items: [],
-            totalDefense: target.defensePower
+            totalDefense: defenseMove.power
           };
 
           // Check if attacking bruxa triggers demon
@@ -5400,9 +5507,13 @@
           var attackerLines = [
             { text: atk.name, cls: 'combat-card-title' },
             { text: '❤️ HP: ' + atk.hp + '/' + atk.maxHp, cls: '' },
-            { text: '───────────', cls: 'combat-separator' },
-            { text: '⚔️ Ataque Base: ' + atk.attackPower, cls: '' }
+            { text: '───────────', cls: 'combat-separator' }
           ];
+          if (atk.moveName) {
+            attackerLines.push({ text: '⚔️ Golpe: ' + atk.moveName + ' (' + atk.attackPower + ')', cls: '' });
+          } else {
+            attackerLines.push({ text: '⚔️ Ataque Base: ' + atk.attackPower, cls: '' });
+          }
           if (atk.items && atk.items.length > 0) {
             atk.items.forEach(function(item) {
               attackerLines.push({ text: '  📦 +' + item.bonus + ' (' + item.name + ')', cls: '' });
@@ -5414,9 +5525,13 @@
           var defenderLines = [
             { text: def.name, cls: 'combat-card-title' },
             { text: '❤️ HP: ' + def.hp + '/' + def.maxHp, cls: '' },
-            { text: '───────────', cls: 'combat-separator' },
-            { text: '🛡️ Defesa Base: ' + def.defensePower, cls: '' }
+            { text: '───────────', cls: 'combat-separator' }
           ];
+          if (def.moveName) {
+            defenderLines.push({ text: '🛡️ Golpe: ' + def.moveName + ' (' + def.defensePower + ')', cls: '' });
+          } else {
+            defenderLines.push({ text: '🛡️ Defesa Base: ' + def.defensePower, cls: '' });
+          }
           if (def.items && def.items.length > 0) {
             def.items.forEach(function(item) {
               defenderLines.push({ text: '  📦 +' + item.bonus + ' (' + item.name + ')', cls: '' });
@@ -5929,22 +6044,28 @@
             if (char.isAlly) return;
             if (char.location !== playerRoom) return;
 
-            // 40% de chance de atacar
-            if (Utils.random() < 0.4) {
-              let damage = Math.max(1, char.attackPower - Rules.getPlayerDefensePower());
+            // Usar aggression do NPC (fallback 0.4)
+            const aggression = char.aggression !== undefined ? char.aggression : 0.4;
+            if (Utils.random() < aggression) {
+              // Escolher golpe de ataque aleatório
+              const attackMove = char.moves && char.moves.attack && char.moves.attack.length > 0
+                ? Utils.randomChoice(char.moves.attack)
+                : { name: 'Ataque', power: char.attackPower };
+
+              const playerDefense = Rules.getPlayerDefensePower();
+              let damage = Math.max(1, attackMove.power - playerDefense);
 
               // Bombardeador usa gás
               if (char.usesGas) {
                 if (Rules.hasGasMask()) {
-                  Log.add(`${char.name} lança gás tóxico, mas sua MÁSCARA GÁS te protege!`, 'success');
+                  Log.add(`${char.name} lança ${attackMove.name}, mas sua MÁSCARA GÁS te protege!`, 'success');
                   return;
                 } else {
                   damage += 10;
-                  Log.add(`${char.name} lança gás tóxico! Você precisa de uma MÁSCARA GÁS!`, 'danger');
+                  Log.add(`${char.name} usa ${attackMove.name}! Você precisa de uma MÁSCARA GÁS!`, 'danger');
                 }
               }
 
-              const playerDefense = Rules.getPlayerDefensePower();
               const killed = player.hp - damage <= 0;
 
               // Frase de ataque do NPC
@@ -5959,9 +6080,10 @@
               const attackerData = {
                 name: '🗡️ ' + char.name.toUpperCase(),
                 hp: char.hp, maxHp: char.maxHp,
-                attackPower: char.attackPower,
+                attackPower: attackMove.power,
+                moveName: attackMove.name,
                 items: [],
-                totalAttack: char.attackPower
+                totalAttack: attackMove.power
               };
               const defenderData = {
                 name: '🛡️ JOGADOR',
@@ -5987,7 +6109,7 @@
                 }
                 SoundSystem.playHit();
                 ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
-                Log.add(`${char.name} te ataca causando ${result.damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
+                Log.add(`${char.name} usa ${attackMove.name} causando ${result.damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
               };
 
               CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
@@ -6016,10 +6138,22 @@
 
             if (enemiesInRoom.length === 0) return;
 
-            // 50% de chance de atacar
-            if (Utils.random() < 0.5) {
+            // Usar aggression do aliado (fallback 0.5)
+            const aggression = ally.aggression !== undefined ? ally.aggression : 0.5;
+            if (Utils.random() < aggression) {
               const target = Utils.randomChoice(enemiesInRoom);
-              const damage = Math.max(1, ally.attackPower - target.defensePower);
+
+              // Escolher golpe de ataque aleatório do aliado
+              const attackMove = ally.moves && ally.moves.attack && ally.moves.attack.length > 0
+                ? Utils.randomChoice(ally.moves.attack)
+                : { name: 'Ataque', power: ally.attackPower };
+
+              // Escolher golpe de defesa aleatório do alvo
+              const defenseMove = target.moves && target.moves.defense && target.moves.defense.length > 0
+                ? Utils.randomChoice(target.moves.defense)
+                : { name: 'Defesa', power: target.defensePower };
+
+              const damage = Math.max(1, attackMove.power - defenseMove.power);
               const killed = target.hp - damage <= 0;
 
               // Se o jogador está na mesma sala, mostrar modal
@@ -6027,16 +6161,18 @@
                 const attackerData = {
                   name: '🗡️ ' + ally.name.toUpperCase(),
                   hp: ally.hp, maxHp: ally.maxHp,
-                  attackPower: ally.attackPower,
+                  attackPower: attackMove.power,
+                  moveName: attackMove.name,
                   items: [],
-                  totalAttack: ally.attackPower
+                  totalAttack: attackMove.power
                 };
                 const defenderData = {
                   name: '🛡️ ' + target.name.toUpperCase(),
                   hp: target.hp, maxHp: target.maxHp,
-                  defensePower: target.defensePower,
+                  defensePower: defenseMove.power,
+                  moveName: defenseMove.name,
                   items: [],
-                  totalDefense: target.defensePower
+                  totalDefense: defenseMove.power
                 };
                 const combatResult = {
                   damage: damage,
@@ -6054,12 +6190,12 @@
                   if (t.hp <= 0) {
                     t.hp = 0;
                     t.isAlive = false;
-                    Log.add(`${ally.name} derrotou ${t.name}!`, 'success');
+                    Log.add(`${ally.name} derrotou ${t.name} com ${attackMove.name}!`, 'success');
                     if (t.id === 'bombardeador') {
                       GlitchEffect.trigger(3000);
                     }
                   } else {
-                    Log.add(`${ally.name} atacou ${t.name} causando ${result.damage} de dano! (HP: ${t.hp})`, 'success');
+                    Log.add(`${ally.name} usa ${attackMove.name} em ${t.name} causando ${result.damage} de dano! (HP: ${t.hp})`, 'success');
                   }
                 };
 
