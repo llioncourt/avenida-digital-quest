@@ -4938,17 +4938,21 @@
               this.pendingCombat.applyCallback(this.pendingCombat.result);
             }
             this.showResult();
-          } else if (this.phase === 3) {
-            // Play click twice in sequence before closing
+           } else if (this.phase === 3) {
+            // Play click three times in sequence before closing
             var self = this;
             var clickDuration = ClickMusicSystem.isLoaded ? ClickMusicSystem.duration * 1000 : 300;
-            // First click already played above (line 4924)
+            // First click already played above
             // Second click after first finishes
             setTimeout(function() {
               ClickMusicSystem.start();
-              // Close after second click finishes
+              // Third click after second finishes
               setTimeout(function() {
-                self.close();
+                ClickMusicSystem.start();
+                // Close after third click finishes
+                setTimeout(function() {
+                  self.close();
+                }, clickDuration);
               }, clickDuration);
             }, clickDuration);
             return; // Don't close immediately
