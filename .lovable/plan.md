@@ -1,125 +1,115 @@
-
-
-# Musica de Derrota (Dano) Embutida + Sincronizacao com Animacao de Resultado
+# Musica de Vitoria (Ataque do Jogador) Embutida + Sincronizacao
 
 ## Resumo
 
-Criar um `DefeatMusicSystem` seguindo o mesmo padrao do `CombatMusicSystem`, usando o MIDI `Samplab_defeat.mid` embutido em Base64. Essa musica toca durante a fase de revelacao do dano (apos o primeiro CONFIRMAR), e a animacao das linhas de resultado e sincronizada com a duracao da musica.
+Criar um `VictoryMusicSystem` seguindo o mesmo padrao exato do `DefeatMusicSystem`, usando o MIDI `Samplab_combate_victory.mid` embutido em Base64. Essa musica toca durante a revelacao do dano **quando o jogador (ou aliado) ataca**, enquanto a `DefeatMusicSystem` continua tocando quando o jogador (ou aliado) e atacado.
 
 ## Mudancas
 
-### 1. Constante DEFEAT_MIDI_BASE64
+### 1. Constante VICTORY_MIDI_BASE64
 
-Converter o arquivo `Samplab_defeat.mid` para Base64 e embutir como constante no HTML, logo apos a constante `COMBAT_MIDI_BASE64` (linha ~3141).
+Converter o arquivo `Samplab_combate_victory.mid` para Base64 e embutir como constante no HTML, logo apos a constante `DEFEAT_MIDI_BASE64`.
 
 ```javascript
-const DEFEAT_MIDI_BASE64 = "...base64 do midi de derrota...";
+const VICTORY_MIDI_BASE64 = "...base64 do midi de vitoria...";
 ```
 
-### 2. Objeto DefeatMusicSystem
+### 2. Objeto VictoryMusicSystem
 
-Criado logo apos o `CombatMusicSystem` (linha ~3313), seguindo o mesmo padrao exato:
-- Parser MIDI identico (header, tracks, varlen, etc.)
+Criado logo apos o `DefeatMusicSystem` (linha ~3491), seguindo o mesmo padrao exato:
+
+- Parser MIDI identico
 - Sintese via Web Audio API
-- **Timbre sombrio**: triangle + sine com frequencia mais grave (mais "triste/pesado" que o combate)
+- **Timbre triunfante**: square (principal) + sawtooth (harmonico brilhante) - mais energetico/heroico
 - **SEM loop**: toca uma vez so e para
 - Carregamento via Base64 embutido (funciona offline)
 - Expoe `this.duration` apos parsear
 
-```javascript
-const DefeatMusicSystem = {
-  isPlaying: false,
-  isLoaded: false,
-  volume: 0.12,
-  notes: [],
-  duration: 0,
-  scheduledOscs: [],
-  
-  init: function() { this.loadMIDI(); },
-  loadMIDI: function() { /* parse Base64, mesmo codigo */ },
-  playNote: function(note, startTime, duration, velocity) {
-    // Timbre sombrio: triangle (principal) + sine sub-bass
-  },
-  scheduleNotes: function() { /* agenda notas, SEM loop */ },
-  start: function() { /* inicia reproducao unica */ },
-  stop: function() { /* para osciladores */ }
-};
-```
+### 3. Flag playerIsAttacker no combatResult
 
-### 3. Sincronizacao: Animacao de resultado atrelada a duracao da musica
+Adicionar campo `playerIsAttacker` ao `combatResult` em cada ponto de enqueue:
 
-Em `CombatModal.showResult()` (linha ~4405), em vez de usar delays fixos de 300ms por linha, calcular os delays com base na duracao da musica de derrota:
+- `**Actions.attack()` (jogador ataca)**: `playerIsAttacker: true`
+- `**Events.processNPCAttacks()` (NPC ataca jogador)**: `playerIsAttacker: false`
+- `**Events.processAllyAttacks()` (aliado ataca inimigo)**: `playerIsAttacker: true` (aliado esta do lado do jogador)
 
-```text
-Duracao da musica = DefeatMusicSystem.duration (ex: 5 segundos)
-Total de linhas de resultado = 3-4 (separador + dano + HP/derrotado + extraMessage)
-Delay por linha = (duracao * 1000) / (total de linhas + 1)
-                  (+1 para margem antes do botao confirmar)
-```
+### 4. Logica de selecao de musica em CombatModal.confirm() fase 1
 
-Assim:
-- Musica de derrota comeca quando o primeiro CONFIRMAR e clicado
-- Cada linha de resultado aparece em intervalo calculado
-- Ultima linha aparece quando a musica esta acabando
-- Botao CONFIRMAR aparece logo apos a musica terminar
+Modificar a fase 1 do confirm para escolher qual musica tocar baseado na flag:
 
-Se `DefeatMusicSystem` nao estiver carregado (fallback), usa os delays fixos originais (300ms).
-
-### 4. Integracao com CombatModal
-
-**`CombatModal.confirm()` fase 1** (linha ~4387):
 ```javascript
 if (this.phase === 1) {
-  CombatMusicSystem.stop(); // para musica de combate (ja existe)
-  SoundSystem.playCombatImpact(); // boom (ja existe)
-  DefeatMusicSystem.start(); // ADICIONAR: inicia musica de derrota
+  CombatMusicSystem.stop();
+  SoundSystem.playCombatImpact();
+  
+  // Escolher musica baseado em quem ataca
+  if (this.pendingCombat.result.playerIsAttacker) {
+    VictoryMusicSystem.start();
+  } else {
+    DefeatMusicSystem.start();
+  }
   // ... resto existente ...
-  this.showResult();
 }
 ```
 
-**`CombatModal.showResult()`** (linha ~4405):
+### 5. Sincronizacao em showResult()
+
+Modificar `showResult()` para usar a duracao da musica correta:
+
 ```javascript
-// Calcular delay dinamico baseado na duracao da musica de derrota:
-var musicDuration = DefeatMusicSystem.isLoaded ? DefeatMusicSystem.duration : 0;
-var totalItems = resultLines.length + 1; // +1 para margem
+var isPlayerAttacking = this.pendingCombat.result.playerIsAttacker;
+var activeMusic = isPlayerAttacking ? VictoryMusicSystem : DefeatMusicSystem;
+var musicDuration = activeMusic.isLoaded ? activeMusic.duration : 0;
+var totalItems = resultLines.length + 1;
 var lineDelay = musicDuration > 0 ? (musicDuration * 1000) / totalItems : 300;
-// Usar lineDelay em vez do 300 fixo
 ```
 
-**`CombatModal.confirm()` fase 3 / close** (linha ~4400):
-```javascript
-// Parar musica de derrota ao fechar
-DefeatMusicSystem.stop();
-```
+### 6. Stops de seguranca
 
-**`CombatModal.close()`** (linha ~4451):
-```javascript
-DefeatMusicSystem.stop(); // seguranca
-```
+Adicionar `VictoryMusicSystem.stop()` em:
 
-**`CombatModal.reset()`** (linha ~4476):
-```javascript
-DefeatMusicSystem.stop(); // seguranca
-```
+- `CombatModal.close()`
+- `CombatModal.reset()`
 
-### 5. Inicializacao
+### 7. Inicializacao
 
 Em `Game.init()`, adicionar:
+
 ```javascript
-DefeatMusicSystem.init();
+VictoryMusicSystem.init();
+```
+
+## Timbre do VictoryMusicSystem
+
+Diferente dos outros dois sistemas:
+
+- **MusicSystem** (fundo): triangle + sine = suave, ambiente
+- **CombatMusicSystem** (abertura combate): sawtooth + square = agressivo
+- **DefeatMusicSystem** (jogador leva dano): triangle + sine grave = sombrio
+- **VictoryMusicSystem** (jogador causa dano): square + sawtooth brilhante = triunfante, heroico
+
+```javascript
+playNote: function(note, startTime, duration, velocity) {
+  // Timbre triunfante: square (principal) + sawtooth harmonico
+  osc1.type = 'square';
+  osc1.frequency.value = freq;
+  osc2.type = 'sawtooth';
+  osc2.frequency.value = freq * 2; // oitava acima para brilho
+  gain1.gain.value = 0.6;
+  gain2.gain.value = 0.15; // harmonico sutil
+}
 ```
 
 ## Ordem de Implementacao
 
-1. Converter MIDI para Base64 e adicionar constante `DEFEAT_MIDI_BASE64`
-2. Criar `DefeatMusicSystem` com parser, timbre sombrio e reproducao unica
-3. Modificar `CombatModal.confirm()` fase 1 para iniciar DefeatMusicSystem
-4. Modificar `CombatModal.showResult()` para calcular delays sincronizados
-5. Adicionar stops de seguranca em close/reset
-6. Inicializar em `Game.init()`
+1. Converter MIDI para Base64 e adicionar constante `VICTORY_MIDI_BASE64`
+2. Criar `VictoryMusicSystem` com parser, timbre triunfante e reproducao unica
+3. Adicionar `playerIsAttacker` aos tres pontos de enqueue (attack, processNPCAttacks, processAllyAttacks)
+4. Modificar `CombatModal.confirm()` fase 1 para escolher VictoryMusicSystem ou DefeatMusicSystem
+5. Modificar `CombatModal.showResult()` para sincronizar com a musica ativa
+6. Adicionar stops de seguranca em close/reset
+7. Inicializar em `Game.init()`
 
 ## Arquivo Modificado
 
 - `public/avenida-paulista.html` (unico arquivo - tudo inline, MIDI embutido em Base64)
-
