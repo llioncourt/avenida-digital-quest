@@ -4939,7 +4939,19 @@
             }
             this.showResult();
           } else if (this.phase === 3) {
-            this.close();
+            // Play click twice in sequence before closing
+            var self = this;
+            var clickDuration = ClickMusicSystem.isLoaded ? ClickMusicSystem.duration * 1000 : 300;
+            // First click already played above (line 4924)
+            // Second click after first finishes
+            setTimeout(function() {
+              ClickMusicSystem.start();
+              // Close after second click finishes
+              setTimeout(function() {
+                self.close();
+              }, clickDuration);
+            }, clickDuration);
+            return; // Don't close immediately
           }
         },
 
