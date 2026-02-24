@@ -5000,7 +5000,7 @@
            CombatMusicSystem.stop();
            DefeatMusicSystem.stop();
            VictoryMusicSystem.stop();
-           ClickMusicSystem.stop();
+           // ClickMusicSystem NOT stopped here - let it finish playing naturally (it's short)
            this.isOpen = false;
            this.phase = 0;
           document.getElementById('combat-modal-overlay').classList.remove('active');
@@ -5028,7 +5028,7 @@
            CombatMusicSystem.stop();
            DefeatMusicSystem.stop();
            VictoryMusicSystem.stop();
-           ClickMusicSystem.stop();
+           // ClickMusicSystem NOT stopped here - let it finish playing naturally
            this.isOpen = false;
            this.phase = 0;
           this.pendingCombat = null;
