@@ -3244,16 +3244,12 @@
           this.updateButton();
         },
 
-        // Placeholder: música de derrota (silêncio por enquanto)
         playDefeatMusic: function() {
-          // TODO: Adicionar música de derrota
-
+          GameOverMusicSystem.start();
         },
 
-        // Placeholder: música de vitória (silêncio por enquanto)
         playVictoryMusic: function() {
-          // TODO: Adicionar música de vitória
-
+          GameOverMusicSystem.start();
         },
 
         // Toggle
@@ -3293,6 +3289,8 @@
       const VICTORY_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAApQD/UQMGGoAA/wMPIC0gaW5zdHJ1bWVudGFsAJAkdgCQQ3aBQIAkdiaAQ3YmkCRYAJA8WACQQFiBGYAkWCeAQFgnkCRYAJBDWIE/gDxYAYAkWACAQ1gmkCtaAJBAWgCQSFqBQIArWiaAQFoAgEhaAZAoWgCQQ1qBP4AoWieAQ1omkCZaAJA8WoEZgCZaJoA8WiiQJFcAkExXgUCAJFcAgExXAP8vAA==";
 
       const CLICK_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAANgD/UQMPQkAA/wMPIC0gaW5zdHJ1bWVudGFsHpBFdACQR3QAkEh0eoBHdACASHQ+gEV0AP8vAA==";
+
+      const GAMEOVER_MIDI_BASE64 = "TVRoZAAAAAYAAQACAeBNVHJrAAACUgD/UQMHNXgA/wMPIC0gaW5zdHJ1bWVudGFsYZArWgCAK1qDR5ApRgCAKUaDaJAmRgCAJkaDR5ApTSCAKU2DSJA6fwCAOn+DZ5A5RYFjgDlFggWQNUQAgDVEg2iQOUoAgDlKg2eQOlcAkENXYYBDVyKQRUNhgEVDAJBGRGGARkQhkEhEYYA6VwCASEQBkDlGAJBKRmGASkYhkE9EYYBPRCGQSkVhgEpFAJBPRGGAT0QBgDlGIJA1RQCQTUVhgE1FIZBMRWGATEUBkEpEYYBKRCGQRkRhgDVFAIBGRCGQOUUAgDlFYpBGRGGARkQhkEVEYYBFRCGQRkJhkDpIAIA6SACARkIhkENIYYBDSACQRUqBAoBFSgCQRkNhgEZDIZBIRGGASEQBkDlCAJBKQmGAOUIAgEpCIZBPQ2GAT0MhkEpFYYBKRQCQT0NhgE9DIpA1QwCQTUNhgE1DIZBMRmGQSkcAgExGYYBKRyGQRkNhgEZDAYA1QyCQOUQAgDlEYpBGRGGARkQhkEVDYYBFQyGQRkRhkDpHAIA6RwCARkQhkENHYYBDRwCQRUWBAoBFRQCQRkRhgEZEIpBIRWGQOUUAgEhFAJBKRWGASkUhkE9GYYBPRiGQSkVhgEpFAZBPRmGAT0YggDlFAZA1RQCANUUAkE1FYZBMRgCATUWBApBKRQCATEZhgEpFIZBGRWGARkUBkDlGIIA5RmKQRkdhgEZHIZBFRWGARUUhkEZEYYBGRCGQOkgAkENIYYBDSAGQRUdhgEVHIZBGRmGARkZhgDpIAP8vAE1UcmsAAAE1AP9RAwc1eAD/AwcgLSBiYXNzYZArf4NHkClCAIArf4NHgClCIZAmQoNHgCZCIZApQoNHgClCAJArTQCQOk2DZ5ApQwCAK00AgDpNgWSQOUKBQ4A5QiCAKUMhkCZCAJA1QoNHgCZCAIA1QiGQKUQAkDlEgkWAOUSBApArRACQOkQggClEAIA6RINHgCtEAZApRINHgClEIJAmQ4NHgCZDAJApQyGQOUODBoA5Q0CAKUMBkCtCAJA6QoNngCtCAIA6QgGQKUNhkDlDgkWAOUMhgClDIZAmQ4NHgCZDAJApRCCQOUODJoA5QyGAKUQAkCtDAJA6Q4NngCtDAIA6QwGQKUKDR4ApQiGQNUKDR5ApQgCANUIgkDlCg0eAKUIAgDlCAZArTQCQOk0ggDpNgyeAK00A/y8A";
 
       const CombatMusicSystem = {
         isPlaying: false,
@@ -3975,6 +3973,181 @@
             this.playNote(note.n, startTime + note.t, note.d, note.v);
           }
           // NO loop - plays once and stops
+        },
+
+        start: function() {
+          if (!this.isLoaded) return;
+          this.stop();
+          SoundSystem.resume();
+          this.isPlaying = true;
+          this.scheduleNotes();
+        },
+
+        stop: function() {
+          this.isPlaying = false;
+          this.scheduledOscs.forEach(function(osc) {
+            try { osc.stop(); } catch(e) {}
+          });
+          this.scheduledOscs = [];
+        }
+      };
+
+      // ============================================================================
+      // GAME OVER MUSIC SYSTEM - Plays on victory or defeat screen
+      // ============================================================================
+
+      const GameOverMusicSystem = {
+        isPlaying: false,
+        isLoaded: false,
+        volume: 0.14,
+        notes: [],
+        duration: 0,
+        scheduledOscs: [],
+
+        init: function() {
+          this.loadMIDI();
+        },
+
+        loadMIDI: function() {
+          try {
+            var binaryString = atob(GAMEOVER_MIDI_BASE64);
+            var bytes = new Uint8Array(binaryString.length);
+            for (var i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            var pos = 0;
+            var notes = [];
+
+            var readUint32 = function() { return (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++]; };
+            var readUint16 = function() { return (bytes[pos++] << 8) | bytes[pos++]; };
+            var readVarLen = function() {
+              var value = 0, b;
+              do { b = bytes[pos++]; value = (value << 7) | (b & 0x7F); } while (b & 0x80);
+              return value;
+            };
+            var readString = function(len) { var str = ''; for (var i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
+
+            if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
+            readUint32();
+            readUint16();
+            var numTracks = readUint16();
+            var ticksPerQuarter = readUint16();
+
+            var microsecondsPerBeat = 500000;
+
+            for (var t = 0; t < numTracks; t++) {
+              if (readString(4) !== 'MTrk') continue;
+              var trackLength = readUint32();
+              var trackEnd = pos + trackLength;
+
+              var absoluteTime = 0;
+              var runningStatus = 0;
+              var activeNotes = {};
+
+              var tickToSeconds = function(ticks) { return (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000); };
+
+              while (pos < trackEnd) {
+                absoluteTime += readVarLen();
+                var statusByte = bytes[pos];
+
+                if (statusByte < 0x80) statusByte = runningStatus;
+                else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
+
+                var cmd = statusByte & 0xF0;
+
+                if (cmd === 0x90) {
+                  var note = bytes[pos++], vel = bytes[pos++];
+                  if (vel > 0) activeNotes[note] = { start: absoluteTime, vel: vel };
+                  else if (activeNotes[note]) {
+                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
+                    delete activeNotes[note];
+                  }
+                } else if (cmd === 0x80) {
+                  var note2 = bytes[pos++]; pos++;
+                  if (activeNotes[note2]) {
+                    notes.push({ t: tickToSeconds(activeNotes[note2].start), n: note2, d: tickToSeconds(absoluteTime - activeNotes[note2].start), v: activeNotes[note2].vel });
+                    delete activeNotes[note2];
+                  }
+                } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
+                else if (cmd === 0xC0 || cmd === 0xD0) pos++;
+                else if (statusByte === 0xFF) {
+                  var type = bytes[pos++], len = readVarLen();
+                  if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
+                  pos += len;
+                } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
+              }
+            }
+
+            notes.sort(function(a, b) { return a.t - b.t; });
+            this.notes = notes;
+            var lastNote = notes[notes.length - 1];
+            this.duration = lastNote ? lastNote.t + lastNote.d : 0;
+            this.isLoaded = true;
+            console.log('GameOverMusicSystem: Loaded ' + notes.length + ' notes, duration: ' + this.duration.toFixed(2) + 's');
+          } catch (err) {
+            console.error('GameOverMusicSystem: Failed to load MIDI', err);
+          }
+        },
+
+        playNote: function(note, startTime, duration, velocity) {
+          var ctx = SoundSystem.audioCtx;
+          if (!ctx || !SoundSystem.enabled) return;
+
+          var freq = 440 * Math.pow(2, (note - 69) / 12);
+          var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
+
+          // Timbre melancólico/épico: triangle (corpo suave) + sine (sub-oitava para peso)
+          var osc1 = ctx.createOscillator();
+          osc1.type = 'triangle';
+          osc1.frequency.value = freq;
+
+          var osc2 = ctx.createOscillator();
+          osc2.type = 'sine';
+          osc2.frequency.value = freq * 0.5;
+
+          var gain1 = ctx.createGain();
+          var gain2 = ctx.createGain();
+          var masterGain = ctx.createGain();
+
+          gain1.gain.value = 0.6;
+          gain2.gain.value = 0.25;
+
+          osc1.connect(gain1);
+          osc2.connect(gain2);
+          gain1.connect(masterGain);
+          gain2.connect(masterGain);
+          masterGain.connect(ctx.destination);
+
+          var now = startTime;
+          var attackTime = 0.02;
+          var decayTime = 0.1;
+          var sustainLevel = 0.6;
+          var releaseTime = 0.15;
+
+          masterGain.gain.setValueAtTime(0, now);
+          masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
+          masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
+          masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
+          masterGain.gain.linearRampToValueAtTime(0, now + duration);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + duration + 0.05);
+          osc2.stop(now + duration + 0.05);
+
+          this.scheduledOscs.push(osc1, osc2);
+        },
+
+        scheduleNotes: function() {
+          if (!this.isLoaded || !SoundSystem.audioCtx) return;
+          var ctx = SoundSystem.audioCtx;
+          var startTime = ctx.currentTime;
+
+          for (var i = 0; i < this.notes.length; i++) {
+            var note = this.notes[i];
+            this.playNote(note.n, startTime + note.t, note.d, note.v);
+          }
         },
 
         start: function() {
@@ -6545,6 +6718,7 @@
           DefeatMusicSystem.init();
            VictoryMusicSystem.init();
            ClickMusicSystem.init();
+           GameOverMusicSystem.init();
 
            // Inicializar controlador do minimapa
           MinimapController.init();
