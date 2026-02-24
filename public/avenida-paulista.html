@@ -3701,7 +3701,7 @@
       const DefeatMusicSystem = {
         isPlaying: false,
         isLoaded: false,
-        volume: 0.12,
+        volume: 0.35,
         notes: [],
         duration: 0,
         scheduledOscs: [],
@@ -4229,7 +4229,7 @@
       const GameOverMusicSystem = {
         isPlaying: false,
         isLoaded: false,
-        volume: 0.14,
+        volume: 0.4,
         notes: [],
         duration: 0,
         scheduledOscs: [],
@@ -4625,8 +4625,6 @@
             GameState.gameOver = true;
             GameState.victory = false;
             MusicSystem.stop();
-            SoundSystem.playDeath();
-            MusicSystem.playDefeatMusic();
             const reason = GameState.deathReason || 'Você foi derrotado! A escuridão consome São Paulo...';
             GameState.deathReason = null;
             return { ended: true, victory: false, reason: reason };
@@ -4637,8 +4635,6 @@
             GameState.gameOver = true;
             GameState.victory = false;
             MusicSystem.stop();
-            SoundSystem.playDeath();
-            MusicSystem.playDefeatMusic();
             return { ended: true, victory: false, reason: 'A Bruxa completou o ritual! O portal dimensional se abre e criaturas das trevas invadem a cidade!' };
           }
 
@@ -4647,8 +4643,6 @@
             GameState.gameOver = true;
             GameState.victory = true;
             MusicSystem.stop();
-            SoundSystem.playVictory();
-            MusicSystem.playVictoryMusic();
             return { ended: true, victory: true, reason: 'VITÓRIA! Você derrotou a Bruxa e salvou São Paulo!' };
           }
 
@@ -6862,6 +6856,8 @@
         showGameOver: function(reason) {
           const isVictory = GameState.victory;
           const title = isVictory ? '🏆 VITÓRIA!' : '💀 FIM DE JOGO';
+          // Tocar música de game over ao exibir o modal
+          GameOverMusicSystem.start();
           const player = GameState.characters.player;
           const witch = GameState.characters.bruxa;
 
