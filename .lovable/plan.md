@@ -1,46 +1,39 @@
 
 
-## Correcao de 2 Bugs: Escudo vs Demonio e Ordem de Morte
+## Correcao do Bug: NPCs Mortos Ainda Atacam
 
-### Bug 1: Demonio convertido nao ataca a Bruxa quando escudo esta ativo
+### Causa raiz
 
-**Causa**: Na linha 6139 de `processAllyAttacks`, a Bruxa e filtrada fora da lista de inimigos quando `!GameState.forceShieldDown` (escudo ativo). O escudo deveria bloquear apenas o **acesso fisico do jogador** ao teto do MASP, nao os ataques dos aliados que ja estao na sala.
+O metodo `isTargetedForKill` verifica a fila (`this.queue`) do `CombatModal`, mas o problema e que o item ja foi **removido** da fila antes da verificacao acontecer.
 
-**Correcao**: Remover a restricao do escudo do filtro de `enemiesInRoom` dentro de `processAllyAttacks`. O Demonio ja esta na sala da Bruxa (foi invocado la), entao ele deve poder ataca-la independente do estado do escudo.
+O fluxo e:
+1. Jogador ataca -> `CombatModal.enqueue()` adiciona o combate na fila
+2. `enqueue` chama `processNext()` que faz `this.queue.shift()` — **remove o item da fila**
+3. `processAction` chama `Events.advanceTime()` -> `processNPCAttacks()`
+4. `isTargetedForKill` verifica a fila, mas ela ja esta vazia
 
-Especificamente, trocar:
-```
-!(c.id === 'bruxa' && !GameState.forceShieldDown)
-```
-por nenhuma restricao (remover essa linha do filtro).
+### Correcao
 
-O escudo continua bloqueando o acesso do jogador ao teto via MASP (logica em `Rules.move`), mas aliados que ja estao na sala atacam normalmente.
+Alem de verificar `this.queue`, o metodo `isTargetedForKill` precisa tambem verificar o combate atual em `this.pendingCombat` (que e onde o item vai parar apos o `shift`).
 
-### Bug 2: NPCs mortos ainda atacam o jogador
+**Arquivo:** `public/avenida-paulista.html`
 
-**Causa**: O sistema de combate usa uma fila (queue). Quando o jogador ataca e mata um NPC, o dano so e aplicado no `applyCallback` (quando o modal e confirmado). Porem, `processNPCAttacks` roda no mesmo turno e ve o NPC ainda vivo porque o callback nao executou ainda.
+Alterar `isTargetedForKill` para:
 
-**Correcao**: Em `processNPCAttacks`, antes de enfileirar o ataque do NPC, verificar se ja existe um combate na fila que vai matar esse NPC. Se o `combatResult.killed === true` e o `targetId` corresponde ao NPC, pular o ataque dele.
-
-Criar uma funcao auxiliar no `CombatModal`:
 ```javascript
 isTargetedForKill: function(charId) {
+  // Verificar combate atual (já removido da fila pelo shift)
+  if (this.pendingCombat && 
+      this.pendingCombat.result.targetId === charId && 
+      this.pendingCombat.result.killed) {
+    return true;
+  }
+  // Verificar fila restante
   return this.queue.some(function(item) {
     return item.combatResult.targetId === charId && item.combatResult.killed;
   });
 }
 ```
 
-E no loop de `processNPCAttacks`, adicionar logo apos os checks iniciais:
-```javascript
-if (CombatModal.isTargetedForKill(char.id)) return;
-```
-
-### Resumo tecnico
-
-**Arquivo:** `public/avenida-paulista.html`
-
-1. `processAllyAttacks` (linha ~6139) -- remover filtro `!(c.id === 'bruxa' && !GameState.forceShieldDown)` do array de inimigos
-2. `CombatModal` -- adicionar metodo `isTargetedForKill(charId)` que verifica a fila
-3. `processNPCAttacks` (linha ~6046) -- adicionar check `if (CombatModal.isTargetedForKill(char.id)) return;` apos `if (!char.isAlive) return;`
+Isso cobre ambos os casos: o combate que ja esta sendo exibido no modal (`pendingCombat`) e qualquer outro que ainda esteja na fila.
 
