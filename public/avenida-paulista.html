@@ -5424,6 +5424,13 @@
         musicWasPlaying: false,
 
         isTargetedForKill: function(charId) {
+          // Verificar combate atual (já removido da fila pelo shift)
+          if (this.pendingCombat && 
+              this.pendingCombat.result.targetId === charId && 
+              this.pendingCombat.result.killed) {
+            return true;
+          }
+          // Verificar fila restante
           return this.queue.some(function(item) {
             return item.combatResult.targetId === charId && item.combatResult.killed;
           });
