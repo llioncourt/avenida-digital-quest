@@ -5380,6 +5380,28 @@
           GameState.playerLocation = roomId;
           GameState.characters.player.location = roomId;
           SoundSystem.playMove();
+
+          // Mover aliados que estão seguindo o jogador
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+              c.location = roomId;
+              c.followTurnsLeft--;
+              if (c.followTurnsLeft <= 0) {
+                c.followingPlayer = false;
+                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+              }
+            }
+          });
+
+          // Verificar aliados na nova sala para ativar follow
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
+              c.followingPlayer = true;
+              c.followTurnsLeft = 3;
+              Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
+            }
+          });
+
           return {
             success: true,
             message: `Você foi para ${targetRoom.name}.`,
@@ -5791,7 +5813,7 @@
             } else {
               div.className = 'combat-line' + (line.cls ? ' ' + line.cls : '');
             }
-            div.textContent = line.text;
+            div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
             atkCard.appendChild(div);
           });
 
@@ -5804,7 +5826,7 @@
             } else {
               div.className = 'combat-line' + (line.cls ? ' ' + line.cls : '');
             }
-            div.textContent = line.text;
+            div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
             defCard.appendChild(div);
           });
 
@@ -5945,7 +5967,7 @@
           resultLines.forEach(function(line) {
             var div = document.createElement('div');
             div.className = 'combat-line ' + line.cls;
-            div.textContent = line.text;
+            div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
             defCard.appendChild(div);
 
             (function(el, d) {
@@ -6202,6 +6224,9 @@
             // Demônio convertido fica na sala da Bruxa enquanto ela estiver viva
             if (char.id === 'demonio' && char.isAlly && GameState.characters.bruxa.isAlive) return;
 
+            // Aliado seguindo o jogador não se move sozinho
+            if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
+
             // 30% de chance de mover
             if (Utils.random() < 0.3) {
               const currentRoom = GameState.rooms[char.location];
@@ -6224,6 +6249,13 @@
                 const prevLocation = char.location;
                 char.location = Utils.randomChoice(validExits);
 
+                // NPC sai da sala do jogador — logar destino
+                if (prevLocation === GameState.playerLocation && char.location !== GameState.playerLocation) {
+                  var destRoom = GameState.rooms[char.location];
+                  var icon = char.isAlly ? '🤝' : '⚔️';
+                  Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
+                }
+
                 // NPC fala ao se mover (30% de chance)
                 if (Utils.random() < 0.3) {
                   const phrases = NPC_PHRASES[char.id];
@@ -6237,6 +6269,12 @@
                   const phrases = NPC_PHRASES[char.id];
                   if (phrases && phrases.encounter) {
                     Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.encounter)}"`, 'info');
+                  }
+                  // Aliado ativa modo seguir ao encontrar o jogador
+                  if (char.isAlly && !char.followingPlayer) {
+                    char.followingPlayer = true;
+                    char.followTurnsLeft = 3;
+                    Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
                   }
                 }
               }
