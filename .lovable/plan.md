@@ -1,114 +1,94 @@
-# Musica de Vitoria (Ataque do Jogador) Embutida + Sincronizacao
+
+# Substituir Som do Confirmar por MIDI Embutido (ClickMusicSystem)
 
 ## Resumo
 
-Criar um `VictoryMusicSystem` seguindo o mesmo padrao exato do `DefeatMusicSystem`, usando o MIDI `Samplab_combate_victory.mid` embutido em Base64. Essa musica toca durante a revelacao do dano **quando o jogador (ou aliado) ataca**, enquanto a `DefeatMusicSystem` continua tocando quando o jogador (ou aliado) e atacado.
+Substituir o som procedural `SoundSystem.playCombatImpact()` (noise burst + oscilladores) por um novo `ClickMusicSystem` que toca o MIDI `Samplab_click.mid` embutido em Base64, seguindo o padrao exato dos outros sistemas (DefeatMusicSystem, VictoryMusicSystem).
 
-## Mudancas
+## Mudancas no arquivo `public/avenida-paulista.html`
 
-### 1. Constante VICTORY_MIDI_BASE64
+### 1. Constante CLICK_MIDI_BASE64
 
-Converter o arquivo `Samplab_combate_victory.mid` para Base64 e embutir como constante no HTML, logo apos a constante `DEFEAT_MIDI_BASE64`.
+Converter o arquivo `Samplab_click.mid` para Base64 e adicionar como constante logo apos `VICTORY_MIDI_BASE64` (linha ~3145).
 
 ```javascript
-const VICTORY_MIDI_BASE64 = "...base64 do midi de vitoria...";
+const CLICK_MIDI_BASE64 = "...base64 do midi...";
 ```
 
-### 2. Objeto VictoryMusicSystem
+### 2. Objeto ClickMusicSystem
 
-Criado logo apos o `DefeatMusicSystem` (linha ~3491), seguindo o mesmo padrao exato:
+Criado logo apos o `VictoryMusicSystem` (linha ~3600+), seguindo o mesmo padrao exato:
 
-- Parser MIDI identico
+- Parser MIDI identico (header, tracks, varlen, note on/off)
 - Sintese via Web Audio API
-- **Timbre triunfante**: square (principal) + sawtooth (harmonico brilhante) - mais energetico/heroico
+- **Timbre percussivo/impactante**: square (principal) + triangle (corpo) -- curto e marcante, como um "click" de confirmacao
 - **SEM loop**: toca uma vez so e para
 - Carregamento via Base64 embutido (funciona offline)
 - Expoe `this.duration` apos parsear
 
-### 3. Flag playerIsAttacker no combatResult
-
-Adicionar campo `playerIsAttacker` ao `combatResult` em cada ponto de enqueue:
-
-- `**Actions.attack()` (jogador ataca)**: `playerIsAttacker: true`
-- `**Events.processNPCAttacks()` (NPC ataca jogador)**: `playerIsAttacker: false`
-- `**Events.processAllyAttacks()` (aliado ataca inimigo)**: `playerIsAttacker: true` (aliado esta do lado do jogador)
-
-### 4. Logica de selecao de musica em CombatModal.confirm() fase 1
-
-Modificar a fase 1 do confirm para escolher qual musica tocar baseado na flag:
-
 ```javascript
-if (this.phase === 1) {
-  CombatMusicSystem.stop();
-  SoundSystem.playCombatImpact();
-  
-  // Escolher musica baseado em quem ataca
-  if (this.pendingCombat.result.playerIsAttacker) {
-    VictoryMusicSystem.start();
-  } else {
-    DefeatMusicSystem.start();
-  }
-  // ... resto existente ...
-}
+const ClickMusicSystem = {
+  isPlaying: false,
+  isLoaded: false,
+  volume: 0.15,
+  notes: [],
+  duration: 0,
+  scheduledOscs: [],
+
+  init: function() { this.loadMIDI(); },
+  loadMIDI: function() { /* parse CLICK_MIDI_BASE64, mesmo codigo */ },
+  playNote: function(note, startTime, duration, velocity) {
+    // Timbre percussivo: square (principal) + triangle (corpo)
+    osc1.type = 'square';
+    osc2.type = 'triangle';
+    osc2.frequency.value = freq; // mesma oitava
+  },
+  scheduleNotes: function() { /* agenda notas, SEM loop */ },
+  start: function() { /* inicia reproducao unica */ },
+  stop: function() { /* para osciladores */ }
+};
 ```
 
-### 5. Sincronizacao em showResult()
+### 3. Substituir chamada em CombatModal.confirm()
 
-Modificar `showResult()` para usar a duracao da musica correta:
+Na linha ~4746, trocar:
 
 ```javascript
-var isPlayerAttacking = this.pendingCombat.result.playerIsAttacker;
-var activeMusic = isPlayerAttacking ? VictoryMusicSystem : DefeatMusicSystem;
-var musicDuration = activeMusic.isLoaded ? activeMusic.duration : 0;
-var totalItems = resultLines.length + 1;
-var lineDelay = musicDuration > 0 ? (musicDuration * 1000) / totalItems : 300;
+// ANTES:
+SoundSystem.playCombatImpact();
+
+// DEPOIS:
+ClickMusicSystem.start();
 ```
 
-### 6. Stops de seguranca
+### 4. Stops de seguranca
 
-Adicionar `VictoryMusicSystem.stop()` em:
-
+Adicionar `ClickMusicSystem.stop()` em:
 - `CombatModal.close()`
 - `CombatModal.reset()`
 
-### 7. Inicializacao
+### 5. Inicializacao
 
 Em `Game.init()`, adicionar:
-
 ```javascript
-VictoryMusicSystem.init();
+ClickMusicSystem.init();
 ```
 
-## Timbre do VictoryMusicSystem
-
-Diferente dos outros dois sistemas:
+## Timbre do ClickMusicSystem
 
 - **MusicSystem** (fundo): triangle + sine = suave, ambiente
 - **CombatMusicSystem** (abertura combate): sawtooth + square = agressivo
 - **DefeatMusicSystem** (jogador leva dano): triangle + sine grave = sombrio
-- **VictoryMusicSystem** (jogador causa dano): square + sawtooth brilhante = triunfante, heroico
-
-```javascript
-playNote: function(note, startTime, duration, velocity) {
-  // Timbre triunfante: square (principal) + sawtooth harmonico
-  osc1.type = 'square';
-  osc1.frequency.value = freq;
-  osc2.type = 'sawtooth';
-  osc2.frequency.value = freq * 2; // oitava acima para brilho
-  gain1.gain.value = 0.6;
-  gain2.gain.value = 0.15; // harmonico sutil
-}
-```
+- **VictoryMusicSystem** (jogador causa dano): square + sawtooth brilhante = triunfante
+- **ClickMusicSystem** (botao confirmar): square + triangle = percussivo, marcante
 
 ## Ordem de Implementacao
 
-1. Converter MIDI para Base64 e adicionar constante `VICTORY_MIDI_BASE64`
-2. Criar `VictoryMusicSystem` com parser, timbre triunfante e reproducao unica
-3. Adicionar `playerIsAttacker` aos tres pontos de enqueue (attack, processNPCAttacks, processAllyAttacks)
-4. Modificar `CombatModal.confirm()` fase 1 para escolher VictoryMusicSystem ou DefeatMusicSystem
-5. Modificar `CombatModal.showResult()` para sincronizar com a musica ativa
-6. Adicionar stops de seguranca em close/reset
-7. Inicializar em `Game.init()`
+1. Converter MIDI para Base64 e adicionar constante `CLICK_MIDI_BASE64`
+2. Criar `ClickMusicSystem` com parser, timbre percussivo e reproducao unica
+3. Substituir `SoundSystem.playCombatImpact()` por `ClickMusicSystem.start()` em `CombatModal.confirm()`
+4. Adicionar stops de seguranca em close/reset
+5. Inicializar em `Game.init()`
 
 ## Arquivo Modificado
 
