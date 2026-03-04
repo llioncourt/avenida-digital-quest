@@ -1844,6 +1844,94 @@
           isUsable: true,
           singleUse: true,
           startsInWorld: false // Não começa no mundo - criada pelo Bombardeador
+        },
+        lanterna: {
+          id: 'lanterna',
+          name: 'LANTERNA',
+          description: 'Uma lanterna potente. Revela HP dos inimigos e itens em salas adjacentes no minimapa. (Passiva)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 2,
+          canFly: false,
+          isUsable: false,
+          singleUse: false
+        },
+        cafe: {
+          id: 'cafe',
+          name: 'CAFÉ PAULISTANO',
+          description: 'Um café forte e encorpado da Paulista. Sua próxima ação não avançará o tempo! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true
+        },
+        grafite: {
+          id: 'grafite',
+          name: 'GRAFITE MÁGICO',
+          description: 'Spray de grafite encantado. Cria uma armadilha no chão que paralisa o próximo inimigo por 2 turnos! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true
+        },
+        violao: {
+          id: 'violao',
+          name: 'VIOLÃO',
+          description: 'Um violão artesanal. Ao tocar, pacifica todos os inimigos na sala por 3 turnos! (Reutilizável)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 4,
+          canFly: false,
+          isUsable: true,
+          singleUse: false
+        },
+        guarda_chuva: {
+          id: 'guarda_chuva',
+          name: 'GUARDA-CHUVA',
+          description: 'Um guarda-chuva reforçado. Protege da chuva e serve como paraquedas ao pular da Antena! +3 defesa.',
+          attackPower: 0,
+          defensePower: 3,
+          weight: 3,
+          canFly: false,
+          isUsable: false,
+          singleUse: false
+        },
+        mapa_antigo: {
+          id: 'mapa_antigo',
+          name: 'MAPA ANTIGO',
+          description: 'Um mapa misterioso de São Paulo. Permite teletransportar para qualquer sala já visitada! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true
+        },
+        pandeiro: {
+          id: 'pandeiro',
+          name: 'PANDEIRO',
+          description: 'Um pandeiro de samba. Ao tocar, todos os aliados vivos se dirigem à sua localização! (Reutilizável)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 2,
+          canFly: false,
+          isUsable: true,
+          singleUse: false
+        },
+        mochila: {
+          id: 'mochila',
+          name: 'MOCHILA',
+          description: 'Uma mochila resistente. Aumenta seu limite de peso de 20kg para 40kg! (Passiva)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 0,
+          canFly: false,
+          isUsable: false,
+          singleUse: false
         }
       };
 
@@ -2082,7 +2170,10 @@
         espada: '⚔️', escudo: '🛡️', kit_saude: '🩹',
         kit_bomba: '🔧', livro: '📖', asa_delta: '🪂',
         cera_magica: '🕯️', seta_mortal: '🏹',
-        mascara_gas: '😷', hipnodisco: '💿', bomba: '💣'
+        mascara_gas: '😷', hipnodisco: '💿', bomba: '💣',
+        lanterna: '🔦', cafe: '☕', grafite: '🎨',
+        violao: '🎸', guarda_chuva: '☂️', mapa_antigo: '🗺️',
+        pandeiro: '🪘', mochila: '🎒'
       };
 
       // ============================================================================
