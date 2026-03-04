@@ -4904,6 +4904,34 @@
           return arr[Math.floor(this.random() * arr.length)];
         },
 
+        // BFS pathfinding para NPCs
+        findPath: function(fromId, toId, canFly) {
+          if (fromId === toId) return [fromId];
+          var visited = {};
+          var queue = [[fromId]];
+          visited[fromId] = true;
+          while (queue.length > 0) {
+            var path = queue.shift();
+            var current = path[path.length - 1];
+            var room = GameState.rooms[current];
+            if (!room) continue;
+            var exits = Object.values(room.exits);
+            for (var i = 0; i < exits.length; i++) {
+              var next = exits[i];
+              if (visited[next]) continue;
+              var nextRoom = GameState.rooms[next];
+              if (!nextRoom) continue;
+              if (nextRoom.requiresFlight && !canFly) continue;
+              if (next === 'teto_masp' && !GameState.forceShieldDown) continue;
+              var newPath = path.concat([next]);
+              if (next === toId) return newPath;
+              visited[next] = true;
+              queue.push(newPath);
+            }
+          }
+          return null;
+        },
+
         // Embaralhar array
         shuffle: function(arr) {
           const result = [...arr];
@@ -6640,6 +6668,9 @@
             if (CombatModal.isTargetedForKill(char.id)) return;
             if (char.isAlly) return;
             if (char.location !== playerRoom) return;
+            // Pacificado pelo violão ou paralisado pelo grafite
+            if (char.pacifiedTurns && char.pacifiedTurns > 0) return;
+            if (char.paralyzedTurns && char.paralyzedTurns > 0) return;
 
             // Usar aggression do NPC (fallback 0.4)
             const aggression = char.aggression !== undefined ? char.aggression : 0.4;
@@ -7771,6 +7802,9 @@
           GameState.armedBomb = null;
           GameState.hasReadMagicBook = false;
           GameState.discoveredItems = new Set();
+          GameState.skipNextTimeAdvance = false;
+          GameState.roomTraps = {};
+          GameState.visitedRooms = new Set(['masp']);
 
           // Reset combat modal
           CombatModal.reset();
