@@ -1,99 +1,59 @@
 
 
-## Plano: Italico no Combate + Log de Saida de NPCs + Aliados Seguem o Jogador
+## Plano: Ajustar disposicao do minimapa conforme foto de referencia
 
-### 1. Italico na janela de combate
+A foto mostra o mapa do jogo com a seguinte disposicao espacial (de cima para baixo):
 
-**Problema:** O modal de combate usa `div.textContent = line.text` (linhas ~5794, 5807, 5948), que renderiza tudo como texto puro. O `*texto*` nunca vira `<em>`.
-
-**Correcao:** Trocar `textContent` por `innerHTML` com a mesma regex ja usada no Log:
-
-```javascript
-div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+```text
+                    ITALIAN D.
+                     LIBRARY        BRIGADEIRO
+      MALL        JULY AVE N
+                     MASP
+  PAULISTA W                        PAULISTA E
+              AUGUSTA ST   JULY AVE S   COLLEGE
+      CINEMA       SANTOS ST
 ```
 
-Aplicar em 3 locais dentro de `CombatModal`:
-- Linha ~5794: linhas do atacante
-- Linha ~5807: linhas do defensor
-- Linha ~5948: linhas de resultado
+Salas aereas (ceu, teto, antena) ficam acima de tudo.
 
-### 2. Log quando NPC sai da sala do jogador
+### Alteracao unica
 
-**Problema:** Quando um NPC esta na mesma sala que o jogador e se move para outro lugar, nao ha mensagem no log.
+**Arquivo:** `public/avenida-paulista.html` — funcao `calculateRoomPositions`
 
-**Correcao:** Em `processNPCMovement` (linha ~6223), apos `char.location = Utils.randomChoice(validExits)`, adicionar verificacao: se `prevLocation === GameState.playerLocation` e `char.location !== GameState.playerLocation`, logar para onde o NPC foi.
+Substituir as posicoes percentuais atuais pelas novas, baseadas na foto:
 
 ```javascript
-// NPC sai da sala do jogador
-if (prevLocation === GameState.playerLocation && char.location !== GameState.playerLocation) {
-  var destRoom = GameState.rooms[char.location];
-  var icon = char.isAlly ? '🤝' : '⚔️';
-  Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
-}
+const positions = {
+  // === CAMADA AEREA ===
+  'ceu_cidade':  { x: 50, y: 3 },
+  'teto_masp':   { x: 50, y: 12 },
+  'antena':      { x: 88, y: 3 },
+
+  // === NIVEL SUPERIOR (Distrito Italiano / Livraria / Brigadeiro) ===
+  'distrito_italiano':     { x: 55, y: 22 },
+  'livraria':              { x: 50, y: 32 },
+  'avenida_brigadeiro':    { x: 85, y: 27 },
+
+  // === NIVEL MEDIO-ALTO (Mall, 9 Julho Norte) ===
+  'shopping':              { x: 15, y: 42 },
+  'nove_julho_norte':      { x: 50, y: 42 },
+
+  // === AVENIDA PAULISTA - LINHA PRINCIPAL ===
+  'avenida_paulista_oeste': { x: 15, y: 55 },
+  'masp':                   { x: 50, y: 52 },
+  'avenida_paulista_leste': { x: 85, y: 55 },
+
+  // === NIVEL INFERIOR (Augusta, 9 Julho Sul, Colegio) ===
+  'rua_augusta':           { x: 28, y: 68 },
+  'nove_julho_sul':        { x: 50, y: 68 },
+  'colegio':               { x: 78, y: 68 },
+
+  // === NIVEL MAIS BAIXO (Cinema, Santos, Tunel) ===
+  'cinema':                { x: 15, y: 82 },
+  'avenida_santos':        { x: 38, y: 82 },
+  'tunel':                 { x: 50, y: 92 },
+};
 ```
 
-Inserir logo apos a linha `char.location = Utils.randomChoice(validExits)` (linha ~6225), antes do bloco de frases de movimento.
-
-### 3. Aliados seguem o jogador temporariamente
-
-**Mecanica:** Quando o jogador encontra um aliado (entra na mesma sala ou o aliado entra na sala do jogador), o aliado entra em modo "seguindo" por 3 turnos. Durante esse periodo, quando o jogador se move, o aliado se move junto. Apos os 3 turnos, o aliado volta ao comportamento normal de movimento aleatorio.
-
-**Implementacao:**
-
-**3A.** Adicionar campo `followingPlayer` e `followTurnsLeft` ao estado dos aliados. Nao precisa ser nos dados iniciais — setar dinamicamente.
-
-**3B.** Em `processNPCMovement`, quando o NPC encontra o jogador (ja tem o bloco na linha ~6236) ou quando o jogador entra numa sala com aliado: ativar o modo seguir.
-
-```javascript
-// Ativar follow quando aliado encontra o jogador
-if (char.isAlly && char.location === GameState.playerLocation) {
-  if (!char.followingPlayer) {
-    char.followingPlayer = true;
-    char.followTurnsLeft = 3;
-    Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
-  }
-}
-```
-
-**3C.** Em `processNPCMovement`, aliados em modo "seguindo" nao se movem aleatoriamente — eles ficam parados (o movimento deles sera tratado quando o jogador se move).
-
-```javascript
-// Aliado seguindo o jogador não se move sozinho
-if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
-```
-
-**3D.** Em `Actions.move` (quando o jogador se move), mover aliados que estao seguindo junto:
-
-```javascript
-// Mover aliados que estão seguindo
-Object.values(GameState.characters).forEach(function(c) {
-  if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
-    c.location = roomId; // mesma sala que o jogador
-    c.followTurnsLeft--;
-    if (c.followTurnsLeft <= 0) {
-      c.followingPlayer = false;
-      Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
-    }
-  }
-});
-```
-
-**3E.** Tambem ativar o follow quando o jogador entra numa sala com aliado (em `Actions.move`, apos mudar `GameState.playerLocation`):
-
-```javascript
-// Verificar aliados na nova sala
-Object.values(GameState.characters).forEach(function(c) {
-  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
-    c.followingPlayer = true;
-    c.followTurnsLeft = 3;
-    Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
-  }
-});
-```
-
-### Resumo
-
-1. **3 linhas** trocando `textContent` por `innerHTML` com regex no CombatModal
-2. **~5 linhas** adicionando log de saida de NPC da sala do jogador em `processNPCMovement`
-3. **~25 linhas** implementando sistema de aliado seguir jogador temporariamente (3 turnos) em `processNPCMovement` e `Actions.move`
+As conexoes (exits) entre salas nao mudam — apenas a posicao visual no mapa. As linhas de conexao serao redesenhadas automaticamente pela funcao `updateMinimap` existente.
 
