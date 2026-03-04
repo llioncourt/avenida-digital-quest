@@ -1844,6 +1844,94 @@
           isUsable: true,
           singleUse: true,
           startsInWorld: false // Não começa no mundo - criada pelo Bombardeador
+        },
+        lanterna: {
+          id: 'lanterna',
+          name: 'LANTERNA',
+          description: 'Uma lanterna potente. Revela HP dos inimigos e itens em salas adjacentes no minimapa. (Passiva)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 2,
+          canFly: false,
+          isUsable: false,
+          singleUse: false
+        },
+        cafe: {
+          id: 'cafe',
+          name: 'CAFÉ PAULISTANO',
+          description: 'Um café forte e encorpado da Paulista. Sua próxima ação não avançará o tempo! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true
+        },
+        grafite: {
+          id: 'grafite',
+          name: 'GRAFITE MÁGICO',
+          description: 'Spray de grafite encantado. Cria uma armadilha no chão que paralisa o próximo inimigo por 2 turnos! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true
+        },
+        violao: {
+          id: 'violao',
+          name: 'VIOLÃO',
+          description: 'Um violão artesanal. Ao tocar, pacifica todos os inimigos na sala por 3 turnos! (Reutilizável)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 4,
+          canFly: false,
+          isUsable: true,
+          singleUse: false
+        },
+        guarda_chuva: {
+          id: 'guarda_chuva',
+          name: 'GUARDA-CHUVA',
+          description: 'Um guarda-chuva reforçado. Protege da chuva e serve como paraquedas ao pular da Antena! +3 defesa.',
+          attackPower: 0,
+          defensePower: 3,
+          weight: 3,
+          canFly: false,
+          isUsable: false,
+          singleUse: false
+        },
+        mapa_antigo: {
+          id: 'mapa_antigo',
+          name: 'MAPA ANTIGO',
+          description: 'Um mapa misterioso de São Paulo. Permite teletransportar para qualquer sala já visitada! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true
+        },
+        pandeiro: {
+          id: 'pandeiro',
+          name: 'PANDEIRO',
+          description: 'Um pandeiro de samba. Ao tocar, todos os aliados vivos se dirigem à sua localização! (Reutilizável)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 2,
+          canFly: false,
+          isUsable: true,
+          singleUse: false
+        },
+        mochila: {
+          id: 'mochila',
+          name: 'MOCHILA',
+          description: 'Uma mochila resistente. Aumenta seu limite de peso de 20kg para 40kg! (Passiva)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 0,
+          canFly: false,
+          isUsable: false,
+          singleUse: false
         }
       };
 
@@ -2082,7 +2170,10 @@
         espada: '⚔️', escudo: '🛡️', kit_saude: '🩹',
         kit_bomba: '🔧', livro: '📖', asa_delta: '🪂',
         cera_magica: '🕯️', seta_mortal: '🏹',
-        mascara_gas: '😷', hipnodisco: '💿', bomba: '💣'
+        mascara_gas: '😷', hipnodisco: '💿', bomba: '💣',
+        lanterna: '🔦', cafe: '☕', grafite: '🎨',
+        violao: '🎸', guarda_chuva: '☂️', mapa_antigo: '🗺️',
+        pandeiro: '🪘', mochila: '🎒'
       };
 
       // ============================================================================
@@ -4813,6 +4904,34 @@
           return arr[Math.floor(this.random() * arr.length)];
         },
 
+        // BFS pathfinding para NPCs
+        findPath: function(fromId, toId, canFly) {
+          if (fromId === toId) return [fromId];
+          var visited = {};
+          var queue = [[fromId]];
+          visited[fromId] = true;
+          while (queue.length > 0) {
+            var path = queue.shift();
+            var current = path[path.length - 1];
+            var room = GameState.rooms[current];
+            if (!room) continue;
+            var exits = Object.values(room.exits);
+            for (var i = 0; i < exits.length; i++) {
+              var next = exits[i];
+              if (visited[next]) continue;
+              var nextRoom = GameState.rooms[next];
+              if (!nextRoom) continue;
+              if (nextRoom.requiresFlight && !canFly) continue;
+              if (next === 'teto_masp' && !GameState.forceShieldDown) continue;
+              var newPath = path.concat([next]);
+              if (next === toId) return newPath;
+              visited[next] = true;
+              queue.push(newPath);
+            }
+          }
+          return null;
+        },
+
         // Embaralhar array
         shuffle: function(arr) {
           const result = [...arr];
@@ -5313,6 +5432,142 @@
             message: 'Alvo inválido para o HIPNODISCO.',
             consumed: false
           };
+        },
+
+        cafe: function() {
+          GameState.skipNextTimeAdvance = true;
+          SoundSystem.playUseItem();
+          return {
+            success: true,
+            message: '☕ Você toma o CAFÉ PAULISTANO! A cafeína corre pelas veias — sua próxima ação não avançará o tempo!',
+            consumed: true
+          };
+        },
+
+        grafite: function() {
+          const room = GameState.playerLocation;
+          if (GameState.roomTraps && GameState.roomTraps[room]) {
+            return {
+              success: false,
+              message: 'Já existe uma armadilha de grafite nesta sala!',
+              consumed: false
+            };
+          }
+          if (!GameState.roomTraps) GameState.roomTraps = {};
+          GameState.roomTraps[room] = { active: true };
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(255, 100, 200, 0.4)');
+          return {
+            success: true,
+            message: '🎨 Você pinta um GRAFITE MÁGICO no chão! O próximo inimigo que entrar será paralisado por 2 turnos!',
+            consumed: true
+          };
+        },
+
+        violao: function() {
+          const playerRoom = GameState.playerLocation;
+          let pacifiedCount = 0;
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly) {
+              c.pacifiedTurns = 3;
+              pacifiedCount++;
+            }
+          });
+          if (pacifiedCount === 0) {
+            return {
+              success: false,
+              message: 'Não há inimigos aqui para pacificar com o VIOLÃO.',
+              consumed: false
+            };
+          }
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(100, 200, 255, 0.4)');
+          return {
+            success: true,
+            message: '🎸 Você toca o VIOLÃO com maestria! ' + pacifiedCount + ' inimigo(s) ficam pacificados por 3 turnos!',
+            consumed: false
+          };
+        },
+
+        mapa_antigo: function(targetRoomId) {
+          if (!targetRoomId) {
+            // Retornar pedindo seleção de sala
+            const visitedRooms = Object.keys(GameState.rooms).filter(function(rId) {
+              return GameState.visitedRooms && GameState.visitedRooms.has(rId) && rId !== GameState.playerLocation;
+            });
+            if (visitedRooms.length === 0) {
+              return {
+                success: false,
+                message: 'Você não visitou nenhuma outra sala ainda!',
+                consumed: false
+              };
+            }
+            return {
+              success: false,
+              message: 'SELECT_MAPA_TARGET',
+              selectableRooms: visitedRooms,
+              consumed: false
+            };
+          }
+
+          // Teletransportar
+          const targetRoom = GameState.rooms[targetRoomId];
+          if (!targetRoom) {
+            return { success: false, message: 'Sala inválida!', consumed: false };
+          }
+
+          // Se precisa voar e jogador não pode, bloquear
+          if (targetRoom.requiresFlight && !Rules.canPlayerFly()) {
+            return { success: false, message: 'Você precisa poder voar para ir a este local!', consumed: false };
+          }
+
+          GameState.playerLocation = targetRoomId;
+          GameState.characters.player.location = targetRoomId;
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(200, 150, 50, 0.5)');
+
+          // Mover aliados que estão seguindo
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+              c.location = targetRoomId;
+              c.followTurnsLeft--;
+              if (c.followTurnsLeft <= 0) {
+                c.followingPlayer = false;
+                c.followCooldown = true;
+                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+              }
+            }
+          });
+
+          return {
+            success: true,
+            message: '🗺️ O MAPA ANTIGO brilha e você é teletransportado para ' + targetRoom.name + '!',
+            consumed: true
+          };
+        },
+
+        pandeiro: function() {
+          let calledCount = 0;
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.isAlive && c.location !== GameState.playerLocation) {
+              c.pandeiroTarget = GameState.playerLocation;
+              calledCount++;
+            }
+          });
+          if (calledCount === 0) {
+            return {
+              success: false,
+              message: 'Nenhum aliado vivo está longe de você para convocar!',
+              consumed: false
+            };
+          }
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(255, 200, 0, 0.4)');
+          return {
+            success: true,
+            message: '🪘 Você toca o PANDEIRO! O ritmo ecoa pela cidade — ' + calledCount + ' aliado(s) estão vindo ao seu encontro!',
+            consumed: false
+          };
         }
       };
 
@@ -5338,9 +5593,10 @@
             return { success: false, message: 'Você não pode ir para lá daqui!' };
           }
 
-          // PULO MORTAL: Pular da Antena sem Asa Delta = morte!
+          // PULO MORTAL: Pular da Antena sem Asa Delta = morte (a menos que tenha guarda-chuva!)
           if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
-            if (!Rules.canPlayerFly()) {
+            const hasUmbrella = GameState.playerInventory.includes('guarda_chuva');
+            if (!Rules.canPlayerFly() && !hasUmbrella) {
               // MORTE!
               const player = GameState.characters.player;
               player.hp = 0;
@@ -5351,6 +5607,18 @@
               return {
                 success: true,
                 message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
+                advanceTime: true
+              };
+            } else if (hasUmbrella && !Rules.canPlayerFly()) {
+              // Guarda-chuva funciona como paraquedas - aterrissa na sala abaixo em vez de voar
+              GameState.playerLocation = 'avenida_paulista_leste';
+              GameState.characters.player.location = 'avenida_paulista_leste';
+              if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
+              GameState.visitedRooms.add('avenida_paulista_leste');
+              SoundSystem.playMove();
+              return {
+                success: true,
+                message: '☂️ Você abre o GUARDA-CHUVA e pula! Ele funciona como um paraquedas improvisado — você plana suavemente até a Avenida Paulista Leste!',
                 advanceTime: true
               };
             } else {
@@ -5380,6 +5648,10 @@
           GameState.playerLocation = roomId;
           GameState.characters.player.location = roomId;
           SoundSystem.playMove();
+
+          // Rastrear salas visitadas (para Mapa Antigo)
+          if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
+          GameState.visitedRooms.add(roomId);
 
           // Mover aliados que estão seguindo o jogador
           Object.values(GameState.characters).forEach(function(c) {
@@ -5429,6 +5701,12 @@
 
           item.location = null;
           GameState.playerInventory.push(itemId);
+
+          // Mochila: aumentar maxWeight ao pegar
+          if (itemId === 'mochila') {
+            GameState.characters.player.maxWeight += 20;
+            Log.add('🎒 Capacidade de peso aumentada para ' + GameState.characters.player.maxWeight + 'kg!', 'success');
+          }
 
           SoundSystem.playPickup();
 
@@ -5482,6 +5760,12 @@
 
           GameState.playerInventory.splice(idx, 1);
           item.location = GameState.playerLocation;
+
+          // Mochila: reduzir maxWeight ao largar
+          if (itemId === 'mochila') {
+            GameState.characters.player.maxWeight = Math.max(20, GameState.characters.player.maxWeight - 20);
+            Log.add('🎒 Capacidade de peso voltou para ' + GameState.characters.player.maxWeight + 'kg.', 'info');
+          }
 
           return {
             success: true,
@@ -6063,6 +6347,18 @@
           this.processAllyAttacks();
           RandomEvents.process();
 
+          // Dano de chuva (se ativa e jogador não tem guarda-chuva e está ao ar livre)
+          if (RandomEvents.isActive('rain') && !GameState.playerInventory.includes('guarda_chuva')) {
+            var indoorRooms = ['shopping', 'cinema', 'tunel', 'livraria', 'colegio'];
+            if (!indoorRooms.includes(GameState.playerLocation)) {
+              if (Utils.random() < 0.15) {
+                var rainDmg = 5;
+                GameState.characters.player.hp -= rainDmg;
+                Log.add('🌧️ A chuva forte te encharca e você perde ' + rainDmg + ' HP! Um GUARDA-CHUVA ajudaria...', 'danger');
+              }
+            }
+          }
+
           // WORLD SANITY: validar novamente após eventos (double-check)
           WorldSanity.enforce();
         },
@@ -6213,6 +6509,23 @@
             if (!char.isAlive) return;
             if (!char.location) return;
 
+            // Decrementar pacificação
+            if (char.pacifiedTurns && char.pacifiedTurns > 0) {
+              char.pacifiedTurns--;
+              if (char.pacifiedTurns <= 0) {
+                Log.add('🎸 ' + char.name + ' não está mais pacificado.', 'info');
+              }
+            }
+
+            // Decrementar paralisia (grafite)
+            if (char.paralyzedTurns && char.paralyzedTurns > 0) {
+              char.paralyzedTurns--;
+              if (char.paralyzedTurns <= 0) {
+                Log.add('🎨 ' + char.name + ' se liberta da armadilha de grafite!', 'info');
+              }
+              return; // NPC paralisado não se move
+            }
+
             // Feiticeiro fica preso até 18:00
             if (char.id === 'feiticeiro' && GameState.time < 18 * 60) return;
 
@@ -6232,6 +6545,36 @@
 
             // Aliado seguindo o jogador não se move sozinho
             if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
+
+            // Pandeiro: aliado com alvo se move em direção ao jogador
+            if (char.isAlly && char.pandeiroTarget) {
+              const currentRoom = GameState.rooms[char.location];
+              if (!currentRoom) return;
+              if (char.location === char.pandeiroTarget) {
+                delete char.pandeiroTarget;
+                Log.add('🪘 ' + char.name + ' chegou ao seu chamado!', 'success');
+                // Ativar follow
+                if (!char.followingPlayer && !char.followCooldown) {
+                  char.followingPlayer = true;
+                  char.followTurnsLeft = 3;
+                  Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
+                }
+                return;
+              }
+              // Tentar mover em direção ao alvo (BFS simples)
+              const path = Utils.findPath(char.location, char.pandeiroTarget, char.canFly);
+              if (path && path.length > 1) {
+                var prevLoc = char.location;
+                char.location = path[1];
+                if (prevLoc === GameState.playerLocation && char.location !== GameState.playerLocation) {
+                  var destR = GameState.rooms[char.location];
+                  Log.add('🤝 ' + char.name + ' foi para ' + destR.name + '.', 'info');
+                }
+              } else {
+                delete char.pandeiroTarget; // Caminho impossível
+              }
+              return;
+            }
 
             // 30% de chance de mover
             if (Utils.random() < 0.3) {
@@ -6260,6 +6603,15 @@
                   var destRoom = GameState.rooms[char.location];
                   var icon = char.isAlly ? '🤝' : '⚔️';
                   Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
+                }
+
+                // Grafite: inimigo entra em sala com armadilha
+                if (!char.isAlly && GameState.roomTraps && GameState.roomTraps[char.location]) {
+                  char.paralyzedTurns = 2;
+                  delete GameState.roomTraps[char.location];
+                  if (char.location === GameState.playerLocation) {
+                    Log.add('🎨 ' + char.name + ' pisou no GRAFITE MÁGICO e ficou paralisado por 2 turnos!', 'success');
+                  }
                 }
 
                 // NPC fala ao se mover (30% de chance)
@@ -6334,6 +6686,9 @@
             if (CombatModal.isTargetedForKill(char.id)) return;
             if (char.isAlly) return;
             if (char.location !== playerRoom) return;
+            // Pacificado pelo violão ou paralisado pelo grafite
+            if (char.pacifiedTurns && char.pacifiedTurns > 0) return;
+            if (char.paralyzedTurns && char.paralyzedTurns > 0) return;
 
             // Usar aggression do NPC (fallback 0.4)
             const aggression = char.aggression !== undefined ? char.aggression : 0.4;
@@ -6591,7 +6946,33 @@
         updateLocation: function() {
           const room = GameState.rooms[GameState.playerLocation];
           document.getElementById('location-name').textContent = room.name;
-          document.getElementById('location-description').textContent = room.description;
+
+          let desc = room.description;
+
+          // Lanterna: revelar itens em salas adjacentes
+          if (GameState.playerInventory.includes('lanterna')) {
+            var adjacentInfo = [];
+            var exits = Object.values(room.exits);
+            exits.forEach(function(exitId) {
+              var adjItems = Object.values(GameState.items).filter(function(item) {
+                return item.location === exitId && !item.isDestroyed && !item.isAnimated;
+              });
+              if (adjItems.length > 0) {
+                var adjRoom = GameState.rooms[exitId];
+                adjacentInfo.push(adjRoom.name + ': ' + adjItems.map(function(i) { return i.name; }).join(', '));
+              }
+            });
+            if (adjacentInfo.length > 0) {
+              desc += ' 🔦 [Lanterna revela: ' + adjacentInfo.join(' | ') + ']';
+            }
+          }
+
+          // Grafite trap indicator
+          if (GameState.roomTraps && GameState.roomTraps[GameState.playerLocation]) {
+            desc += ' 🎨 [Armadilha de grafite ativa nesta sala]';
+          }
+
+          document.getElementById('location-description').textContent = desc;
         },
 
 
@@ -6636,11 +7017,16 @@
             return;
           }
 
+          const hasLanterna = GameState.playerInventory.includes('lanterna');
           container.innerHTML = chars.map(char => {
             const allyClass = char.isAlly ? 'ally' : 'hostile';
             const icon = char.isAlly ? '🤝' : '⚔️';
+            let statusText = '';
+            if (char.pacifiedTurns && char.pacifiedTurns > 0) statusText = ' 🎸';
+            if (char.paralyzedTurns && char.paralyzedTurns > 0) statusText = ' 🎨';
+            const hpText = hasLanterna && !char.isAlly ? ` (HP: ${char.hp}/${char.maxHp})` : ` (HP: ${char.hp})`;
             return `<button class="btn btn-character ${allyClass}" onclick="Game.showCharacter('${char.id}')" title="${char.description}">
-              ${icon} ${char.name} (HP: ${char.hp})
+              ${icon} ${char.name}${hpText}${statusText}
             </button>`;
           }).join('');
         },
@@ -7465,6 +7851,9 @@
           GameState.armedBomb = null;
           GameState.hasReadMagicBook = false;
           GameState.discoveredItems = new Set();
+          GameState.skipNextTimeAdvance = false;
+          GameState.roomTraps = {};
+          GameState.visitedRooms = new Set(['masp']);
 
           // Reset combat modal
           CombatModal.reset();
@@ -7559,7 +7948,12 @@
           if (result.combatModal) {
             // Still advance time
             if (result.success && result.advanceTime) {
-              Events.advanceTime();
+              if (GameState.skipNextTimeAdvance) {
+                GameState.skipNextTimeAdvance = false;
+                Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+              } else {
+                Events.advanceTime();
+              }
             }
             // Discover items
             Object.values(GameState.items).forEach(function(item) {
@@ -7577,7 +7971,12 @@
           }
 
           if (result.success && result.advanceTime) {
-            Events.advanceTime();
+            if (GameState.skipNextTimeAdvance) {
+              GameState.skipNextTimeAdvance = false;
+              Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+            } else {
+              Events.advanceTime();
+            }
           }
 
           // Verificar fim de jogo (não durante explosão - o modal de explosão controla o fluxo)
@@ -7646,6 +8045,12 @@
             return;
           }
 
+          // Caso especial: precisa selecionar sala (Mapa Antigo)
+          if (result.message === 'SELECT_MAPA_TARGET' && result.selectableRooms) {
+            this.openMapaSelectModal(result.selectableRooms);
+            return;
+          }
+
           this.processAction(result);
         },
 
@@ -7683,6 +8088,28 @@
             <button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>
           `;
           Modals.show('💫 HIPNODISCO', content);
+        },
+
+        // Modal de seleção de sala para Mapa Antigo
+        openMapaSelectModal: function(roomIds) {
+          const roomButtons = roomIds.map(function(rId) {
+            var room = GameState.rooms[rId];
+            return '<button class="btn btn-item" onclick="Game.useMapaAndClose(\'' + rId + '\');">' +
+              '📍 ' + room.name +
+            '</button>';
+          }).join('');
+
+          var content = '<p>Escolha uma sala para se teletransportar:</p>' +
+            '<div class="button-group" style="margin-top: 1rem; flex-direction: column; align-items: stretch; max-height: 300px; overflow-y: auto;">' +
+              roomButtons +
+            '</div>' +
+            '<button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>';
+          Modals.show('🗺️ MAPA ANTIGO', content);
+        },
+
+        useMapaAndClose: function(roomId) {
+          Modals.hide();
+          this.processAction(Actions.useItem('mapa_antigo', roomId));
         },
 
         // Modal de seleção de item (para Cera Mágica)
