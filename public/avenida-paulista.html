@@ -7941,6 +7941,28 @@
           Modals.show('💫 HIPNODISCO', content);
         },
 
+        // Modal de seleção de sala para Mapa Antigo
+        openMapaSelectModal: function(roomIds) {
+          const roomButtons = roomIds.map(function(rId) {
+            var room = GameState.rooms[rId];
+            return '<button class="btn btn-item" onclick="Game.useMapaAndClose(\'' + rId + '\');">' +
+              '📍 ' + room.name +
+            '</button>';
+          }).join('');
+
+          var content = '<p>Escolha uma sala para se teletransportar:</p>' +
+            '<div class="button-group" style="margin-top: 1rem; flex-direction: column; align-items: stretch; max-height: 300px; overflow-y: auto;">' +
+              roomButtons +
+            '</div>' +
+            '<button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>';
+          Modals.show('🗺️ MAPA ANTIGO', content);
+        },
+
+        useMapaAndClose: function(roomId) {
+          Modals.hide();
+          this.processAction(Actions.useItem('mapa_antigo', roomId));
+        },
+
         // Modal de seleção de item (para Cera Mágica)
         openItemSelectModal: function(sourceItemId, selectableItems) {
           const itemButtons = selectableItems.map(id => {
