@@ -5565,9 +5565,10 @@
             return { success: false, message: 'Você não pode ir para lá daqui!' };
           }
 
-          // PULO MORTAL: Pular da Antena sem Asa Delta = morte!
+          // PULO MORTAL: Pular da Antena sem Asa Delta = morte (a menos que tenha guarda-chuva!)
           if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
-            if (!Rules.canPlayerFly()) {
+            const hasUmbrella = GameState.playerInventory.includes('guarda_chuva');
+            if (!Rules.canPlayerFly() && !hasUmbrella) {
               // MORTE!
               const player = GameState.characters.player;
               player.hp = 0;
@@ -5578,6 +5579,16 @@
               return {
                 success: true,
                 message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
+                advanceTime: true
+              };
+            } else if (hasUmbrella && !Rules.canPlayerFly()) {
+              // Guarda-chuva funciona como paraquedas - aterrissa na sala abaixo em vez de voar
+              GameState.playerLocation = 'avenida_paulista_leste';
+              GameState.characters.player.location = 'avenida_paulista_leste';
+              SoundSystem.playMove();
+              return {
+                success: true,
+                message: '☂️ Você abre o GUARDA-CHUVA e pula! Ele funciona como um paraquedas improvisado — você plana suavemente até a Avenida Paulista Leste!',
                 advanceTime: true
               };
             } else {
@@ -5657,6 +5668,12 @@
           item.location = null;
           GameState.playerInventory.push(itemId);
 
+          // Mochila: aumentar maxWeight ao pegar
+          if (itemId === 'mochila') {
+            GameState.characters.player.maxWeight += 20;
+            Log.add('🎒 Capacidade de peso aumentada para ' + GameState.characters.player.maxWeight + 'kg!', 'success');
+          }
+
           SoundSystem.playPickup();
 
           return {
@@ -5709,6 +5726,12 @@
 
           GameState.playerInventory.splice(idx, 1);
           item.location = GameState.playerLocation;
+
+          // Mochila: reduzir maxWeight ao largar
+          if (itemId === 'mochila') {
+            GameState.characters.player.maxWeight = Math.max(20, GameState.characters.player.maxWeight - 20);
+            Log.add('🎒 Capacidade de peso voltou para ' + GameState.characters.player.maxWeight + 'kg.', 'info');
+          }
 
           return {
             success: true,
