@@ -6946,7 +6946,33 @@
         updateLocation: function() {
           const room = GameState.rooms[GameState.playerLocation];
           document.getElementById('location-name').textContent = room.name;
-          document.getElementById('location-description').textContent = room.description;
+
+          let desc = room.description;
+
+          // Lanterna: revelar itens em salas adjacentes
+          if (GameState.playerInventory.includes('lanterna')) {
+            var adjacentInfo = [];
+            var exits = Object.values(room.exits);
+            exits.forEach(function(exitId) {
+              var adjItems = Object.values(GameState.items).filter(function(item) {
+                return item.location === exitId && !item.isDestroyed && !item.isAnimated;
+              });
+              if (adjItems.length > 0) {
+                var adjRoom = GameState.rooms[exitId];
+                adjacentInfo.push(adjRoom.name + ': ' + adjItems.map(function(i) { return i.name; }).join(', '));
+              }
+            });
+            if (adjacentInfo.length > 0) {
+              desc += ' 🔦 [Lanterna revela: ' + adjacentInfo.join(' | ') + ']';
+            }
+          }
+
+          // Grafite trap indicator
+          if (GameState.roomTraps && GameState.roomTraps[GameState.playerLocation]) {
+            desc += ' 🎨 [Armadilha de grafite ativa nesta sala]';
+          }
+
+          document.getElementById('location-description').textContent = desc;
         },
 
 
