@@ -6463,6 +6463,23 @@
             if (!char.isAlive) return;
             if (!char.location) return;
 
+            // Decrementar pacificação
+            if (char.pacifiedTurns && char.pacifiedTurns > 0) {
+              char.pacifiedTurns--;
+              if (char.pacifiedTurns <= 0) {
+                Log.add('🎸 ' + char.name + ' não está mais pacificado.', 'info');
+              }
+            }
+
+            // Decrementar paralisia (grafite)
+            if (char.paralyzedTurns && char.paralyzedTurns > 0) {
+              char.paralyzedTurns--;
+              if (char.paralyzedTurns <= 0) {
+                Log.add('🎨 ' + char.name + ' se liberta da armadilha de grafite!', 'info');
+              }
+              return; // NPC paralisado não se move
+            }
+
             // Feiticeiro fica preso até 18:00
             if (char.id === 'feiticeiro' && GameState.time < 18 * 60) return;
 
@@ -6482,6 +6499,36 @@
 
             // Aliado seguindo o jogador não se move sozinho
             if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
+
+            // Pandeiro: aliado com alvo se move em direção ao jogador
+            if (char.isAlly && char.pandeiroTarget) {
+              const currentRoom = GameState.rooms[char.location];
+              if (!currentRoom) return;
+              if (char.location === char.pandeiroTarget) {
+                delete char.pandeiroTarget;
+                Log.add('🪘 ' + char.name + ' chegou ao seu chamado!', 'success');
+                // Ativar follow
+                if (!char.followingPlayer && !char.followCooldown) {
+                  char.followingPlayer = true;
+                  char.followTurnsLeft = 3;
+                  Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
+                }
+                return;
+              }
+              // Tentar mover em direção ao alvo (BFS simples)
+              const path = Utils.findPath(char.location, char.pandeiroTarget, char.canFly);
+              if (path && path.length > 1) {
+                var prevLoc = char.location;
+                char.location = path[1];
+                if (prevLoc === GameState.playerLocation && char.location !== GameState.playerLocation) {
+                  var destR = GameState.rooms[char.location];
+                  Log.add('🤝 ' + char.name + ' foi para ' + destR.name + '.', 'info');
+                }
+              } else {
+                delete char.pandeiroTarget; // Caminho impossível
+              }
+              return;
+            }
 
             // 30% de chance de mover
             if (Utils.random() < 0.3) {
@@ -6510,6 +6557,15 @@
                   var destRoom = GameState.rooms[char.location];
                   var icon = char.isAlly ? '🤝' : '⚔️';
                   Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
+                }
+
+                // Grafite: inimigo entra em sala com armadilha
+                if (!char.isAlly && GameState.roomTraps && GameState.roomTraps[char.location]) {
+                  char.paralyzedTurns = 2;
+                  delete GameState.roomTraps[char.location];
+                  if (char.location === GameState.playerLocation) {
+                    Log.add('🎨 ' + char.name + ' pisou no GRAFITE MÁGICO e ficou paralisado por 2 turnos!', 'success');
+                  }
                 }
 
                 // NPC fala ao se mover (30% de chance)
