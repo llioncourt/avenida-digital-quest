@@ -7809,7 +7809,12 @@
           if (result.combatModal) {
             // Still advance time
             if (result.success && result.advanceTime) {
-              Events.advanceTime();
+              if (GameState.skipNextTimeAdvance) {
+                GameState.skipNextTimeAdvance = false;
+                Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+              } else {
+                Events.advanceTime();
+              }
             }
             // Discover items
             Object.values(GameState.items).forEach(function(item) {
@@ -7827,7 +7832,12 @@
           }
 
           if (result.success && result.advanceTime) {
-            Events.advanceTime();
+            if (GameState.skipNextTimeAdvance) {
+              GameState.skipNextTimeAdvance = false;
+              Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+            } else {
+              Events.advanceTime();
+            }
           }
 
           // Verificar fim de jogo (não durante explosão - o modal de explosão controla o fluxo)
