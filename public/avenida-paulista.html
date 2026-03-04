@@ -7896,6 +7896,12 @@
             return;
           }
 
+          // Caso especial: precisa selecionar sala (Mapa Antigo)
+          if (result.message === 'SELECT_MAPA_TARGET' && result.selectableRooms) {
+            this.openMapaSelectModal(result.selectableRooms);
+            return;
+          }
+
           this.processAction(result);
         },
 
