@@ -6989,11 +6989,16 @@
             return;
           }
 
+          const hasLanterna = GameState.playerInventory.includes('lanterna');
           container.innerHTML = chars.map(char => {
             const allyClass = char.isAlly ? 'ally' : 'hostile';
             const icon = char.isAlly ? '🤝' : '⚔️';
+            let statusText = '';
+            if (char.pacifiedTurns && char.pacifiedTurns > 0) statusText = ' 🎸';
+            if (char.paralyzedTurns && char.paralyzedTurns > 0) statusText = ' 🎨';
+            const hpText = hasLanterna && !char.isAlly ? ` (HP: ${char.hp}/${char.maxHp})` : ` (HP: ${char.hp})`;
             return `<button class="btn btn-character ${allyClass}" onclick="Game.showCharacter('${char.id}')" title="${char.description}">
-              ${icon} ${char.name} (HP: ${char.hp})
+              ${icon} ${char.name}${hpText}${statusText}
             </button>`;
           }).join('');
         },
