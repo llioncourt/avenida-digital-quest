@@ -5404,6 +5404,142 @@
             message: 'Alvo inválido para o HIPNODISCO.',
             consumed: false
           };
+        },
+
+        cafe: function() {
+          GameState.skipNextTimeAdvance = true;
+          SoundSystem.playUseItem();
+          return {
+            success: true,
+            message: '☕ Você toma o CAFÉ PAULISTANO! A cafeína corre pelas veias — sua próxima ação não avançará o tempo!',
+            consumed: true
+          };
+        },
+
+        grafite: function() {
+          const room = GameState.playerLocation;
+          if (GameState.roomTraps && GameState.roomTraps[room]) {
+            return {
+              success: false,
+              message: 'Já existe uma armadilha de grafite nesta sala!',
+              consumed: false
+            };
+          }
+          if (!GameState.roomTraps) GameState.roomTraps = {};
+          GameState.roomTraps[room] = { active: true };
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(255, 100, 200, 0.4)');
+          return {
+            success: true,
+            message: '🎨 Você pinta um GRAFITE MÁGICO no chão! O próximo inimigo que entrar será paralisado por 2 turnos!',
+            consumed: true
+          };
+        },
+
+        violao: function() {
+          const playerRoom = GameState.playerLocation;
+          let pacifiedCount = 0;
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.location === playerRoom && c.isAlive && !c.isAlly) {
+              c.pacifiedTurns = 3;
+              pacifiedCount++;
+            }
+          });
+          if (pacifiedCount === 0) {
+            return {
+              success: false,
+              message: 'Não há inimigos aqui para pacificar com o VIOLÃO.',
+              consumed: false
+            };
+          }
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(100, 200, 255, 0.4)');
+          return {
+            success: true,
+            message: '🎸 Você toca o VIOLÃO com maestria! ' + pacifiedCount + ' inimigo(s) ficam pacificados por 3 turnos!',
+            consumed: false
+          };
+        },
+
+        mapa_antigo: function(targetRoomId) {
+          if (!targetRoomId) {
+            // Retornar pedindo seleção de sala
+            const visitedRooms = Object.keys(GameState.rooms).filter(function(rId) {
+              return GameState.visitedRooms && GameState.visitedRooms.has(rId) && rId !== GameState.playerLocation;
+            });
+            if (visitedRooms.length === 0) {
+              return {
+                success: false,
+                message: 'Você não visitou nenhuma outra sala ainda!',
+                consumed: false
+              };
+            }
+            return {
+              success: false,
+              message: 'SELECT_MAPA_TARGET',
+              selectableRooms: visitedRooms,
+              consumed: false
+            };
+          }
+
+          // Teletransportar
+          const targetRoom = GameState.rooms[targetRoomId];
+          if (!targetRoom) {
+            return { success: false, message: 'Sala inválida!', consumed: false };
+          }
+
+          // Se precisa voar e jogador não pode, bloquear
+          if (targetRoom.requiresFlight && !Rules.canPlayerFly()) {
+            return { success: false, message: 'Você precisa poder voar para ir a este local!', consumed: false };
+          }
+
+          GameState.playerLocation = targetRoomId;
+          GameState.characters.player.location = targetRoomId;
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(200, 150, 50, 0.5)');
+
+          // Mover aliados que estão seguindo
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+              c.location = targetRoomId;
+              c.followTurnsLeft--;
+              if (c.followTurnsLeft <= 0) {
+                c.followingPlayer = false;
+                c.followCooldown = true;
+                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+              }
+            }
+          });
+
+          return {
+            success: true,
+            message: '🗺️ O MAPA ANTIGO brilha e você é teletransportado para ' + targetRoom.name + '!',
+            consumed: true
+          };
+        },
+
+        pandeiro: function() {
+          let calledCount = 0;
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.isAlive && c.location !== GameState.playerLocation) {
+              c.pandeiroTarget = GameState.playerLocation;
+              calledCount++;
+            }
+          });
+          if (calledCount === 0) {
+            return {
+              success: false,
+              message: 'Nenhum aliado vivo está longe de você para convocar!',
+              consumed: false
+            };
+          }
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(255, 200, 0, 0.4)');
+          return {
+            success: true,
+            message: '🪘 Você toca o PANDEIRO! O ritmo ecoa pela cidade — ' + calledCount + ' aliado(s) estão vindo ao seu encontro!',
+            consumed: false
+          };
         }
       };
 
