@@ -6866,32 +6866,34 @@
 
           // Layout organizado em grade com posições percentuais
           const positions = {
-            // === CAMADA AÉREA (y: 8-20%) - Não desenhada como rua ===
-            'ceu_cidade':  { x: 50, y: 8 },   // Centro do céu
-            'teto_masp':   { x: 50, y: 22 },  // Logo acima do MASP
-            'antena':      { x: 88, y: 8 },   // Topo direito (acima do colégio)
+            // === CAMADA AÉREA ===
+            'ceu_cidade':  { x: 50, y: 3 },
+            'teto_masp':   { x: 50, y: 12 },
+            'antena':      { x: 88, y: 3 },
 
-            // === AVENIDA PAULISTA - LINHA PRINCIPAL HORIZONTAL (y: 38%) ===
-            'shopping':              { x: 10, y: 38 },
-            'avenida_paulista_oeste': { x: 30, y: 38 },
-            'masp':                  { x: 50, y: 38 },
-            'avenida_paulista_leste': { x: 70, y: 38 },
-            'colegio':               { x: 90, y: 38 },
+            // === NÍVEL SUPERIOR (Distrito Italiano / Livraria / Brigadeiro) ===
+            'distrito_italiano':     { x: 55, y: 22 },
+            'livraria':              { x: 50, y: 32 },
+            'avenida_brigadeiro':    { x: 85, y: 27 },
 
-            // === RUAS VERTICAIS - NÍVEL MÉDIO (y: 58%) ===
-            'rua_augusta':           { x: 22, y: 58 },
-            'nove_julho_norte':      { x: 50, y: 58 },
-            'avenida_brigadeiro':    { x: 78, y: 58 },
+            // === NÍVEL MÉDIO-ALTO (Mall, 9 Julho Norte) ===
+            'shopping':              { x: 15, y: 42 },
+            'nove_julho_norte':      { x: 50, y: 42 },
 
-            // === RUAS VERTICAIS - NÍVEL INFERIOR (y: 78%) ===
-            'cinema':                { x: 14, y: 78 },
-            'avenida_santos':        { x: 30, y: 78 },
-            'nove_julho_sul':        { x: 50, y: 78 },
+            // === AVENIDA PAULISTA - LINHA PRINCIPAL ===
+            'avenida_paulista_oeste': { x: 15, y: 55 },
+            'masp':                   { x: 50, y: 52 },
+            'avenida_paulista_leste': { x: 85, y: 55 },
+
+            // === NÍVEL INFERIOR (Augusta, 9 Julho Sul, Colégio) ===
+            'rua_augusta':           { x: 28, y: 68 },
+            'nove_julho_sul':        { x: 50, y: 68 },
+            'colegio':               { x: 78, y: 68 },
+
+            // === NÍVEL MAIS BAIXO (Cinema, Santos, Túnel) ===
+            'cinema':                { x: 15, y: 82 },
+            'avenida_santos':        { x: 38, y: 82 },
             'tunel':                 { x: 50, y: 92 },
-            'distrito_italiano':     { x: 78, y: 78 },
-
-            // === LOCAIS FINAIS (y: 92%) ===
-            'livraria':              { x: 88, y: 92 },
           };
 
           // Converter posições percentuais para pixels
