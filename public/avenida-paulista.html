@@ -5388,6 +5388,7 @@
               c.followTurnsLeft--;
               if (c.followTurnsLeft <= 0) {
                 c.followingPlayer = false;
+                c.followCooldown = true;
                 Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
               }
             }
@@ -5395,7 +5396,7 @@
 
           // Verificar aliados na nova sala para ativar follow
           Object.values(GameState.characters).forEach(function(c) {
-            if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
+            if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer && !c.followCooldown) {
               c.followingPlayer = true;
               c.followTurnsLeft = 3;
               Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
@@ -6224,6 +6225,11 @@
             // Demônio convertido fica na sala da Bruxa enquanto ela estiver viva
             if (char.id === 'demonio' && char.isAlly && GameState.characters.bruxa.isAlive) return;
 
+            // Limpar cooldown quando aliado não está na mesma sala que o jogador
+            if (char.isAlly && char.followCooldown && char.location !== GameState.playerLocation) {
+              char.followCooldown = false;
+            }
+
             // Aliado seguindo o jogador não se move sozinho
             if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
 
@@ -6271,7 +6277,7 @@
                     Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.encounter)}"`, 'info');
                   }
                   // Aliado ativa modo seguir ao encontrar o jogador
-                  if (char.isAlly && !char.followingPlayer) {
+                  if (char.isAlly && !char.followingPlayer && !char.followCooldown) {
                     char.followingPlayer = true;
                     char.followTurnsLeft = 3;
                     Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
