@@ -5647,6 +5647,10 @@
           GameState.characters.player.location = roomId;
           SoundSystem.playMove();
 
+          // Rastrear salas visitadas (para Mapa Antigo)
+          if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
+          GameState.visitedRooms.add(roomId);
+
           // Mover aliados que estão seguindo o jogador
           Object.values(GameState.characters).forEach(function(c) {
             if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
