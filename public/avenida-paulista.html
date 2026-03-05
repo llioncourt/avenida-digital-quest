@@ -1515,6 +1515,106 @@
           min-width: unset;
         }
       }
+      /* ========== ENERGY BAR ========== */
+      #energy-display { color: #e0a020; }
+      #energy-display.danger { color: var(--accent-red); }
+
+      /* ========== NIGHT THEME ========== */
+      #game-container.theme-night {
+        --bg-primary: #050508;
+        --bg-secondary: #0a0a12;
+        --bg-tertiary: #10101a;
+        --text-primary: #b0b0c0;
+        --text-secondary: #707088;
+        --border-color: #1a1a28;
+        --accent-gold: #9a8030;
+      }
+
+      /* ========== JOURNAL BUTTON ========== */
+      .journal-btn {
+        background: none;
+        border: none;
+        padding: 0.3rem 0.5rem;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+
+      /* ========== JOURNAL MODAL ========== */
+      .journal-tabs {
+        display: flex;
+        gap: 0.3rem;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .journal-tab {
+        padding: 0.4rem 0.8rem;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .journal-tab.active {
+        background: var(--accent-gold-dim);
+        border-color: var(--accent-gold);
+        color: var(--text-primary);
+      }
+      .journal-content {
+        max-height: 40vh;
+        overflow-y: auto;
+        text-align: left;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+      }
+      .journal-entry {
+        padding: 0.4rem 0;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-secondary);
+      }
+      .journal-entry:last-child { border-bottom: none; }
+
+      /* ========== ACHIEVEMENTS ========== */
+      .achievement-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin: 0.75rem 0;
+      }
+      .achievement-badge {
+        padding: 0.5rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        opacity: 0.4;
+      }
+      .achievement-badge.earned {
+        opacity: 1;
+        border-color: var(--accent-gold);
+        background: linear-gradient(135deg, #2a2010, #1a1508);
+      }
+      .achievement-badge .achievement-icon {
+        font-size: 1.5rem;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      /* ========== VENDOR TRADE MODAL ========== */
+      .trade-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: var(--bg-tertiary);
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        margin-bottom: 0.4rem;
+      }
     </style>
   </head>
   <body>
@@ -1537,6 +1637,7 @@
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 0.5rem;">
               <h3 class="modern-pulse-title">Avenida Paulista</h3>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
+                <button class="journal-btn" onclick="Journal.showModal()" title="Diário">📓</button>
                 <button
                   id="sound-toggle"
                   onclick="SoundSystem.toggle()"
@@ -1597,6 +1698,10 @@
               <div class="stat">
                 <span class="stat-label">⚖️</span>
                 <span class="stat-value" id="weight-display">0/50</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">⚡</span>
+                <span class="stat-value" id="energy-display">100</span>
               </div>
             </div>
           </header>
