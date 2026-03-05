@@ -919,6 +919,105 @@
         line-height: 1.6;
       }
 
+      /* ========== MAPA ANTIGO MODAL ========== */
+      #modal-overlay.mapa-exclusive #modal {
+        max-width: 550px;
+        border: 2px solid #8B6914;
+        background: linear-gradient(135deg, #1a1408 0%, #2a1f0e 40%, #1a1408 100%);
+        box-shadow: 0 0 60px rgba(139, 105, 20, 0.4), inset 0 0 30px rgba(139, 105, 20, 0.1);
+      }
+
+      .mapa-antigo-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .mapa-antigo-subtitle {
+        color: #c4a44a;
+        font-style: italic;
+        font-size: 0.9rem;
+        text-align: center;
+        margin-bottom: 0.25rem;
+      }
+
+      .mapa-antigo-scroll {
+        max-height: 45vh;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .mapa-antigo-scroll::-webkit-scrollbar { width: 6px; }
+      .mapa-antigo-scroll::-webkit-scrollbar-track { background: rgba(139, 105, 20, 0.1); border-radius: 3px; }
+      .mapa-antigo-scroll::-webkit-scrollbar-thumb { background: #8B6914; border-radius: 3px; }
+
+      .mapa-section {
+        border: 1px solid rgba(139, 105, 20, 0.3);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .mapa-section-label {
+        background: rgba(139, 105, 20, 0.2);
+        padding: 0.35rem 0.75rem;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: #c4a44a;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .mapa-section-rooms {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .mapa-room-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        background: transparent;
+        border: none;
+        border-top: 1px solid rgba(139, 105, 20, 0.15);
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+        text-align: left;
+      }
+
+      .mapa-room-btn:first-child { border-top: none; }
+
+      .mapa-room-btn:hover {
+        background: rgba(139, 105, 20, 0.25);
+        transform: translateX(4px);
+      }
+
+      .mapa-room-btn:active {
+        background: rgba(139, 105, 20, 0.4);
+      }
+
+      .mapa-room-name {
+        flex: 1;
+      }
+
+      .mapa-cancel-btn {
+        margin-top: 0.5rem;
+        background: rgba(139, 105, 20, 0.15) !important;
+        border: 1px solid rgba(139, 105, 20, 0.4) !important;
+        color: #c4a44a !important;
+      }
+
+      .mapa-cancel-btn:hover {
+        background: rgba(139, 105, 20, 0.3) !important;
+      }
+
       #modal .btn {
         margin: 0.5rem;
       }
@@ -7717,7 +7816,11 @@
         },
 
         hide: function() {
-          document.getElementById('modal-overlay').classList.remove('active');
+          document.getElementById('modal-overlay').classList.remove('active', 'mapa-exclusive');
+        },
+
+        hideMapaAntigo: function() {
+          document.getElementById('modal-overlay').classList.remove('active', 'mapa-exclusive');
         },
 
         showGameOver: function(reason) {
@@ -8426,9 +8529,9 @@
           el.addEventListener('scroll', () => GameUI.updateScrollIndicators());
         });
 
-        // Fechar modal ao clicar fora
+        // Fechar modal ao clicar fora (exceto mapa exclusivo)
         document.getElementById('modal-overlay').addEventListener('click', function(e) {
-          if (e.target === this) {
+          if (e.target === this && !this.classList.contains('mapa-exclusive')) {
             Modals.hide();
           }
         });
