@@ -6198,6 +6198,10 @@
             return { success: false, message: `${target.name} é seu aliado! Você não pode atacá-lo.` };
           }
 
+          if (target.isNeutral) {
+            return { success: false, message: `${target.name} é neutro! Ele não quer briga, quer trocar itens.` };
+          }
+
           // Calcular dano - defensor usa golpe aleatório
           const attackPower = Rules.getPlayerAttackPower();
           const player = GameState.characters.player;
