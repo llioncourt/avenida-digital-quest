@@ -404,7 +404,23 @@
         color: #fff;
       }
 
-      /* ========== INVENTORY PANEL ========== */
+      .btn-spectral {
+        background: linear-gradient(135deg, #1a1030, #0a0820);
+        border-color: var(--accent-purple);
+        color: #c8a0f0;
+        animation: spectral-glow 2s ease-in-out infinite;
+        text-shadow: 0 0 8px rgba(160, 80, 220, 0.6);
+      }
+      .btn-spectral:hover {
+        background: linear-gradient(135deg, #2a1848, #1a1030);
+        border-color: #b060e0;
+        box-shadow: 0 0 15px rgba(160, 80, 220, 0.4);
+      }
+      @keyframes spectral-glow {
+        0%, 100% { box-shadow: 0 0 5px rgba(160, 80, 220, 0.2); }
+        50% { box-shadow: 0 0 15px rgba(160, 80, 220, 0.5), 0 0 30px rgba(160, 80, 220, 0.2); }
+      }
+
       #inventory-panel {
         flex-shrink: 0;
         overflow: hidden;
