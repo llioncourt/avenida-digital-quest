@@ -8092,19 +8092,65 @@
 
         // Modal de seleção de sala para Mapa Antigo
         openMapaSelectModal: function(roomIds) {
-          const roomButtons = roomIds.map(function(rId) {
-            var room = GameState.rooms[rId];
-            return '<button class="btn btn-item" onclick="Game.useMapaAndClose(\'' + rId + '\');">' +
-              '📍 ' + room.name +
-            '</button>';
-          }).join('');
+          // Agrupar salas por nível
+          var levels = {
+            'aerea': { label: '🌤️ Aérea', rooms: [] },
+            'superior': { label: '🏢 Superior', rooms: [] },
+            'medio': { label: '🏙️ Médio-Alto', rooms: [] },
+            'eixo': { label: '🛣️ Eixo Paulista', rooms: [] },
+            'inferior': { label: '🚇 Inferior', rooms: [] },
+            'base': { label: '🕳️ Base', rooms: [] }
+          };
 
-          var content = '<p>Escolha uma sala para se teletransportar:</p>' +
-            '<div class="button-group" style="margin-top: 1rem; flex-direction: column; align-items: stretch; max-height: 300px; overflow-y: auto;">' +
-              roomButtons +
-            '</div>' +
-            '<button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>';
-          Modals.show('🗺️ MAPA ANTIGO', content);
+          var roomLevels = {
+            'antena': 'aerea', 'topo_edificio': 'aerea', 'telhado_masp': 'aerea',
+            'escritorio': 'superior', 'apartamento_cobertura': 'superior', 'varanda': 'superior',
+            'passarela': 'medio', 'sacada_predial': 'medio',
+            'avenida_paulista_leste': 'eixo', 'avenida_paulista_oeste': 'eixo',
+            'praca': 'eixo', 'calcadao': 'eixo', 'beco': 'eixo',
+            'masp': 'eixo', 'trianon': 'eixo', 'fiesp': 'eixo',
+            'metro_entrada': 'inferior', 'tunel': 'inferior', 'galeria': 'inferior',
+            'metro_plataforma': 'base', 'esgoto': 'base', 'bunker': 'base', 'caverna': 'base'
+          };
+
+          roomIds.forEach(function(rId) {
+            var level = roomLevels[rId] || 'eixo';
+            if (levels[level]) levels[level].rooms.push(rId);
+          });
+
+          var sectionsHtml = '';
+          Object.keys(levels).forEach(function(key) {
+            var lvl = levels[key];
+            if (lvl.rooms.length === 0) return;
+            var btns = lvl.rooms.map(function(rId) {
+              var room = GameState.rooms[rId];
+              var npcsHere = Object.values(GameState.characters).filter(function(c) {
+                return c.id !== 'player' && c.isAlive && c.location === rId;
+              });
+              var npcIndicator = npcsHere.length > 0
+                ? ' <span style="color: ' + (npcsHere.some(function(n){return !n.isAlly;}) ? '#ff4444' : '#44ff44') + '; font-size: 0.75rem;">(' + npcsHere.length + ' NPC' + (npcsHere.length > 1 ? 's' : '') + ')</span>'
+                : '';
+              return '<button class="mapa-room-btn" onclick="Game.useMapaAndClose(\'' + rId + '\');">' +
+                '<span class="mapa-room-name">📍 ' + room.name + '</span>' +
+                npcIndicator +
+              '</button>';
+            }).join('');
+            sectionsHtml += '<div class="mapa-section">' +
+              '<div class="mapa-section-label">' + lvl.label + '</div>' +
+              '<div class="mapa-section-rooms">' + btns + '</div>' +
+            '</div>';
+          });
+
+          var content = '<div class="mapa-antigo-container">' +
+            '<div class="mapa-antigo-subtitle">✨ O pergaminho brilha... escolha seu destino</div>' +
+            '<div class="mapa-antigo-scroll">' + sectionsHtml + '</div>' +
+            '<button class="btn mapa-cancel-btn" onclick="Modals.hideMapaAntigo()">❌ Guardar o Mapa</button>' +
+          '</div>';
+
+          // Usar modal exclusivo (sem fechar ao clicar fora)
+          document.getElementById('modal-title').textContent = '🗺️ MAPA ANTIGO';
+          document.getElementById('modal-content').innerHTML = content;
+          document.getElementById('modal-overlay').classList.add('active', 'mapa-exclusive');
         },
 
         useMapaAndClose: function(roomId) {
