@@ -7608,25 +7608,34 @@
           var oldIndicator = document.querySelector('.lanterna-indicator');
           if (oldIndicator) oldIndicator.remove();
 
-          if (GameState.playerInventory.includes('lanterna') && GameState.time >= 1200) {
+          if (GameState.playerInventory.includes('lanterna')) {
+            var isNight = GameState.time >= 1200;
             var adjacentData = [];
-            var exits = Object.values(room.exits);
-            exits.forEach(function(exitId) {
-              var adjItems = Object.values(GameState.items).filter(function(item) {
-                return item.location === exitId && !item.isDestroyed && !item.isAnimated;
+            if (isNight) {
+              var exits = Object.values(room.exits);
+              exits.forEach(function(exitId) {
+                var adjItems = Object.values(GameState.items).filter(function(item) {
+                  return item.location === exitId && !item.isDestroyed && !item.isAnimated;
+                });
+                if (adjItems.length > 0) {
+                  var adjRoom = GameState.rooms[exitId];
+                  adjacentData.push({ roomName: adjRoom.name, items: adjItems.map(function(i) { return i.name; }) });
+                }
               });
-              if (adjItems.length > 0) {
-                var adjRoom = GameState.rooms[exitId];
-                adjacentData.push({ roomName: adjRoom.name, items: adjItems.map(function(i) { return i.name; }) });
-              }
-            });
-            if (adjacentData.length > 0) {
-              var indicator = document.createElement('div');
-              indicator.className = 'lanterna-indicator';
-              indicator.textContent = '🔦';
+            }
 
-              var tooltip = document.createElement('div');
-              tooltip.className = 'lanterna-tooltip';
+            var indicator = document.createElement('div');
+            indicator.className = 'lanterna-indicator';
+            indicator.textContent = '🔦';
+
+            var tooltip = document.createElement('div');
+            tooltip.className = 'lanterna-tooltip';
+
+            if (!isNight) {
+              tooltip.innerHTML = '<div class="lanterna-tooltip-title">🔦 Lanterna</div><div class="lanterna-tooltip-room"><div class="lanterna-tooltip-item">Revela itens em salas adjacentes à noite (após 20:00)</div></div>';
+            } else if (adjacentData.length === 0) {
+              tooltip.innerHTML = '<div class="lanterna-tooltip-title">🔦 Lanterna Revela</div><div class="lanterna-tooltip-room"><div class="lanterna-tooltip-item">Nenhum item nas salas adjacentes</div></div>';
+            } else {
               tooltip.innerHTML = '<div class="lanterna-tooltip-title">🔦 Lanterna Revela</div>';
               adjacentData.forEach(function(d) {
                 var roomDiv = document.createElement('div');
@@ -7637,10 +7646,10 @@
                 });
                 tooltip.appendChild(roomDiv);
               });
-
-              indicator.appendChild(tooltip);
-              document.getElementById('location-panel').appendChild(indicator);
             }
+
+            indicator.appendChild(tooltip);
+            document.getElementById('location-panel').appendChild(indicator);
           }
 
           // Grafite trap indicator
