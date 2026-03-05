@@ -7603,9 +7603,12 @@
 
           let desc = room.description;
 
-          // Lanterna: revelar itens em salas adjacentes
+          // Lanterna: ícone com tooltip no canto do painel
+          var oldIndicator = document.querySelector('.lanterna-indicator');
+          if (oldIndicator) oldIndicator.remove();
+
           if (GameState.playerInventory.includes('lanterna')) {
-            var adjacentInfo = [];
+            var adjacentData = [];
             var exits = Object.values(room.exits);
             exits.forEach(function(exitId) {
               var adjItems = Object.values(GameState.items).filter(function(item) {
@@ -7613,11 +7616,29 @@
               });
               if (adjItems.length > 0) {
                 var adjRoom = GameState.rooms[exitId];
-                adjacentInfo.push(adjRoom.name + ': ' + adjItems.map(function(i) { return i.name; }).join(', '));
+                adjacentData.push({ roomName: adjRoom.name, items: adjItems.map(function(i) { return i.name; }) });
               }
             });
-            if (adjacentInfo.length > 0) {
-              desc += ' 🔦 [Lanterna revela: ' + adjacentInfo.join(' | ') + ']';
+            if (adjacentData.length > 0) {
+              var indicator = document.createElement('div');
+              indicator.className = 'lanterna-indicator';
+              indicator.textContent = '🔦';
+
+              var tooltip = document.createElement('div');
+              tooltip.className = 'lanterna-tooltip';
+              tooltip.innerHTML = '<div class="lanterna-tooltip-title">🔦 Lanterna Revela</div>';
+              adjacentData.forEach(function(d) {
+                var roomDiv = document.createElement('div');
+                roomDiv.className = 'lanterna-tooltip-room';
+                roomDiv.innerHTML = '<div class="lanterna-tooltip-room-name">' + d.roomName + '</div>';
+                d.items.forEach(function(itemName) {
+                  roomDiv.innerHTML += '<div class="lanterna-tooltip-item">• ' + itemName + '</div>';
+                });
+                tooltip.appendChild(roomDiv);
+              });
+
+              indicator.appendChild(tooltip);
+              document.getElementById('location-panel').appendChild(indicator);
             }
           }
 
