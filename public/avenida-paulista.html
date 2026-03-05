@@ -121,22 +121,22 @@
         background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
         border: 1px solid var(--border-color);
         border-radius: var(--radius);
-        padding: 0.5rem 1rem;
+        padding: 0.4rem 0.6rem;
         display: flex;
-        justify-content: flex-start;
+        justify-content: center;
         align-items: center;
         flex-wrap: nowrap;
-        gap: 0.5rem;
+        gap: 0.3rem;
         box-shadow: var(--shadow);
         flex-shrink: 0;
       }
 
       #stats {
         display: flex;
-        gap: 0.6rem;
-        flex-wrap: nowrap;
+        gap: 0.4rem;
+        flex-wrap: wrap;
         font-family: var(--font-mono);
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         flex: 1;
         min-width: 0;
         justify-content: space-between;
@@ -145,25 +145,30 @@
       .stat {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0.2rem;
         flex-shrink: 0;
       }
 
       .stat-label {
         color: var(--text-secondary);
+        font-size: 0.85em;
       }
 
       .stat-value {
         font-weight: bold;
-        padding: 0.2rem 0.5rem;
+        padding: 0.15rem 0.35rem;
         background: var(--bg-primary);
         border-radius: 4px;
+        font-size: 0.85rem;
+        white-space: nowrap;
       }
 
       #time-display { color: var(--accent-gold); }
       #hp-display { color: var(--accent-green); }
       #hp-display.danger { color: var(--accent-red); }
       #weight-display { color: var(--accent-blue); }
+      #energy-display { color: #e0a020; }
+      #energy-display.danger { color: var(--accent-red); }
 
       /* ========== MAIN CONTENT ========== */
       #main-content {
@@ -1039,35 +1044,91 @@
 
       /* ========== RESPONSIVE ========== */
       @media (max-width: 800px) {
-        #main-content {
-          flex-direction: column;
+        #game-container {
+          padding: 0.4rem;
+          gap: 0.5rem;
         }
 
-        /* Em mobile, restauramos o comportamento original
-           para que os cards empilhem corretamente sem forçar 50/50
-        */
+        #main-content {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
         #log-panel {
-           max-height: 250px;
-           flex: 0 0 auto;
+          max-height: 200px;
+          flex: 0 0 auto;
+          padding: 0.5rem;
+        }
+
+        #log-container {
+          font-size: 0.8rem;
+          line-height: 1.4;
         }
 
         #left-bottom {
           flex-direction: column;
           flex: 0 0 auto;
+          gap: 0.5rem;
         }
 
         #left-bottom #inventory-panel {
           flex: 0 0 auto;
-          width: 100%; /* Largura total em mobile */
+          width: 100%;
         }
 
         #right-sidebar {
           width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+        }
+
+        #header {
+          padding: 0.3rem 0.5rem;
         }
 
         #stats {
-          font-size: 0.8rem;
-          gap: 0.75rem;
+          font-size: 0.72rem;
+          gap: 0.3rem;
+          justify-content: space-around;
+        }
+
+        .stat-value {
+          padding: 0.1rem 0.25rem;
+          font-size: 0.75rem;
+        }
+
+        .stat-label {
+          font-size: 0.75em;
+        }
+
+        #location-name {
+          font-size: 1rem;
+        }
+
+        #location-description {
+          font-size: 0.85rem;
+        }
+
+        .btn {
+          font-size: 0.78rem;
+          padding: 0.4rem 0.7rem;
+        }
+
+        .panel {
+          padding: 0.6rem;
+        }
+
+        .section-title {
+          font-size: 0.75rem;
+        }
+
+        .modern-pulse-title {
+          font-size: 0.9rem;
+          letter-spacing: 2px;
+        }
+
+        #minimap-container {
+          max-height: 250px;
         }
       }
 
