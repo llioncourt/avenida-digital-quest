@@ -1,97 +1,99 @@
 
 
-# Plano: Implementar 8 Sistemas de Jogo
+## Plano: Italico no Combate + Log de Saida de NPCs + Aliados Seguem o Jogador
 
-## Resumo
+### 1. Italico na janela de combate
 
-Implementar os 8 sistemas propostos no arquivo `public/avenida-paulista.html`: Conquistas, Sala Secreta, Fome/Energia, Vendedor Ambulante, Clima Mecanico, Armadilhas Ambientais, Modo Noturno e Diario.
+**Problema:** O modal de combate usa `div.textContent = line.text` (linhas ~5794, 5807, 5948), que renderiza tudo como texto puro. O `*texto*` nunca vira `<em>`.
 
----
+**Correcao:** Trocar `textContent` por `innerHTML` com a mesma regex ja usada no Log:
 
-## 1. Sistema de Conquistas (Achievements)
+```javascript
+div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+```
 
-- Criar objeto `Achievements` com lista de conquistas e verificacao automatica
-- Conquistas: Pacifista, Speedrunner, Colecionador, Diplomata, Sobrevivente, Explorador (visitou todas as salas)
-- Salvar em `localStorage` (`avp_achievements`)
-- Verificar conquistas em `showGameOver` e exibir medalhas douradas/cinzas no modal de vitoria
-- Botao na tela inicial para ver conquistas ja obtidas
+Aplicar em 3 locais dentro de `CombatModal`:
+- Linha ~5794: linhas do atacante
+- Linha ~5807: linhas do defensor
+- Linha ~5948: linhas de resultado
 
-## 2. Sala Secreta — Subsolo do MASP
+### 2. Log quando NPC sai da sala do jogador
 
-- Adicionar sala `subsolo_masp` em `ROOMS_DATA` com conexao bidirecional ao `masp`
-- Condicao de acesso: ter `lanterna` no inventario E `GameState.time >= 20*60`
-- Item unico: `reliquia` (ataque +10, defesa +10, peso 0)
-- Em `Actions.moveTo`, checar condicoes ao tentar entrar; se nao atender, mensagem de dica
-- Adicionar a sala e item nos dados iniciais
+**Problema:** Quando um NPC esta na mesma sala que o jogador e se move para outro lugar, nao ha mensagem no log.
 
-## 3. Sistema de Fome / Energia
+**Correcao:** Em `processNPCMovement` (linha ~6223), apos `char.location = Utils.randomChoice(validExits)`, adicionar verificacao: se `prevLocation === GameState.playerLocation` e `char.location !== GameState.playerLocation`, logar para onde o NPC foi.
 
-- Adicionar `GameState.energy = 100` no init
-- Em `Events.advanceTime`, decrementar 2 por turno; se 0, -3 HP com mensagem
-- 3 novos itens consumiveis: `coxinha` (+30), `acai` (+50), `pastel` (+20) — todos `isUsable: true, singleUse: true`
-- Em `Actions.useItem`, tratar recuperacao de energia
-- Exibir barra de energia no HUD (ao lado do HP)
-- Adicionar no `Render.updateStats`
+```javascript
+// NPC sai da sala do jogador
+if (prevLocation === GameState.playerLocation && char.location !== GameState.playerLocation) {
+  var destRoom = GameState.rooms[char.location];
+  var icon = char.isAlly ? '🤝' : '⚔️';
+  Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
+}
+```
 
-## 4. NPC Vendedor Ambulante
+Inserir logo apos a linha `char.location = Utils.randomChoice(validExits)` (linha ~6225), antes do bloco de frases de movimento.
 
-- Novo personagem `vendedor` em `CHARACTERS_DATA`: neutro (`isAlly: false`), nao atacavel (`isNeutral: true`), se move aleatoriamente
-- Flag `isNeutral` verificada em `processNPCAttacks` (nao ataca) e `Actions.attack` (nao pode ser atacado)
-- Em `updateLocation`, quando vendedor esta na sala, mostrar botao "Trocar Item"
-- Modal de troca: jogador escolhe item seu, recebe item aleatorio do vendedor (pool de itens basicos)
-- Vendedor carrega 3 itens aleatorios do pool; troca 1:1
+### 3. Aliados seguem o jogador temporariamente
 
-## 5. Clima com Efeitos Mecanicos
+**Mecanica:** Quando o jogador encontra um aliado (entra na mesma sala ou o aliado entra na sala do jogador), o aliado entra em modo "seguindo" por 3 turnos. Durante esse periodo, quando o jogador se move, o aliado se move junto. Apos os 3 turnos, o aliado volta ao comportamento normal de movimento aleatorio.
 
-Alterar `gameEffect` dos eventos existentes e processar em `RandomEvents.startEvent` / no loop de `Events.advanceTime`:
+**Implementacao:**
 
-- **Neblina (`fog`)**: NPCs inimigos nao aparecem no minimapa (flag `GameState.fogActive`); checar no `updateMinimap`
-- **Vento (`wind_howl`)**: Se jogador tem `asa_delta`, 20% chance de ser empurrado para sala adjacente aleatoria
-- **Terremoto (`earthquake`)**: 20% chance de derrubar 1 item aleatorio do inventario na sala atual
-- **Sussurros (`whispers`)**: Revela localizacao da Bruxa no log ("Os sussurros apontam para...")
+**3A.** Adicionar campo `followingPlayer` e `followTurnsLeft` ao estado dos aliados. Nao precisa ser nos dados iniciais — setar dinamicamente.
 
-## 6. Armadilhas Ambientais
+**3B.** Em `processNPCMovement`, quando o NPC encontra o jogador (ja tem o bloco na linha ~6236) ou quando o jogador entra numa sala com aliado: ativar o modo seguir.
 
-- Em `Game.init`/`setupPositions`, sortear 3 salas com armadilhas: `pisoQuebrado` (tunel, -10 HP 25%), `fioTropeco` (rua_augusta, derruba item), `gasResidual` (shopping, -5 HP sem mascara)
-- Armazenar em `GameState.environmentTraps = { roomId: { type, triggered: false } }`
-- Em `Actions.moveTo`, ao entrar em sala com armadilha nao-triggered, aplicar efeito e marcar `triggered: true`
-- Mensagem tematica para cada tipo
+```javascript
+// Ativar follow quando aliado encontra o jogador
+if (char.isAlly && char.location === GameState.playerLocation) {
+  if (!char.followingPlayer) {
+    char.followingPlayer = true;
+    char.followTurnsLeft = 3;
+    Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
+  }
+}
+```
 
-## 7. Modo Noturno Progressivo
+**3C.** Em `processNPCMovement`, aliados em modo "seguindo" nao se movem aleatoriamente — eles ficam parados (o movimento deles sera tratado quando o jogador se move).
 
-- Em `Events.advanceTime`, apos 21:00:
-  - Bruxa ganha +2 ataque por hora apos 21:00
-  - Inimigos ganham +0.05 aggression por hora
-- Sem lanterna apos 21:00: 15% chance de tropecao (-5 HP) ao mover
-- Alterar CSS theme: adicionar classe `theme-night` ao container quando `time >= 21*60`
+```javascript
+// Aliado seguindo o jogador não se move sozinho
+if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
+```
 
-## 8. Diario do Jogador (Journal)
+**3D.** Em `Actions.move` (quando o jogador se move), mover aliados que estao seguindo junto:
 
-- Objeto `Journal` com categorias: Salas, NPCs, Itens, Lore
-- Registrar automaticamente primeira visita a sala, primeiro encontro com NPC, primeiro uso de item especial
-- Adicionar fragmentos de lore em salas especificas (cinema, livraria, masp, etc.)
-- Botao "Diario" na UI (proximo ao minimapa) que abre modal com abas
-- Persistir em `localStorage` (`avp_journal`)
+```javascript
+// Mover aliados que estão seguindo
+Object.values(GameState.characters).forEach(function(c) {
+  if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+    c.location = roomId; // mesma sala que o jogador
+    c.followTurnsLeft--;
+    if (c.followTurnsLeft <= 0) {
+      c.followingPlayer = false;
+      Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+    }
+  }
+});
+```
 
----
+**3E.** Tambem ativar o follow quando o jogador entra numa sala com aliado (em `Actions.move`, apos mudar `GameState.playerLocation`):
 
-## Detalhes Tecnicos
+```javascript
+// Verificar aliados na nova sala
+Object.values(GameState.characters).forEach(function(c) {
+  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
+    c.followingPlayer = true;
+    c.followTurnsLeft = 3;
+    Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
+  }
+});
+```
 
-**Novos dados:**
-- 1 sala nova (`subsolo_masp`) em `ROOMS_DATA`
-- 4 itens novos (`reliquia`, `coxinha`, `acai`, `pastel`) em `ITEMS_DATA`
-- 1 personagem novo (`vendedor`) em `CHARACTERS_DATA`
-- CSS para barra de energia, theme-night, botao diario
+### Resumo
 
-**Pontos de integracao:**
-- `Events.advanceTime`: energia, noturno, clima mecanico
-- `Actions.moveTo`: armadilhas, sala secreta, tropecao noturno, vento
-- `Render.updateMinimap`: neblina esconde NPCs
-- `Render.updateStats`: barra de energia
-- `Render.updateLocation`: botao vendedor
-- `Modals.showGameOver`: conquistas
-- `RandomEvents.startEvent/endEvent`: flags de clima ativo
-- `Game.init`: reset de todos os novos estados
-
-**Estimativa:** ~400-500 linhas de codigo novo distribuidas pelo arquivo.
+1. **3 linhas** trocando `textContent` por `innerHTML` com regex no CombatModal
+2. **~5 linhas** adicionando log de saida de NPC da sala do jogador em `processNPCMovement`
+3. **~25 linhas** implementando sistema de aliado seguir jogador temporariamente (3 turnos) em `processNPCMovement` e `Actions.move`
 
