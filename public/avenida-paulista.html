@@ -5750,7 +5750,7 @@
           Object.values(GameState.characters).forEach(c => {
             if (c.id !== 'player' && c.id !== 'feiticeiro' &&
                 c.location === playerRoom && c.isAlive && !c.isAlly &&
-                !c.immuneToHypnosis) {
+                !c.immuneToHypnosis && !c.isNeutral) {
               targets.push({ type: 'enemy', id: c.id, name: `⚔️ ${c.name} (hipnotizar)` });
             }
           });
@@ -7420,7 +7420,8 @@
               c => c.id !== 'player' &&
                    c.location === ally.location &&
                    c.isAlive &&
-                   !c.isAlly
+                   !c.isAlly &&
+                   !c.isNeutral
             );
 
             if (enemiesInRoom.length === 0) return;
@@ -7607,7 +7608,7 @@
           var oldIndicator = document.querySelector('.lanterna-indicator');
           if (oldIndicator) oldIndicator.remove();
 
-          if (GameState.playerInventory.includes('lanterna')) {
+          if (GameState.playerInventory.includes('lanterna') && GameState.time >= 1200) {
             var adjacentData = [];
             var exits = Object.values(room.exits);
             exits.forEach(function(exitId) {
@@ -9221,6 +9222,12 @@
           vendedor.tradeInventory.splice(vidx, 1);
           GameState.playerInventory.push(vendorItemId);
           vendedor.tradeInventory.push(playerItemId);
+          if (playerItemId === 'mochila') {
+            GameState.characters.player.maxWeight = Math.max(20, GameState.characters.player.maxWeight - 20);
+          }
+          if (vendorItemId === 'mochila') {
+            GameState.characters.player.maxWeight += 20;
+          }
           var givenItem = GameState.items[vendorItemId];
           var takenItem = GameState.items[playerItemId];
           SoundSystem.playUseItem();
