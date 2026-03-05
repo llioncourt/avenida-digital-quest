@@ -8162,6 +8162,16 @@
           GameState.skipNextTimeAdvance = false;
           GameState.roomTraps = {};
           GameState.visitedRooms = new Set(['masp']);
+          GameState.energy = 100;
+          GameState.fogActive = false;
+          GameState.environmentTraps = {};
+          GameState.nightModeActive = false;
+
+          // Reset journal (keep persistent data)
+          Journal.load();
+
+          // Setup vendor trade inventory
+          // (done in setupPositions)
 
           // Reset combat modal
           CombatModal.reset();
