@@ -8540,6 +8540,205 @@
       };
 
       // ============================================================================
+      // ACHIEVEMENTS - Sistema de conquistas
+      // ============================================================================
+
+      const Achievements = {
+        definitions: {
+          pacifista: { icon: '🕊️', name: 'Pacifista', desc: 'Vencer sem matar nenhum NPC (só a Bruxa)' },
+          speedrunner: { icon: '⚡', name: 'Speedrunner', desc: 'Vencer antes das 19:00' },
+          colecionador: { icon: '🎒', name: 'Colecionador', desc: 'Ter 8+ itens ao mesmo tempo' },
+          diplomata: { icon: '🤝', name: 'Diplomata', desc: 'Converter o Demônio e hipnotizar o Feiticeiro' },
+          sobrevivente: { icon: '💪', name: 'Sobrevivente', desc: 'Vencer com menos de 10 HP' },
+          explorador: { icon: '🗺️', name: 'Explorador', desc: 'Visitar todas as salas' }
+        },
+        load: function() {
+          try { return JSON.parse(localStorage.getItem('avp_achievements') || '{}'); } catch(e) { return {}; }
+        },
+        save: function(data) {
+          try { localStorage.setItem('avp_achievements', JSON.stringify(data)); } catch(e) {}
+        },
+        check: function() {
+          var earned = [];
+          var saved = this.load();
+          var nonBruxaKills = Object.values(GameState.characters).filter(function(c) {
+            return c.id !== 'player' && c.id !== 'bruxa' && !c.isAlive && !c.isAlly;
+          });
+          if (GameState.victory && nonBruxaKills.length === 0) { earned.push('pacifista'); saved.pacifista = true; }
+          if (GameState.victory && GameState.time < 19 * 60) { earned.push('speedrunner'); saved.speedrunner = true; }
+          if (GameState.playerInventory.length >= 8) { earned.push('colecionador'); saved.colecionador = true; }
+          var demonConverted = GameState.characters.demonio && GameState.characters.demonio.isAlly;
+          var feiticeiroHypno = GameState.characters.feiticeiro && GameState.characters.feiticeiro.isAlly;
+          if (demonConverted && feiticeiroHypno) { earned.push('diplomata'); saved.diplomata = true; }
+          if (GameState.victory && GameState.characters.player.hp < 10) { earned.push('sobrevivente'); saved.sobrevivente = true; }
+          var totalRooms = Object.keys(GameState.rooms).length;
+          if (GameState.visitedRooms && GameState.visitedRooms.size >= totalRooms) { earned.push('explorador'); saved.explorador = true; }
+          this.save(saved);
+          return { earned: earned, all: saved };
+        },
+        renderHTML: function() {
+          var saved = this.load();
+          if (GameState.victory) { var result = this.check(); saved = result.all; }
+          var self = this;
+          var html = '<div class="achievement-grid">';
+          Object.keys(this.definitions).forEach(function(key) {
+            var def = self.definitions[key];
+            var isEarned = saved[key];
+            html += '<div class="achievement-badge ' + (isEarned ? 'earned' : '') + '">' +
+              '<span class="achievement-icon">' + def.icon + '</span>' +
+              '<strong>' + def.name + '</strong><br><small>' + def.desc + '</small></div>';
+          });
+          html += '</div>';
+          return html;
+        }
+      };
+
+      // ============================================================================
+      // JOURNAL - Diário do jogador
+      // ============================================================================
+
+      const Journal = {
+        data: { rooms: {}, npcs: {}, lore: {} },
+        loreFragments: {
+          masp: 'O MASP foi inaugurado em 1947 por Assis Chateaubriand, guardando segredos além da arte...',
+          cinema: 'Dizem que o projetor deste cinema ainda funciona sozinho à meia-noite, exibindo filmes que nunca existiram.',
+          livraria: 'Entre os volumes antigos, há um que muda de conteúdo cada vez que é aberto.',
+          tunel: 'Este túnel conectava bunkers secretos da Guerra Fria. Poucos sabem de sua existência.',
+          distrito_italiano: 'Os imigrantes italianos trouxeram mais que comida — trouxeram magia mediterrânea.',
+          teto_masp: 'Os símbolos no chão são runas de contenção. Alguém as desenhou para prender algo... ou alguém.',
+          subsolo_masp: 'Escavações revelaram artefatos pré-colombianos sob o MASP. A energia mística é palpável.'
+        },
+        load: function() {
+          try {
+            var saved = JSON.parse(localStorage.getItem('avp_journal') || '{}');
+            if (saved.rooms) this.data.rooms = saved.rooms;
+            if (saved.npcs) this.data.npcs = saved.npcs;
+            if (saved.lore) this.data.lore = saved.lore;
+          } catch(e) {}
+        },
+        save: function() {
+          try { localStorage.setItem('avp_journal', JSON.stringify(this.data)); } catch(e) {}
+        },
+        recordRoom: function(roomId) {
+          if (!this.data.rooms[roomId]) {
+            var room = GameState.rooms[roomId];
+            if (room) {
+              this.data.rooms[roomId] = { name: room.name, time: Utils.formatTime(GameState.time) };
+              if (this.loreFragments[roomId] && !this.data.lore[roomId]) {
+                this.data.lore[roomId] = this.loreFragments[roomId];
+                Log.add('📓 Você descobriu algo sobre este lugar! Verifique seu Diário.', 'magic');
+              }
+              this.save();
+            }
+          }
+        },
+        recordNPC: function(npcId) {
+          if (!this.data.npcs[npcId]) {
+            var npc = GameState.characters[npcId];
+            if (npc && npc.id !== 'player') {
+              this.data.npcs[npcId] = { name: npc.name, time: Utils.formatTime(GameState.time) };
+              this.save();
+            }
+          }
+        },
+        showModal: function() {
+          var content = '<div>';
+          content += '<div class="journal-tabs">';
+          content += '<button class="journal-tab active" onclick="Journal.showTab(\'rooms\')">🏠 Salas (' + Object.keys(this.data.rooms).length + ')</button>';
+          content += '<button class="journal-tab" onclick="Journal.showTab(\'npcs\')">👥 NPCs (' + Object.keys(this.data.npcs).length + ')</button>';
+          content += '<button class="journal-tab" onclick="Journal.showTab(\'lore\')">📜 Lore (' + Object.keys(this.data.lore).length + ')</button>';
+          content += '<button class="journal-tab" onclick="Journal.showTab(\'achievements\')">🏆 Conquistas</button>';
+          content += '</div>';
+          content += '<div id="journal-tab-content" class="journal-content">' + this.renderRooms() + '</div>';
+          content += '<button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Fechar</button></div>';
+          Modals.show('📓 DIÁRIO', content);
+        },
+        showTab: function(tab) {
+          var content = '';
+          if (tab === 'rooms') content = this.renderRooms();
+          else if (tab === 'npcs') content = this.renderNPCs();
+          else if (tab === 'lore') content = this.renderLore();
+          else if (tab === 'achievements') content = Achievements.renderHTML();
+          document.getElementById('journal-tab-content').innerHTML = content;
+          document.querySelectorAll('.journal-tab').forEach(function(t, i) {
+            var tabs = ['rooms', 'npcs', 'lore', 'achievements'];
+            t.className = 'journal-tab' + (tabs[i] === tab ? ' active' : '');
+          });
+        },
+        renderRooms: function() {
+          var entries = Object.values(this.data.rooms);
+          if (entries.length === 0) return '<div class="journal-entry">Nenhuma sala descoberta ainda.</div>';
+          return entries.map(function(r) { return '<div class="journal-entry">📍 ' + r.name + ' <small style="color:var(--text-muted)">(' + r.time + ')</small></div>'; }).join('');
+        },
+        renderNPCs: function() {
+          var entries = Object.values(this.data.npcs);
+          if (entries.length === 0) return '<div class="journal-entry">Nenhum NPC encontrado ainda.</div>';
+          return entries.map(function(n) { return '<div class="journal-entry">👤 ' + n.name + ' <small style="color:var(--text-muted)">(' + n.time + ')</small></div>'; }).join('');
+        },
+        renderLore: function() {
+          var entries = Object.entries(this.data.lore);
+          if (entries.length === 0) return '<div class="journal-entry">Nenhum fragmento de lore descoberto.</div>';
+          return entries.map(function(e) {
+            var room = GameState.rooms[e[0]];
+            return '<div class="journal-entry"><strong>' + (room ? room.name : e[0]) + ':</strong> <em>' + e[1] + '</em></div>';
+          }).join('');
+        },
+        reset: function() { this.data = { rooms: {}, npcs: {}, lore: {} }; }
+      };
+
+      // ============================================================================
+      // VENDOR TRADE - Sistema de troca com vendedor
+      // ============================================================================
+
+      const VendorTrade = {
+        openTradeModal: function() {
+          var vendedor = GameState.characters.vendedor;
+          if (!vendedor || !vendedor.isAlive || vendedor.location !== GameState.playerLocation) return;
+          if (!vendedor.tradeInventory || vendedor.tradeInventory.length === 0) {
+            Modals.show('🛒 VENDEDOR', '<p>O vendedor não tem nada para trocar.</p><button class="btn" onclick="Modals.hide()">Fechar</button>');
+            return;
+          }
+          var playerItems = GameState.playerInventory.filter(function(id) { return id !== 'reliquia'; });
+          if (playerItems.length === 0) {
+            Modals.show('🛒 VENDEDOR', '<p>Você não tem itens para trocar!</p><button class="btn" onclick="Modals.hide()">Fechar</button>');
+            return;
+          }
+          var vendorItemsHtml = vendedor.tradeInventory.map(function(id) {
+            var item = GameState.items[id];
+            return '<div class="trade-item"><span>' + (ITEM_ICONS[id] || '📦') + ' ' + item.name + '</span><small>' + item.weight + 'kg</small></div>';
+          }).join('');
+          var playerItemsHtml = playerItems.map(function(id) {
+            var item = GameState.items[id];
+            return '<button class="btn btn-item" onclick="VendorTrade.executeTrade(\'' + id + '\')" style="width:100%;margin:0.2rem 0;">' +
+              (ITEM_ICONS[id] || '📦') + ' ' + item.name + ' (' + item.weight + 'kg)</button>';
+          }).join('');
+          var content = '<p style="font-style:italic;color:var(--text-secondary);">"E aí, chefe! Vamo trocar?"</p>' +
+            '<h4 style="margin:0.5rem 0 0.3rem;color:var(--accent-gold);">Itens do Vendedor:</h4>' + vendorItemsHtml +
+            '<h4 style="margin:0.75rem 0 0.3rem;color:var(--accent-blue);">Seu item para trocar:</h4>' +
+            '<div style="max-height:30vh;overflow-y:auto;">' + playerItemsHtml + '</div>' +
+            '<button class="btn" onclick="Modals.hide()" style="margin-top:0.75rem;">Cancelar</button>';
+          Modals.show('🛒 VENDEDOR AMBULANTE', content);
+        },
+        executeTrade: function(playerItemId) {
+          var vendedor = GameState.characters.vendedor;
+          if (!vendedor.tradeInventory || vendedor.tradeInventory.length === 0) return;
+          var idx = GameState.playerInventory.indexOf(playerItemId);
+          if (idx === -1) return;
+          GameState.playerInventory.splice(idx, 1);
+          var vendorItemIdx = Math.floor(Utils.random() * vendedor.tradeInventory.length);
+          var vendorItemId = vendedor.tradeInventory.splice(vendorItemIdx, 1)[0];
+          GameState.playerInventory.push(vendorItemId);
+          vendedor.tradeInventory.push(playerItemId);
+          var givenItem = GameState.items[vendorItemId];
+          var takenItem = GameState.items[playerItemId];
+          SoundSystem.playUseItem();
+          Log.add('🛒 Você trocou ' + takenItem.name + ' por ' + givenItem.name + ' com o Vendedor!', 'success');
+          Modals.hide();
+          Render.update();
+        }
+      };
+
+      // ============================================================================
       // WORLD SANITY - Validação contínua para evitar regressões
       // ============================================================================
 
