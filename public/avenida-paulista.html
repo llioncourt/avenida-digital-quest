@@ -2231,7 +2231,7 @@
         reliquia: {
           id: 'reliquia',
           name: 'RELÍQUIA PAULISTANA',
-          description: 'Um artefato ancestral encontrado no subsolo do MASP. Irradia poder antigo. +10 ATK, +10 DEF, peso 0.',
+          description: 'Um artefato ancestral encontrado no subsolo do MASP. Irradia poder antigo. +10 ATK, +10 DEF, peso 0. Regenera 1 HP por turno.',
           attackPower: 10,
           defensePower: 10,
           weight: 0,
@@ -6799,6 +6799,14 @@
           // WORLD SANITY: validar estado do mundo antes de processar eventos
           WorldSanity.enforce();
 
+          // Regeneração passiva da Relíquia Paulistana
+          if (GameState.playerInventory.includes('reliquia')) {
+            var player = GameState.characters.player;
+            if (player.hp < player.maxHp) {
+              player.hp = Math.min(player.hp + 1, player.maxHp);
+            }
+          }
+
           // Processar eventos
           this.processBombTimer();
           this.processWitchWord();
@@ -7672,8 +7680,11 @@
           // Desenhar conexões primeiro (para ficarem atrás)
           const drawnConnections = new Set();
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
-            // Ocultar subsolo_masp até ser visitado
-            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) return;
+            // Ocultar subsolo_masp até ser visitado ou revelado pela lanterna
+            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
+              var canReveal = GameState.playerLocation === 'masp' && GameState.playerInventory.includes('lanterna') && GameState.time >= 20 * 60;
+              if (!canReveal) return;
+            }
             // Usar posição customizada se existir
             let pos = roomPositions[roomId];
             if (MinimapController.customPositions[roomId]) {
@@ -7692,8 +7703,11 @@
               const exitRoom = GameState.rooms[exitId];
               if (!exitRoom) return;
 
-              // Ocultar conexões para subsolo_masp até ser visitado
-              if (exitId === 'subsolo_masp' && !GameState.visitedRooms.has(exitId)) return;
+              // Ocultar conexões para subsolo_masp até ser visitado ou revelado
+              if (exitId === 'subsolo_masp' && !GameState.visitedRooms.has(exitId)) {
+                var canRevealExit = GameState.playerLocation === 'masp' && GameState.playerInventory.includes('lanterna') && GameState.time >= 20 * 60;
+                if (!canRevealExit) return;
+              }
 
               // Não desenhar conexão para local aéreo
               if (exitRoom.requiresFlight) return;
@@ -7741,8 +7755,11 @@
 
           // Desenhar salas
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
-            // Ocultar subsolo_masp até ser visitado
-            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) return;
+            // Ocultar subsolo_masp até ser visitado ou revelado
+            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
+              var canReveal2 = GameState.playerLocation === 'masp' && GameState.playerInventory.includes('lanterna') && GameState.time >= 20 * 60;
+              if (!canReveal2) return;
+            }
             // Usar posição customizada se existir
             let pos = roomPositions[roomId];
             if (MinimapController.customPositions[roomId]) {
