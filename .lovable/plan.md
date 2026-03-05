@@ -1,73 +1,99 @@
 
 
-# Correção: Lanterna + Subsolo do MASP
+## Plano: Italico no Combate + Log de Saida de NPCs + Aliados Seguem o Jogador
 
-## Problema 1: Sala secreta inacessível
+### 1. Italico na janela de combate
 
-O minimapa esconde o `subsolo_masp` até ser visitado (linhas 7676, 7696, 7745), mas como o jogador se move apenas pelo minimapa, ele **nunca consegue clicar na sala** para visitá-la. É um paradoxo: precisa visitar para ver, mas precisa ver para visitar.
+**Problema:** O modal de combate usa `div.textContent = line.text` (linhas ~5794, 5807, 5948), que renderiza tudo como texto puro. O `*texto*` nunca vira `<em>`.
 
-A lanterna deveria revelar a sala no minimapa quando o jogador está no MASP com lanterna + noite.
-
-## Problema 2: Recompensa fraca
-
-A Relíquia Paulistana dá +10 ATK e +10 DEF com peso 0 — que é bom, mas o jogador precisa lanterna + esperar até 20h. A recompensa pode ser melhorada para justificar o esforço.
-
-## Solução
-
-### A. Revelar subsolo no minimapa com lanterna
-
-Nas 3 verificações de `subsolo_masp` no minimapa (linhas 7676, 7696, 7745), mudar a condição de "visitado" para "visitado **OU** (jogador está no MASP + tem lanterna + é noite)":
+**Correcao:** Trocar `textContent` por `innerHTML` com a mesma regex ja usada no Log:
 
 ```javascript
-// De:
-if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) return;
-
-// Para:
-if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-  var canReveal = GameState.playerLocation === 'masp' 
-    && GameState.playerInventory.includes('lanterna') 
-    && GameState.time >= 20 * 60;
-  if (!canReveal) return;
-}
+div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
 ```
 
-Aplicar nos 3 locais: conexões (7676), conexões de saída (7696) e salas (7745).
+Aplicar em 3 locais dentro de `CombatModal`:
+- Linha ~5794: linhas do atacante
+- Linha ~5807: linhas do defensor
+- Linha ~5948: linhas de resultado
 
-### B. Feedback visual no minimapa
+### 2. Log quando NPC sai da sala do jogador
 
-Quando revelado pela lanterna (não visitado ainda), dar um efeito visual especial na sala no minimapa — um brilho pulsante dourado/misterioso para indicar que é secreta:
+**Problema:** Quando um NPC esta na mesma sala que o jogador e se move para outro lugar, nao ha mensagem no log.
+
+**Correcao:** Em `processNPCMovement` (linha ~6223), apos `char.location = Utils.randomChoice(validExits)`, adicionar verificacao: se `prevLocation === GameState.playerLocation` e `char.location !== GameState.playerLocation`, logar para onde o NPC foi.
 
 ```javascript
-// Após criar roomEl para subsolo_masp revelado mas não visitado
-if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-  roomEl.classList.add('secret-revealed');
+// NPC sai da sala do jogador
+if (prevLocation === GameState.playerLocation && char.location !== GameState.playerLocation) {
+  var destRoom = GameState.rooms[char.location];
+  var icon = char.isAlly ? '🤝' : '⚔️';
+  Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
 }
 ```
 
-CSS:
-```css
-.map-room.secret-revealed {
-  animation: secret-pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(224, 160, 32, 0.6);
-}
-```
+Inserir logo apos a linha `char.location = Utils.randomChoice(validExits)` (linha ~6225), antes do bloco de frases de movimento.
 
-### C. Melhorar a Relíquia (opcional)
+### 3. Aliados seguem o jogador temporariamente
 
-Adicionar um efeito extra à Relíquia: regenerar 1 HP por turno enquanto estiver no inventário. Isso dá uma vantagem passiva contínua que justifica a busca.
+**Mecanica:** Quando o jogador encontra um aliado (entra na mesma sala ou o aliado entra na sala do jogador), o aliado entra em modo "seguindo" por 3 turnos. Durante esse periodo, quando o jogador se move, o aliado se move junto. Apos os 3 turnos, o aliado volta ao comportamento normal de movimento aleatorio.
 
-No `processNPCMovement` ou no ciclo de turno, adicionar:
+**Implementacao:**
+
+**3A.** Adicionar campo `followingPlayer` e `followTurnsLeft` ao estado dos aliados. Nao precisa ser nos dados iniciais — setar dinamicamente.
+
+**3B.** Em `processNPCMovement`, quando o NPC encontra o jogador (ja tem o bloco na linha ~6236) ou quando o jogador entra numa sala com aliado: ativar o modo seguir.
+
 ```javascript
-if (GameState.playerInventory.includes('reliquia') && player.hp < player.maxHp) {
-  player.hp = Math.min(player.hp + 1, player.maxHp);
+// Ativar follow quando aliado encontra o jogador
+if (char.isAlly && char.location === GameState.playerLocation) {
+  if (!char.followingPlayer) {
+    char.followingPlayer = true;
+    char.followTurnsLeft = 3;
+    Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
+  }
 }
 ```
 
-E atualizar a descrição da Relíquia para mencionar a regeneração.
+**3C.** Em `processNPCMovement`, aliados em modo "seguindo" nao se movem aleatoriamente — eles ficam parados (o movimento deles sera tratado quando o jogador se move).
 
-## Resumo de mudanças
+```javascript
+// Aliado seguindo o jogador não se move sozinho
+if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
+```
 
-1. **3 condicionais** no minimapa para revelar subsolo com lanterna+noite (~9 linhas)
-2. **CSS** para efeito visual de sala secreta revelada (~5 linhas)
-3. **~3 linhas** para regeneração passiva da Relíquia + atualizar descrição
+**3D.** Em `Actions.move` (quando o jogador se move), mover aliados que estao seguindo junto:
+
+```javascript
+// Mover aliados que estão seguindo
+Object.values(GameState.characters).forEach(function(c) {
+  if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+    c.location = roomId; // mesma sala que o jogador
+    c.followTurnsLeft--;
+    if (c.followTurnsLeft <= 0) {
+      c.followingPlayer = false;
+      Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+    }
+  }
+});
+```
+
+**3E.** Tambem ativar o follow quando o jogador entra numa sala com aliado (em `Actions.move`, apos mudar `GameState.playerLocation`):
+
+```javascript
+// Verificar aliados na nova sala
+Object.values(GameState.characters).forEach(function(c) {
+  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
+    c.followingPlayer = true;
+    c.followTurnsLeft = 3;
+    Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
+  }
+});
+```
+
+### Resumo
+
+1. **3 linhas** trocando `textContent` por `innerHTML` com regex no CombatModal
+2. **~5 linhas** adicionando log de saida de NPC da sala do jogador em `processNPCMovement`
+3. **~25 linhas** implementando sistema de aliado seguir jogador temporariamente (3 turnos) em `processNPCMovement` e `Actions.move`
 
