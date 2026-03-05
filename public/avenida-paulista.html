@@ -6259,7 +6259,7 @@
             }
           }
 
-          result.advanceTime = result.success;
+          if (result.advanceTime === undefined) result.advanceTime = result.success;
           return result;
         },
 
@@ -9041,6 +9041,8 @@
       // ============================================================================
 
       const VendorTrade = {
+        selectedVendorItem: null,
+
         openTradeModal: function() {
           var vendedor = GameState.characters.vendedor;
           if (!vendedor || !vendedor.isAlive || vendedor.location !== GameState.playerLocation) return;
@@ -9048,35 +9050,54 @@
             Modals.show('🛒 VENDEDOR', '<p>O vendedor não tem nada para trocar.</p><button class="btn" onclick="Modals.hide()">Fechar</button>');
             return;
           }
+          VendorTrade.selectedVendorItem = null;
+          VendorTrade.showStep1();
+        },
+
+        showStep1: function() {
+          var vendedor = GameState.characters.vendedor;
+          var vendorItemsHtml = vendedor.tradeInventory.map(function(id) {
+            var item = GameState.items[id];
+            return '<button class="btn btn-item" onclick="VendorTrade.selectVendorItem(\'' + id + '\')" style="width:100%;margin:0.2rem 0;border-color:var(--accent-gold);color:var(--accent-gold);">' +
+              (ITEM_ICONS[id] || '📦') + ' ' + item.name + ' <small>(' + item.weight + 'kg)</small></button>';
+          }).join('');
+          var content = '<p style="font-style:italic;color:var(--text-secondary);">"E aí, chefe! Vamo trocar?"</p>' +
+            '<h4 style="margin:0.5rem 0 0.3rem;color:var(--accent-gold);">Escolha o que você quer:</h4>' +
+            '<div style="max-height:40vh;overflow-y:auto;">' + vendorItemsHtml + '</div>' +
+            '<button class="btn" onclick="Modals.hide()" style="margin-top:0.75rem;">Cancelar</button>';
+          Modals.show('🛒 VENDEDOR AMBULANTE', content);
+        },
+
+        selectVendorItem: function(vendorItemId) {
+          VendorTrade.selectedVendorItem = vendorItemId;
+          var vendorItem = GameState.items[vendorItemId];
           var playerItems = GameState.playerInventory.filter(function(id) { return id !== 'reliquia'; });
           if (playerItems.length === 0) {
             Modals.show('🛒 VENDEDOR', '<p>Você não tem itens para trocar!</p><button class="btn" onclick="Modals.hide()">Fechar</button>');
             return;
           }
-          var vendorItemsHtml = vendedor.tradeInventory.map(function(id) {
-            var item = GameState.items[id];
-            return '<div class="trade-item"><span>' + (ITEM_ICONS[id] || '📦') + ' ' + item.name + '</span><small>' + item.weight + 'kg</small></div>';
-          }).join('');
           var playerItemsHtml = playerItems.map(function(id) {
             var item = GameState.items[id];
             return '<button class="btn btn-item" onclick="VendorTrade.executeTrade(\'' + id + '\')" style="width:100%;margin:0.2rem 0;">' +
               (ITEM_ICONS[id] || '📦') + ' ' + item.name + ' (' + item.weight + 'kg)</button>';
           }).join('');
-          var content = '<p style="font-style:italic;color:var(--text-secondary);">"E aí, chefe! Vamo trocar?"</p>' +
-            '<h4 style="margin:0.5rem 0 0.3rem;color:var(--accent-gold);">Itens do Vendedor:</h4>' + vendorItemsHtml +
-            '<h4 style="margin:0.75rem 0 0.3rem;color:var(--accent-blue);">Seu item para trocar:</h4>' +
-            '<div style="max-height:30vh;overflow-y:auto;">' + playerItemsHtml + '</div>' +
-            '<button class="btn" onclick="Modals.hide()" style="margin-top:0.75rem;">Cancelar</button>';
+          var content = '<p style="color:var(--accent-gold);">Você quer: ' + (ITEM_ICONS[vendorItemId] || '📦') + ' <strong>' + vendorItem.name + '</strong></p>' +
+            '<h4 style="margin:0.5rem 0 0.3rem;color:var(--accent-blue);">Dê em troca:</h4>' +
+            '<div style="max-height:35vh;overflow-y:auto;">' + playerItemsHtml + '</div>' +
+            '<button class="btn" onclick="VendorTrade.showStep1()" style="margin-top:0.5rem;">← Voltar</button> ' +
+            '<button class="btn" onclick="Modals.hide()" style="margin-top:0.5rem;">Cancelar</button>';
           Modals.show('🛒 VENDEDOR AMBULANTE', content);
         },
+
         executeTrade: function(playerItemId) {
           var vendedor = GameState.characters.vendedor;
-          if (!vendedor.tradeInventory || vendedor.tradeInventory.length === 0) return;
-          var idx = GameState.playerInventory.indexOf(playerItemId);
-          if (idx === -1) return;
-          GameState.playerInventory.splice(idx, 1);
-          var vendorItemIdx = Math.floor(Utils.random() * vendedor.tradeInventory.length);
-          var vendorItemId = vendedor.tradeInventory.splice(vendorItemIdx, 1)[0];
+          var vendorItemId = VendorTrade.selectedVendorItem;
+          if (!vendorItemId || !vendedor.tradeInventory) return;
+          var vidx = vendedor.tradeInventory.indexOf(vendorItemId);
+          var pidx = GameState.playerInventory.indexOf(playerItemId);
+          if (vidx === -1 || pidx === -1) return;
+          GameState.playerInventory.splice(pidx, 1);
+          vendedor.tradeInventory.splice(vidx, 1);
           GameState.playerInventory.push(vendorItemId);
           vendedor.tradeInventory.push(playerItemId);
           var givenItem = GameState.items[vendorItemId];
