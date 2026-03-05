@@ -5852,6 +5852,26 @@
             message: '🪘 Você toca o PANDEIRO! O ritmo ecoa pela cidade — ' + calledCount + ' aliado(s) estão vindo ao seu encontro!',
             consumed: false
           };
+        },
+
+        // Comidas - restauram energia
+        coxinha: function() {
+          var restore = 30;
+          GameState.energy = Math.min(100, GameState.energy + restore);
+          SoundSystem.playUseItem();
+          return { success: true, message: '🍗 Você comeu uma COXINHA crocante! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
+        },
+        acai: function() {
+          var restore = 50;
+          GameState.energy = Math.min(100, GameState.energy + restore);
+          SoundSystem.playUseItem();
+          return { success: true, message: '🫐 Você tomou um AÇAÍ revigorante! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
+        },
+        pastel: function() {
+          var restore = 20;
+          GameState.energy = Math.min(100, GameState.energy + restore);
+          SoundSystem.playUseItem();
+          return { success: true, message: '🥟 Você comeu um PASTEL quentinho! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
         }
       };
 
