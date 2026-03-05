@@ -279,6 +279,72 @@
 
       #location-panel {
         flex-shrink: 0;
+        position: relative;
+      }
+
+      .lanterna-indicator {
+        position: absolute;
+        top: 0.6rem;
+        right: 0.6rem;
+        font-size: 1.4rem;
+        cursor: pointer;
+        filter: drop-shadow(0 0 4px rgba(224, 160, 32, 0.8));
+        animation: lanterna-glow 2s ease-in-out infinite;
+        z-index: 2;
+      }
+
+      .lanterna-indicator:hover .lanterna-tooltip {
+        display: block;
+      }
+
+      .lanterna-tooltip {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 0.4rem;
+        min-width: 220px;
+        max-width: 300px;
+        background: rgba(10, 10, 10, 0.95);
+        border: 1px solid var(--accent-gold);
+        border-radius: 6px;
+        padding: 0.6rem 0.8rem;
+        box-shadow: 0 0 12px rgba(224, 160, 32, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6);
+        font-size: 0.85rem;
+        color: #e0e0e0;
+        z-index: 100;
+      }
+
+      .lanterna-tooltip-title {
+        color: var(--accent-gold);
+        font-weight: bold;
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+        font-family: var(--font-mono);
+      }
+
+      .lanterna-tooltip-room {
+        margin-bottom: 0.3rem;
+        padding-left: 0.3rem;
+        border-left: 2px solid var(--accent-gold);
+        margin-left: 0.1rem;
+      }
+
+      .lanterna-tooltip-room-name {
+        color: var(--accent-gold);
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+
+      .lanterna-tooltip-item {
+        color: #ccc;
+        font-size: 0.8rem;
+        padding-left: 0.2rem;
+      }
+
+      @keyframes lanterna-glow {
+        0%, 100% { filter: drop-shadow(0 0 4px rgba(224, 160, 32, 0.8)); }
+        50% { filter: drop-shadow(0 0 8px rgba(224, 160, 32, 1)); }
       }
 
       #location-name {
@@ -6542,6 +6608,11 @@
           }
           attackerLines.push({ text: 'TOTAL: ' + atk.totalAttack, cls: 'combat-total' });
 
+          // Extra message (e.g. attack phrase) belongs to attacker
+          if (this.pendingCombat.result.extraMessage) {
+            attackerLines.push({ text: this.pendingCombat.result.extraMessage, cls: 'combat-result-damage' });
+          }
+
           // Build defender lines
           var defenderLines = [
             { text: def.name, cls: 'combat-card-title' },
@@ -6707,10 +6778,7 @@
             resultLines.push({ text: '❤️ HP RESTANTE: ' + result.remainingHp + '/' + this.pendingCombat.defender.maxHp, cls: 'combat-result-hp' });
           }
 
-          // Extra message (e.g. demon summoned)
-          if (result.extraMessage) {
-            resultLines.push({ text: result.extraMessage, cls: 'combat-result-damage' });
-          }
+          // Extra message now shown on attacker card (see attackerLines above)
 
           // Calculate dynamic delay based on active music duration
           var isPlayerAttacking = this.pendingCombat.result.playerIsAttacker;
