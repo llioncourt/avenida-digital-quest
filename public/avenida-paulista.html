@@ -801,7 +801,17 @@
         left: -8px;
       }
 
-      .map-room .item-indicator {
+      .map-room.secret-revealed {
+        animation: secret-pulse 2s ease-in-out infinite;
+        box-shadow: 0 0 10px rgba(224, 160, 32, 0.7);
+        border-color: rgba(224, 160, 32, 0.8);
+      }
+
+      @keyframes secret-pulse {
+        0%, 100% { box-shadow: 0 0 6px rgba(224, 160, 32, 0.4); }
+        50% { box-shadow: 0 0 14px rgba(224, 160, 32, 0.9); }
+      }
+
         position: absolute;
         bottom: -10px;
         left: 50%;
@@ -7776,6 +7786,11 @@
             roomEl.setAttribute('data-room-id', roomId);
             roomEl.style.left = pos.x + 'px';
             roomEl.style.top = pos.y + 'px';
+
+            // Efeito visual para sala secreta revelada mas não visitada
+            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
+              roomEl.classList.add('secret-revealed');
+            }
 
             // Verificar se é a sala atual
             if (roomId === GameState.playerLocation) {
