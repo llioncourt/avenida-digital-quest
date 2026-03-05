@@ -1923,6 +1923,15 @@
           requiresFlight: false,
           ruinName: 'Cinema Demolido',
           ruinDescription: 'O cinema desabou sobre si mesmo. Poltronas de veludo queimado e pedaços da tela rasgada se misturam aos escombros do teto. As sombras agora são reais.'
+        },
+        subsolo_masp: {
+          id: 'subsolo_masp',
+          name: 'Subsolo do MASP',
+          description: 'Um porão secreto sob o MASP, repleto de artefatos esquecidos e runas antigas. O ar é denso com energia mística. Pinturas ancestrais adornam as paredes de pedra.',
+          exits: { 'MASP': 'masp' },
+          requiresFlight: false,
+          ruinName: 'Subsolo Colapsado',
+          ruinDescription: 'O subsolo desabou parcialmente. Artefatos antigos estão enterrados sob camadas de concreto e poeira.'
         }
       };
 
@@ -2136,6 +2145,54 @@
           canFly: false,
           isUsable: false,
           singleUse: false
+        },
+        reliquia: {
+          id: 'reliquia',
+          name: 'RELÍQUIA PAULISTANA',
+          description: 'Um artefato ancestral encontrado no subsolo do MASP. Irradia poder antigo. +10 ATK, +10 DEF, peso 0.',
+          attackPower: 10,
+          defensePower: 10,
+          weight: 0,
+          canFly: false,
+          isUsable: false,
+          singleUse: false,
+          startsInWorld: false
+        },
+        coxinha: {
+          id: 'coxinha',
+          name: 'COXINHA',
+          description: 'Uma coxinha quentinha e crocante. Restaura 30 de energia! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true,
+          energyRestore: 30
+        },
+        acai: {
+          id: 'acai',
+          name: 'AÇAÍ',
+          description: 'Uma tigela de açaí com granola e banana. Restaura 50 de energia! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true,
+          energyRestore: 50
+        },
+        pastel: {
+          id: 'pastel',
+          name: 'PASTEL',
+          description: 'Um pastel de feira, crocante e saboroso. Restaura 20 de energia! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true,
+          energyRestore: 20
         }
       };
 
