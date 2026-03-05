@@ -122,25 +122,28 @@
         border: 1px solid var(--border-color);
         border-radius: var(--radius);
         padding: 0.4rem 0.6rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: nowrap;
-        gap: 0.3rem;
         box-shadow: var(--shadow);
         flex-shrink: 0;
       }
 
       #stats {
-        display: flex;
-        gap: 0.4rem;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-rows: auto auto;
+        gap: 0.15rem 0.4rem;
         font-family: var(--font-mono);
         font-size: 0.78rem;
-        flex: 1;
-        min-width: 0;
-        justify-content: space-between;
+        align-items: center;
       }
+
+      /* HP: top-left */
+      .stat-hp { grid-column: 1; grid-row: 1; justify-self: start; }
+      /* Energy: bottom-left */
+      .stat-energy { grid-column: 1; grid-row: 2; justify-self: start; }
+      /* Weight: center */
+      .stat-weight { grid-column: 2; grid-row: 1; grid-row-end: 3; justify-self: center; align-self: center; }
+      /* Time: top-right */
+      .stat-time { grid-column: 3; grid-row: 1; grid-row-end: 3; justify-self: end; align-self: center; }
 
       .stat {
         display: flex;
@@ -1747,21 +1750,21 @@
         <div id="right-sidebar">
           <header id="header">
             <div id="stats">
-              <div class="stat">
-                <span class="stat-label">🕐</span>
-                <span class="stat-value" id="time-display">17:00</span>
-              </div>
-              <div class="stat">
+              <div class="stat stat-hp">
                 <span class="stat-label">❤️</span>
                 <span class="stat-value" id="hp-display">100/100</span>
               </div>
-              <div class="stat">
+              <div class="stat stat-energy">
+                <span class="stat-label">⚡</span>
+                <span class="stat-value" id="energy-display">100</span>
+              </div>
+              <div class="stat stat-weight">
                 <span class="stat-label">⚖️</span>
                 <span class="stat-value" id="weight-display">0/50</span>
               </div>
-              <div class="stat">
-                <span class="stat-label">⚡</span>
-                <span class="stat-value" id="energy-display">100</span>
+              <div class="stat stat-time">
+                <span class="stat-label">🕐</span>
+                <span class="stat-value" id="time-display">17:00</span>
               </div>
             </div>
           </header>
