@@ -1854,7 +1854,7 @@
           id: 'masp',
           name: 'MASP',
           description: 'O Museu de Arte de São Paulo, com sua arquitetura suspensa icônica. Os pilares vermelhos sustentam a estrutura sobre o vão livre. Você sente uma energia estranha vindo do teto.',
-          exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Nove de Julho Norte': 'nove_julho_norte', 'Teto do MASP': 'teto_masp' },
+          exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Nove de Julho Norte': 'nove_julho_norte', 'Teto do MASP': 'teto_masp', 'Subsolo do MASP': 'subsolo_masp' },
           requiresFlight: false,
           ruinName: 'Ruínas do MASP',
           ruinDescription: 'Os icônicos pilares vermelhos estão retorcidos e a estrutura suspensa desabou parcialmente. Obras de arte destroçadas jazem entre os escombros do vão livre.'
@@ -5949,6 +5949,31 @@
             return { success: false, message: 'Você precisa poder voar para acessar este local! Encontre a ASA DELTA.' };
           }
 
+          // SALA SECRETA: Subsolo do MASP - requer lanterna + noite
+          if (roomId === 'subsolo_masp') {
+            var hasLanternaForSecret = GameState.playerInventory.includes('lanterna');
+            if (!hasLanternaForSecret || GameState.time < 20 * 60) {
+              if (!hasLanternaForSecret) {
+                return { success: false, message: '🔦 Está escuro demais para ver a entrada secreta. Uma LANTERNA ajudaria...' };
+              } else {
+                return { success: false, message: '🌙 A entrada do subsolo só se revela à noite (após as 20:00)...' };
+              }
+            }
+            Log.add('🔦 Sua lanterna revela uma passagem secreta sob o MASP!', 'magic');
+          }
+
+          // MODO NOTURNO: Tropeço sem lanterna após 21:00
+          if (GameState.time >= 21 * 60 && !GameState.playerInventory.includes('lanterna')) {
+            if (Utils.random() < 0.15) {
+              GameState.characters.player.hp -= 5;
+              Log.add('🌑 Você tropeça no escuro e se machuca! -5 HP. Uma LANTERNA evitaria isso.', 'danger');
+              if (GameState.characters.player.hp <= 0) {
+                GameState.characters.player.hp = 0;
+                GameState.characters.player.isAlive = false;
+              }
+            }
+          }
+
           GameState.playerLocation = roomId;
           GameState.characters.player.location = roomId;
           SoundSystem.playMove();
@@ -5956,6 +5981,48 @@
           // Rastrear salas visitadas (para Mapa Antigo)
           if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
           GameState.visitedRooms.add(roomId);
+
+          // JOURNAL: Registrar sala e NPCs
+          Journal.recordRoom(roomId);
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlive && c.location === roomId) {
+              Journal.recordNPC(c.id);
+            }
+          });
+
+          // ARMADILHAS AMBIENTAIS: Verificar ao entrar na sala
+          if (GameState.environmentTraps[roomId] && !GameState.environmentTraps[roomId].triggered) {
+            var trap = GameState.environmentTraps[roomId];
+            trap.triggered = true;
+            if (trap.type === 'pisoQuebrado') {
+              if (Utils.random() < 0.25) {
+                var trapDmg = 10;
+                GameState.characters.player.hp -= trapDmg;
+                Log.add('⚠️ ARMADILHA! O piso cede sob seus pés! -' + trapDmg + ' HP!', 'danger');
+                if (GameState.characters.player.hp <= 0) {
+                  GameState.characters.player.hp = 0;
+                  GameState.characters.player.isAlive = false;
+                }
+              } else {
+                Log.add('⚠️ O piso range perigosamente, mas você passa com cuidado.', 'warning');
+              }
+            } else if (trap.type === 'fioTropeco') {
+              if (GameState.playerInventory.length > 0) {
+                var dropIdx = Math.floor(Utils.random() * GameState.playerInventory.length);
+                var droppedId = GameState.playerInventory.splice(dropIdx, 1)[0];
+                GameState.items[droppedId].location = roomId;
+                Log.add('⚠️ ARMADILHA! Você tropeça num fio e deixa cair ' + GameState.items[droppedId].name + '!', 'danger');
+              }
+            } else if (trap.type === 'gasResidual') {
+              if (!GameState.playerInventory.includes('mascara_gas')) {
+                var gasDmg = 5;
+                GameState.characters.player.hp -= gasDmg;
+                Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + gasDmg + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
+              } else {
+                Log.add('😷 Gás residual detectado, mas sua MÁSCARA GÁS te protege!', 'success');
+              }
+            }
+          }
 
           // Mover aliados que estão seguindo o jogador
           Object.values(GameState.characters).forEach(function(c) {
@@ -6129,6 +6196,10 @@
 
           if (target.isAlly) {
             return { success: false, message: `${target.name} é seu aliado! Você não pode atacá-lo.` };
+          }
+
+          if (target.isNeutral) {
+            return { success: false, message: `${target.name} é neutro! Ele não quer briga, quer trocar itens.` };
           }
 
           // Calcular dano - defensor usa golpe aleatório
@@ -6653,13 +6724,96 @@
 
           // Dano de chuva (se ativa e jogador não tem guarda-chuva e está ao ar livre)
           if (RandomEvents.isActive('rain') && !GameState.playerInventory.includes('guarda_chuva')) {
-            var indoorRooms = ['shopping', 'cinema', 'tunel', 'livraria', 'colegio'];
+            var indoorRooms = ['shopping', 'cinema', 'tunel', 'livraria', 'colegio', 'subsolo_masp'];
             if (!indoorRooms.includes(GameState.playerLocation)) {
               if (Utils.random() < 0.15) {
                 var rainDmg = 5;
                 GameState.characters.player.hp -= rainDmg;
                 Log.add('🌧️ A chuva forte te encharca e você perde ' + rainDmg + ' HP! Um GUARDA-CHUVA ajudaria...', 'danger');
               }
+            }
+          }
+
+          // ===== SISTEMA DE ENERGIA (FOME) =====
+          GameState.energy = Math.max(0, GameState.energy - 2);
+          if (GameState.energy <= 0) {
+            GameState.characters.player.hp -= 3;
+            Log.add('😰 Você está exausto e perdendo forças! -3 HP. Coma algo para recuperar energia!', 'danger');
+            if (GameState.characters.player.hp <= 0) {
+              GameState.characters.player.hp = 0;
+              GameState.characters.player.isAlive = false;
+            }
+          } else if (GameState.energy <= 20) {
+            Log.add('⚡ Energia baixa (' + GameState.energy + '/100)! Procure comida: Coxinha, Açaí ou Pastel.', 'warning');
+          }
+
+          // ===== MODO NOTURNO PROGRESSIVO =====
+          if (GameState.time >= 21 * 60) {
+            if (!GameState.nightModeActive) {
+              GameState.nightModeActive = true;
+              Log.add('🌑 A noite cai sobre a Avenida Paulista... as sombras se adensam e o perigo aumenta.', 'warning');
+            }
+            // Bruxa fica mais forte (+2 ataque por hora após 21:00)
+            var hoursPastNine = (GameState.time - 21 * 60) / 60;
+            if (GameState.characters.bruxa && GameState.characters.bruxa.isAlive) {
+              GameState.characters.bruxa.attackPower = 25 + Math.floor(hoursPastNine * 2);
+            }
+            // Inimigos ficam mais agressivos
+            Object.values(GameState.characters).forEach(function(c) {
+              if (c.id !== 'player' && !c.isAlly && c.isAlive && !c.isNeutral) {
+                c.aggression = Math.min(0.95, (c.aggression || 0.4) + 0.002);
+              }
+            });
+          }
+
+          // ===== EFEITOS MECÂNICOS DO CLIMA =====
+          // Neblina: flag para esconder NPCs no minimapa
+          GameState.fogActive = RandomEvents.isActive('fog');
+
+          // Vento forte: empurra jogador com asa delta
+          if (RandomEvents.isActive('wind_howl') && GameState.playerInventory.includes('asa_delta')) {
+            if (Utils.random() < 0.2) {
+              var currentExits = Object.values(GameState.rooms[GameState.playerLocation].exits);
+              if (currentExits.length > 0) {
+                var windDest = Utils.randomChoice(currentExits);
+                var windRoom = GameState.rooms[windDest];
+                if (windRoom && !windRoom.requiresFlight) {
+                  GameState.playerLocation = windDest;
+                  GameState.characters.player.location = windDest;
+                  Log.add('💨 O vento forte arrasta sua ASA DELTA e te leva para ' + windRoom.name + '!', 'warning');
+                }
+              }
+            }
+          }
+
+          // Terremoto: derruba item do inventário
+          if (RandomEvents.isActive('earthquake')) {
+            if (Utils.random() < 0.2 && GameState.playerInventory.length > 0) {
+              var quakeIdx = Math.floor(Utils.random() * GameState.playerInventory.length);
+              var quakeItemId = GameState.playerInventory.splice(quakeIdx, 1)[0];
+              GameState.items[quakeItemId].location = GameState.playerLocation;
+              Log.add('🫨 O tremor fez você derrubar ' + GameState.items[quakeItemId].name + '!', 'danger');
+            }
+          }
+
+          // Sussurros: revelam localização da Bruxa
+          if (RandomEvents.isActive('whispers') && GameState.characters.bruxa && GameState.characters.bruxa.isAlive) {
+            var bruxaRoom = GameState.rooms[GameState.characters.bruxa.location];
+            if (bruxaRoom) {
+              Log.add('👻 Os sussurros apontam para... "' + bruxaRoom.name + '"...', 'magic');
+            }
+          }
+
+          // ===== VENDEDOR AMBULANTE: mover a cada ~10 turnos =====
+          if (GameState.characters.vendedor && GameState.characters.vendedor.isAlive) {
+            if (!GameState._vendorMoveCooldown) GameState._vendorMoveCooldown = 0;
+            GameState._vendorMoveCooldown++;
+            if (GameState._vendorMoveCooldown >= 10) {
+              GameState._vendorMoveCooldown = 0;
+              var vendorGroundRooms = Object.keys(GameState.rooms).filter(function(r) {
+                return !GameState.rooms[r].requiresFlight && r !== 'teto_masp' && r !== 'subsolo_masp';
+              });
+              GameState.characters.vendedor.location = Utils.randomChoice(vendorGroundRooms);
             }
           }
 
@@ -6987,6 +7141,7 @@
           Object.values(GameState.characters).forEach(char => {
             if (char.id === 'player') return;
             if (!char.isAlive) return;
+            if (char.isNeutral) return; // Vendedor não ataca
             if (CombatModal.isTargetedForKill(char.id)) return;
             if (char.isAlly) return;
             if (char.location !== playerRoom) return;
@@ -7221,9 +7376,14 @@
 
         updateTheme: function() {
           const container = document.getElementById('game-container');
-          container.classList.remove('theme-ruins', 'theme-sky', 'theme-bomb');
+          container.classList.remove('theme-ruins', 'theme-sky', 'theme-bomb', 'theme-night');
 
           const room = GameState.rooms[GameState.playerLocation];
+
+          // Modo noturno (após 21:00)
+          if (GameState.nightModeActive) {
+            container.classList.add('theme-night');
+          }
 
           // Prioridade: bomba > ruinas > ceu
           if (GameState.armedBomb && GameState.armedBomb.location === GameState.playerLocation) {
@@ -7245,6 +7405,13 @@
 
           const weight = Rules.getInventoryWeight();
           document.getElementById('weight-display').textContent = `${weight}/${player.maxWeight}`;
+
+          // Energia
+          const energyDisplay = document.getElementById('energy-display');
+          if (energyDisplay) {
+            energyDisplay.textContent = GameState.energy;
+            energyDisplay.className = GameState.energy <= 20 ? 'stat-value danger' : 'stat-value';
+          }
         },
 
         updateLocation: function() {
@@ -7323,6 +7490,12 @@
 
           const hasLanterna = GameState.playerInventory.includes('lanterna');
           container.innerHTML = chars.map(char => {
+            // Vendedor: botão especial de troca
+            if (char.isNeutral && char.id === 'vendedor') {
+              return `<button class="btn btn-character" style="border-color: var(--accent-gold); color: var(--accent-gold);" onclick="VendorTrade.openTradeModal()" title="${char.description}">
+                🛒 ${char.name}
+              </button>`;
+            }
             const allyClass = char.isAlly ? 'ally' : 'hostile';
             const icon = char.isAlly ? '🤝' : '⚔️';
             let statusText = '';
@@ -7504,13 +7677,17 @@
               }
             }
 
-            // Verificar entidades na sala
-            const enemies = Object.values(GameState.characters).filter(
-              c => c.id !== 'player' && c.location === roomId && c.isAlive && !c.isAlly &&
+            // Verificar entidades na sala (neblina esconde inimigos no minimapa)
+            const enemies = GameState.fogActive ? [] : Object.values(GameState.characters).filter(
+              c => c.id !== 'player' && c.location === roomId && c.isAlive && !c.isAlly && !c.isNeutral &&
               (c.id !== 'demonio' || c.isSummoned)
             );
             const allies = Object.values(GameState.characters).filter(
               c => c.id !== 'player' && c.location === roomId && c.isAlive && c.isAlly
+            );
+            // Vendedor aparece como neutro (dourado)
+            const neutrals = Object.values(GameState.characters).filter(
+              c => c.id !== 'player' && c.location === roomId && c.isAlive && c.isNeutral
             );
 
             if (enemies.length > 0 && allies.length > 0) {
@@ -7519,6 +7696,8 @@
               roomEl.classList.add('has-enemy');
             } else if (allies.length > 0) {
               roomEl.classList.add('has-ally');
+            } else if (neutrals.length > 0) {
+              roomEl.style.boxShadow = '0 0 6px var(--accent-gold)';
             }
 
             // Verificar se há bomba armada nesta sala
@@ -7592,6 +7771,7 @@
             // Base
             'avenida_santos':          { x: 8, y: 90 },
             'nove_julho_sul':          { x: 50, y: 88 },
+            'subsolo_masp':            { x: 22, y: 52 },
           };
 
           // Converter posições percentuais para pixels
@@ -8044,7 +8224,7 @@
           const minutesPlayed = timeElapsed % 60;
 
           const enemiesDefeated = Object.values(GameState.characters).filter(
-            c => c.id !== 'player' && !c.isAlive && !c.isAlly
+            c => c.id !== 'player' && !c.isAlive && !c.isAlly && !c.isNeutral
           ).length;
 
           const alliesGained = Object.values(GameState.characters).filter(
@@ -8053,16 +8233,25 @@
 
           const itemsCollected = GameState.playerInventory.length;
 
+          // CONQUISTAS
+          var achievementsHTML = '';
+          if (isVictory || true) { // Always check, even on defeat (some apply)
+            var achResult = Achievements.check();
+            achievementsHTML = '<h4 style="margin: 0.75rem 0 0.3rem; color: var(--accent-gold);">🏆 Conquistas</h4>' + Achievements.renderHTML();
+          }
+
           const summaryStats = `
             <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius); margin: 1rem 0; text-align: left;">
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-family: var(--font-mono); font-size: 0.85rem;">
                 <div>⏱️ Tempo jogado:</div><div>${hoursPlayed}h ${minutesPlayed}min</div>
                 <div>🕐 Hora final:</div><div>${Utils.formatTime(GameState.time)}</div>
                 <div>❤️ HP restante:</div><div>${player.hp}/${player.maxHp}</div>
+                <div>⚡ Energia restante:</div><div>${GameState.energy}/100</div>
                 <div>💀 Inimigos derrotados:</div><div>${enemiesDefeated}</div>
                 <div>🤝 Total de aliados:</div><div>${alliesGained}</div>
                 <div>🎒 Itens no inventário:</div><div>${itemsCollected}</div>
                 <div>🔮 Palavras da Bruxa:</div><div>${GameState.witchWords}/4</div>
+                <div>🗺️ Salas visitadas:</div><div>${GameState.visitedRooms ? GameState.visitedRooms.size : 0}/${Object.keys(GameState.rooms).length}</div>
               </div>
             </div>
           `;
@@ -8070,6 +8259,7 @@
           const content = `
             <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${reason}</p>
             ${summaryStats}
+            ${achievementsHTML}
             <button id="restart-btn" class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="margin-top: 1rem; display: none;">
               🔄 Jogar Novamente
             </button>
@@ -8206,12 +8396,12 @@
         setupPositions: function() {
           // Salas que NÃO requerem voo (para itens e personagens terrestres)
           const groundRooms = Object.keys(GameState.rooms).filter(r =>
-            r !== 'teto_masp' &&
+            r !== 'teto_masp' && r !== 'subsolo_masp' &&
             GameState.rooms[r].requiresFlight !== true
           );
 
           // Todas as salas exceto teto_masp (para personagens que voam)
-          const flyingRooms = Object.keys(GameState.rooms).filter(r => r !== 'teto_masp');
+          const flyingRooms = Object.keys(GameState.rooms).filter(r => r !== 'teto_masp' && r !== 'subsolo_masp');
 
           // Posições fixas
           GameState.characters.player.location = 'masp';
@@ -8222,8 +8412,34 @@
           GameState.characters.demonio.location = null; // Não começa no mapa
           GameState.characters.demonio.isSummoned = false;
 
+          // Vendedor: posição aleatória
+          if (GameState.characters.vendedor) {
+            GameState.characters.vendedor.location = Utils.randomChoice(groundRooms);
+            // Inventário do vendedor: 3 itens aleatórios do pool (cópias lógicas)
+            var pool = GameState.characters.vendedor.tradePool || [];
+            var tradeInv = [];
+            var poolCopy = pool.slice();
+            for (var vi = 0; vi < 3 && poolCopy.length > 0; vi++) {
+              var idx = Math.floor(Utils.random() * poolCopy.length);
+              tradeInv.push(poolCopy.splice(idx, 1)[0]);
+            }
+            GameState.characters.vendedor.tradeInventory = tradeInv;
+          }
+
           // LIVRO sempre na LIVRARIA
           GameState.items.livro.location = 'livraria';
+
+          // Relíquia sempre no subsolo do MASP
+          if (GameState.items.reliquia) {
+            GameState.items.reliquia.location = 'subsolo_masp';
+          }
+
+          // Comidas: espalhar pelas salas terrestres
+          ['coxinha', 'acai', 'pastel'].forEach(function(foodId) {
+            if (GameState.items[foodId]) {
+              GameState.items[foodId].location = Utils.randomChoice(groundRooms);
+            }
+          });
 
           // Randomizar personagens RESPEITANDO canFly
           ['aguia', 'bombardeador', 'coruja', 'cachorro'].forEach(charId => {
@@ -8234,7 +8450,10 @@
           });
 
           // Randomizar itens (SEMPRE em groundRooms - itens não voam!)
-          const itemsToPlace = Object.keys(GameState.items).filter(i => i !== 'livro' && i !== 'bomba');
+          const itemsToPlace = Object.keys(GameState.items).filter(i =>
+            i !== 'livro' && i !== 'bomba' && i !== 'reliquia' &&
+            i !== 'coxinha' && i !== 'acai' && i !== 'pastel'
+          );
           itemsToPlace.forEach(itemId => {
             GameState.items[itemId].location = Utils.randomChoice(groundRooms);
           });
@@ -8242,6 +8461,21 @@
           // Bomba começa sem localização (criada pelo Bombardeador)
           GameState.items.bomba.location = null;
           GameState.items.bomba.isDestroyed = false;
+
+          // ===== ARMADILHAS AMBIENTAIS =====
+          var trapTypes = [
+            { type: 'pisoQuebrado', preferredRooms: ['tunel', 'subsolo_masp'] },
+            { type: 'fioTropeco', preferredRooms: ['rua_augusta', 'avenida_paulista_oeste'] },
+            { type: 'gasResidual', preferredRooms: ['shopping', 'cinema'] }
+          ];
+          GameState.environmentTraps = {};
+          trapTypes.forEach(function(t) {
+            var validTrapRooms = t.preferredRooms.filter(function(r) { return GameState.rooms[r]; });
+            if (validTrapRooms.length > 0) {
+              var trapRoom = Utils.randomChoice(validTrapRooms);
+              GameState.environmentTraps[trapRoom] = { type: t.type, triggered: false };
+            }
+          });
 
           // WORLD SANITY: validar posições iniciais (segurança extra)
           WorldSanity.init();
