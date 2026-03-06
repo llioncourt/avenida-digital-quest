@@ -280,6 +280,32 @@
       #location-panel {
         flex-shrink: 0;
         position: relative;
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+      #location-panel.room-transition-out {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      #location-panel.room-transition-in {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @keyframes room-name-glow {
+        0% { text-shadow: 0 0 0 transparent; }
+        50% { text-shadow: 0 0 14px var(--accent-gold); }
+        100% { text-shadow: 0 0 0 transparent; }
+      }
+      .room-name-glow { animation: room-name-glow 0.6s ease; }
+
+      @keyframes slide-up-fade {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .stagger-in {
+        animation: slide-up-fade 0.25s ease backwards;
       }
 
       .lanterna-indicator {
@@ -8017,11 +8043,11 @@
             return;
           }
 
-          container.innerHTML = items.map(item =>
-            `<button class="btn btn-item" onclick="Game.pickup('${item.id}')" title="${item.description} (${item.weight}kg)">
-              ${item.name}
-            </button>`
-          ).join('');
+          container.innerHTML = items.map(function(item, idx) {
+            return '<button class="btn btn-item stagger-in" style="animation-delay:' + (idx * 50) + 'ms" onclick="Game.pickup(\'' + item.id + '\')" title="' + item.description + ' (' + item.weight + 'kg)">' +
+              item.name +
+            '</button>';
+          }).join('');
         },
 
         updateCharacters: function() {
@@ -8039,22 +8065,23 @@
           }
 
           const hasLanterna = GameState.playerInventory.includes('lanterna');
-          container.innerHTML = chars.map(char => {
+          container.innerHTML = chars.map(function(char, idx) {
+            var delay = 'style="animation-delay:' + (idx * 50) + 'ms;';
             // Vendedor: botão especial de troca
             if (char.isNeutral && char.id === 'vendedor') {
-              return `<button class="btn btn-character" style="border-color: var(--accent-gold); color: var(--accent-gold);" onclick="VendorTrade.openTradeModal()" title="${char.description}">
-                🛒 ${char.name}
-              </button>`;
+              return '<button class="btn btn-character stagger-in" ' + delay + ' border-color: var(--accent-gold); color: var(--accent-gold);" onclick="VendorTrade.openTradeModal()" title="' + char.description + '">' +
+                '🛒 ' + char.name +
+              '</button>';
             }
-            const allyClass = char.isAlly ? 'ally' : 'hostile';
-            const icon = char.isAlly ? '🤝' : '⚔️';
-            let statusText = '';
+            var allyClass = char.isAlly ? 'ally' : 'hostile';
+            var icon = char.isAlly ? '🤝' : '⚔️';
+            var statusText = '';
             if (char.pacifiedTurns && char.pacifiedTurns > 0) statusText = ' 🎸';
             if (char.paralyzedTurns && char.paralyzedTurns > 0) statusText = ' 🎨';
-            const hpText = hasLanterna && !char.isAlly ? ` (HP: ${char.hp}/${char.maxHp})` : ` (HP: ${char.hp})`;
-            return `<button class="btn btn-character ${allyClass}" onclick="Game.showCharacter('${char.id}')" title="${char.description}">
-              ${icon} ${char.name}${hpText}${statusText}
-            </button>`;
+            var hpText = hasLanterna && !char.isAlly ? ' (HP: ' + char.hp + '/' + char.maxHp + ')' : ' (HP: ' + char.hp + ')';
+            return '<button class="btn btn-character stagger-in ' + allyClass + '" ' + delay + '" onclick="Game.showCharacter(\'' + char.id + '\')" title="' + char.description + '">' +
+              icon + ' ' + char.name + hpText + statusText +
+            '</button>';
           }).join('');
         },
 
@@ -9145,20 +9172,43 @@
 
         // Ações do jogador
         move: function(roomId) {
-          const prevRoom = GameState.playerLocation;
-          this.processAction(Actions.moveTo(roomId));
+          var prevRoom = GameState.playerLocation;
+          var panel = document.getElementById('location-panel');
 
-          // NPCs na nova sala falam ao encontrar o jogador
-          if (GameState.playerLocation !== prevRoom) {
-            Object.values(GameState.characters).forEach(function(char) {
-              if (char.id === 'player') return;
-              if (!char.isAlive) return;
-              if (char.location !== GameState.playerLocation) return;
-              const phrases = NPC_PHRASES[char.id];
-              if (phrases && phrases.encounter && Utils.random() < 0.5) {
-                Log.add('💬 ' + char.name + ': "' + Utils.randomChoice(phrases.encounter) + '"', 'info');
+          // Se mudou de sala, animar transição
+          var self = this;
+          if (prevRoom !== roomId) {
+            panel.classList.remove('room-transition-in');
+            panel.classList.add('room-transition-out');
+            setTimeout(function() {
+              self.processAction(Actions.moveTo(roomId));
+
+              // NPCs na nova sala falam ao encontrar o jogador
+              if (GameState.playerLocation !== prevRoom) {
+                Object.values(GameState.characters).forEach(function(char) {
+                  if (char.id === 'player') return;
+                  if (!char.isAlive) return;
+                  if (char.location !== GameState.playerLocation) return;
+                  var phrases = NPC_PHRASES[char.id];
+                  if (phrases && phrases.encounter && Utils.random() < 0.5) {
+                    Log.add('💬 ' + char.name + ': "' + Utils.randomChoice(phrases.encounter) + '"', 'info');
+                  }
+                });
               }
-            });
+
+              panel.classList.remove('room-transition-out');
+              panel.classList.add('room-transition-in');
+
+              // Glow no nome da sala
+              var nameEl = document.getElementById('location-name');
+              nameEl.classList.remove('room-name-glow');
+              void nameEl.offsetWidth; // force reflow
+              nameEl.classList.add('room-name-glow');
+              setTimeout(function() { nameEl.classList.remove('room-name-glow'); }, 650);
+            }, 160);
+          } else {
+            // Mesma sala (tentativa inválida)
+            this.processAction(Actions.moveTo(roomId));
           }
         },
 
