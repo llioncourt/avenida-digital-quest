@@ -1913,19 +1913,9 @@
             <div class="panel" id="inventory-panel">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                 <h3 class="section-title" style="margin-bottom: 0;">🎒 Inventário</h3>
-                <button
-                  class="btn btn-small craft-toggle-btn"
-                  id="craft-toggle-btn"
-                  onclick="Game.toggleCraftMode()"
-                  title="Combinar itens"
-                >
-                  ⚗️
-                </button>
+                <button class="btn btn-small craft-toggle-btn" id="craft-toggle-btn" onclick="Game.toggleCraftMode()" title="Combinar itens">⚗️</button>
               </div>
-              <div
-                id="craft-status"
-                style="display: none; padding: 4px 8px; margin-bottom: 6px; background: rgba(212,168,70,0.15); border: 1px solid var(--accent-gold-dim); border-radius: var(--radius); font-size: 0.8rem; color: var(--accent-gold);"
-              ></div>
+              <div id="craft-status" style="display: none; padding: 4px 8px; margin-bottom: 6px; background: rgba(212,168,70,0.15); border: 1px solid var(--accent-gold-dim); border-radius: var(--radius); font-size: 0.8rem; color: var(--accent-gold);"></div>
               <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
                 <div id="inventory-list"></div>
               </div>
@@ -2121,7 +2111,7 @@
           id: 'teto_masp',
           name: 'Teto do MASP',
           description: 'O topo do MASP. Daqui você tem uma vista panorâmica de toda a Avenida Paulista. O vento é forte e você sente uma presença maligna. Símbolos arcanos estão desenhados no chão.',
-          exits: {},
+          exits: { 'MASP': 'masp' },
           requiresFlight: false,
           ruinName: 'Teto Colapsado do MASP',
           ruinDescription: 'O teto do MASP está parcialmente destruído. Os símbolos arcanos foram apagados pela explosão. Buracos enormes revelam o interior devastado do museu abaixo.'
@@ -6768,8 +6758,8 @@
 
         isTargetedForKill: function(charId) {
           // Verificar combate atual (já removido da fila pelo shift)
-          if (this.pendingCombat &&
-              this.pendingCombat.result.targetId === charId &&
+          if (this.pendingCombat && 
+              this.pendingCombat.result.targetId === charId && 
               this.pendingCombat.result.killed) {
             return true;
           }
