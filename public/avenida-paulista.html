@@ -7237,7 +7237,7 @@
                 if (target.hp <= 0) {
                   target.hp = 0;
                   target.isAlive = false;
-                  if (target.id === 'bombardeador') {
+                  if (target.onDeath === 'glitchEffect') {
                     GlitchEffect.trigger(3000);
                   }
                 }
