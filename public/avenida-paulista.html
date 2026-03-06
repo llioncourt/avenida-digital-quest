@@ -1762,6 +1762,55 @@
         vertical-align: middle;
       }
 
+      /* ========== ACHIEVEMENT TOAST ========== */
+      @keyframes achievement-slide-in {
+        0% { transform: translateY(-100%); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+      }
+      @keyframes achievement-slide-out {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-100%); opacity: 0; }
+      }
+      .achievement-toast {
+        position: fixed;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10000;
+        background: linear-gradient(135deg, #2a2010, #1a1508);
+        border: 2px solid var(--accent-gold);
+        border-radius: var(--radius);
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-family: var(--font-mono);
+        color: var(--accent-gold);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 4px 15px rgba(0,0,0,0.5);
+        animation: achievement-slide-in 0.4s ease-out forwards;
+        pointer-events: none;
+      }
+      .achievement-toast.hiding {
+        animation: achievement-slide-out 0.4s ease-in forwards;
+      }
+      .achievement-toast .toast-icon {
+        font-size: 1.8rem;
+      }
+      .achievement-toast .toast-text {
+        display: flex;
+        flex-direction: column;
+      }
+      .achievement-toast .toast-title {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.7;
+      }
+      .achievement-toast .toast-name {
+        font-size: 1rem;
+        font-weight: bold;
+      }
+
       /* ========== VENDOR TRADE MODAL ========== */
       .trade-item {
         display: flex;
@@ -5818,6 +5867,11 @@
             consumeHipnodisco();
             enemy.isAlly = true;
             SoundSystem.playHypnoEnemy();
+            // Achievement: Diplomata (check if demon also ally)
+            if (enemy.id === 'feiticeiro') {
+              var demonAlly = GameState.characters.demonio && GameState.characters.demonio.isAlly;
+              if (demonAlly) Achievements.tryUnlock('diplomata');
+            }
             // Flash roxo/magenta pulsante (controle mental)
             ScreenEffects.flash('rgba(180, 0, 255, 0.5)');
             setTimeout(function() { ScreenEffects.flash('rgba(200, 0, 220, 0.4)'); }, 250);
@@ -6140,6 +6194,10 @@
           if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
           GameState.visitedRooms.add(roomId);
 
+          // Achievement: Explorador
+          var totalRoomsCount = Object.keys(GameState.rooms).length;
+          if (GameState.visitedRooms.size >= totalRoomsCount) Achievements.tryUnlock('explorador');
+
           // JOURNAL: Registrar sala e NPCs
           Journal.recordRoom(roomId);
           Object.values(GameState.characters).forEach(function(c) {
@@ -6242,6 +6300,9 @@
           }
 
           SoundSystem.playPickup();
+
+          // Achievement: Colecionador
+          if (GameState.playerInventory.length >= 8) Achievements.tryUnlock('colecionador');
 
           return {
             success: true,
@@ -6457,6 +6518,9 @@
               demon.isAlly = true;
               SoundSystem.playDemonConvert();
               ScreenEffects.flash('rgba(255, 215, 0, 0.5)'); // Flash dourado
+              // Achievement: Diplomata
+              var feitAlly = GameState.characters.feiticeiro && GameState.characters.feiticeiro.isAlly;
+              if (feitAlly) Achievements.tryUnlock('diplomata');
               return {
                 success: true,
                 message: `Você pronuncia "${word}"... O DEMÔNIO estremece e seus olhos brilham! Ele foi CONVERTIDO e agora é seu aliado!`,
@@ -9030,6 +9094,33 @@
           diplomata: { icon: '🤝', name: 'Diplomata', desc: 'Converter o Demônio e hipnotizar o Feiticeiro' },
           sobrevivente: { icon: '💪', name: 'Sobrevivente', desc: 'Vencer com menos de 10 HP' },
           explorador: { icon: '🗺️', name: 'Explorador', desc: 'Visitar todas as salas' }
+        },
+        unlockedThisSession: new Set(),
+        tryUnlock: function(key) {
+          if (this.unlockedThisSession.has(key)) return;
+          var saved = this.load();
+          if (saved[key]) return;
+          saved[key] = true;
+          this.save(saved);
+          this.unlockedThisSession.add(key);
+          this.showToast(key);
+        },
+        showToast: function(key) {
+          var def = this.definitions[key];
+          if (!def) return;
+          var toast = document.createElement('div');
+          toast.className = 'achievement-toast';
+          toast.innerHTML = '<span class="toast-icon">' + def.icon + '</span>' +
+            '<span class="toast-text">' +
+            '<span class="toast-title">🏆 Conquista Desbloqueada!</span>' +
+            '<span class="toast-name">' + def.name + '</span>' +
+            '</span>';
+          document.body.appendChild(toast);
+          SoundSystem.playVictory();
+          setTimeout(function() {
+            toast.classList.add('hiding');
+            setTimeout(function() { toast.remove(); }, 500);
+          }, 3500);
         },
         load: function() {
           try { return JSON.parse(localStorage.getItem('avp_achievements') || '{}'); } catch(e) { return {}; }
