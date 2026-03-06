@@ -8043,21 +8043,7 @@
         }
       };
 
-      // Tooltip da bomba: position fixed com posicionamento via JS
-      (function() {
-        var btn = document.getElementById('bomb-indicator-btn');
-        var tooltip = document.getElementById('bomb-tooltip-content');
-        if (!btn || !tooltip) return;
-        btn.addEventListener('mouseenter', function() {
-          var rect = btn.getBoundingClientRect();
-          tooltip.style.display = 'block';
-          tooltip.style.top = (rect.bottom + 8) + 'px';
-          tooltip.style.left = Math.max(0, rect.right - tooltip.offsetWidth) + 'px';
-        });
-        btn.addEventListener('mouseleave', function() {
-          tooltip.style.display = 'none';
-        });
-      })();
+
 
       const Render = {
         update: function() {
@@ -10100,6 +10086,23 @@
 
       document.addEventListener('DOMContentLoaded', function() {
         IntroSystem.init();
+
+        // Tooltip da bomba: position fixed com posicionamento via JS
+        var bombBtn = document.getElementById('bomb-indicator-btn');
+        var bombTooltip = document.getElementById('bomb-tooltip-content');
+        if (bombBtn && bombTooltip) {
+          // Mover tooltip para o body para escapar overflow:hidden
+          document.body.appendChild(bombTooltip);
+          bombBtn.addEventListener('mouseenter', function() {
+            var rect = bombBtn.getBoundingClientRect();
+            bombTooltip.style.display = 'block';
+            bombTooltip.style.top = (rect.bottom + 8) + 'px';
+            bombTooltip.style.left = Math.max(0, rect.right - bombTooltip.offsetWidth) + 'px';
+          });
+          bombBtn.addEventListener('mouseleave', function() {
+            bombTooltip.style.display = 'none';
+          });
+        }
 
         // Scroll indicator listeners
         document.querySelectorAll('.scroll-indicator-container').forEach(el => {
