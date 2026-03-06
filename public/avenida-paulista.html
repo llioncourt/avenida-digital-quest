@@ -8043,6 +8043,22 @@
         }
       };
 
+      // Tooltip da bomba: position fixed com posicionamento via JS
+      (function() {
+        var btn = document.getElementById('bomb-indicator-btn');
+        var tooltip = document.getElementById('bomb-tooltip-content');
+        if (!btn || !tooltip) return;
+        btn.addEventListener('mouseenter', function() {
+          var rect = btn.getBoundingClientRect();
+          tooltip.style.display = 'block';
+          tooltip.style.top = (rect.bottom + 8) + 'px';
+          tooltip.style.left = Math.max(0, rect.right - tooltip.offsetWidth) + 'px';
+        });
+        btn.addEventListener('mouseleave', function() {
+          tooltip.style.display = 'none';
+        });
+      })();
+
       const Render = {
         update: function() {
           this.updateHeader();
