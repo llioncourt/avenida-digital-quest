@@ -579,6 +579,23 @@
         margin-left: 0.5rem;
       }
 
+      /* ========== CRAFTING ========== */
+      .craft-selected {
+        border: 1px solid var(--accent-gold) !important;
+        background: rgba(212, 168, 70, 0.12) !important;
+        box-shadow: 0 0 8px rgba(212, 168, 70, 0.3);
+      }
+      .craft-toggle-btn {
+        font-size: 0.85rem;
+        padding: 2px 8px;
+        min-width: unset;
+        height: auto;
+      }
+      .craft-toggle-btn.craft-active {
+        background: var(--accent-gold);
+        color: var(--bg-primary);
+      }
+
       .btn-small {
         font-size: 1rem;
         padding: 0.2rem 0.4rem;
@@ -1894,7 +1911,11 @@
             </div>
 
             <div class="panel" id="inventory-panel">
-              <h3 class="section-title">🎒 Inventário</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h3 class="section-title" style="margin-bottom: 0;">🎒 Inventário</h3>
+                <button class="btn btn-small craft-toggle-btn" id="craft-toggle-btn" onclick="Game.toggleCraftMode()" title="Combinar itens">⚗️</button>
+              </div>
+              <div id="craft-status" style="display: none; padding: 4px 8px; margin-bottom: 6px; background: rgba(212,168,70,0.15); border: 1px solid var(--accent-gold-dim); border-radius: var(--radius); font-size: 0.8rem; color: var(--accent-gold);"></div>
               <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
                 <div id="inventory-list"></div>
               </div>
@@ -2410,9 +2431,99 @@
           canFly: false,
           isUsable: true,
           singleUse: true,
-          energyRestore: 20
+        energyRestore: 20
+        },
+        // === ITENS CRAFTADOS ===
+        espada_encantada: {
+          id: 'espada_encantada',
+          name: 'ESPADA ENCANTADA',
+          description: 'Uma espada imbuída com cera mágica. Brilha com poder arcano! +25 ATK, +5 DEF.',
+          attackPower: 25,
+          defensePower: 5,
+          weight: 6,
+          canFly: false,
+          isUsable: false,
+          singleUse: false,
+          startsInWorld: false,
+          isCrafted: true
+        },
+        escudo_grafitado: {
+          id: 'escudo_grafitado',
+          name: 'ESCUDO GRAFITADO',
+          description: 'Um escudo coberto de grafite mágico. Reflete 5 de dano ao atacante! +18 DEF.',
+          attackPower: 0,
+          defensePower: 18,
+          weight: 8,
+          canFly: false,
+          isUsable: false,
+          singleUse: false,
+          startsInWorld: false,
+          isCrafted: true,
+          reflectDamage: 5
+        },
+        detector: {
+          id: 'detector',
+          name: 'DETECTOR',
+          description: 'Combinação de kit bomba e lanterna. Revela armadilhas e itens ocultos em salas adjacentes! (Passiva)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 3,
+          canFly: false,
+          isUsable: false,
+          singleUse: false,
+          startsInWorld: false,
+          isCrafted: true
+        },
+        conjunto_musical: {
+          id: 'conjunto_musical',
+          name: 'CONJUNTO MUSICAL',
+          description: 'Violão e pandeiro juntos! Pacifica inimigos E atrai aliados ao mesmo tempo! (Reutilizável)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 4,
+          canFly: false,
+          isUsable: true,
+          singleUse: false,
+          startsInWorld: false,
+          isCrafted: true
+        },
+        energetico: {
+          id: 'energetico',
+          name: 'ENERGÉTICO PAULISTA',
+          description: 'Mistura de café com kit saúde. Cura 50 HP e pula o tempo! (Uso único)',
+          attackPower: 0,
+          defensePower: 0,
+          weight: 1,
+          canFly: false,
+          isUsable: true,
+          singleUse: true,
+          startsInWorld: false,
+          isCrafted: true
+        },
+        traje_protetor: {
+          id: 'traje_protetor',
+          name: 'TRAJE PROTETOR',
+          description: 'Máscara de gás e guarda-chuva combinados. Imune a chuva, gás e queda! +10 DEF.',
+          attackPower: 0,
+          defensePower: 10,
+          weight: 3,
+          canFly: false,
+          isUsable: false,
+          singleUse: false,
+          startsInWorld: false,
+          isCrafted: true
         }
       };
+
+      // === RECEITAS DE CRAFTING ===
+      const CRAFTING_RECIPES = [
+        { ingredients: ['espada', 'cera_magica'], result: 'espada_encantada', name: 'Espada Encantada' },
+        { ingredients: ['escudo', 'grafite'], result: 'escudo_grafitado', name: 'Escudo Grafitado' },
+        { ingredients: ['kit_bomba', 'lanterna'], result: 'detector', name: 'Detector' },
+        { ingredients: ['violao', 'pandeiro'], result: 'conjunto_musical', name: 'Conjunto Musical' },
+        { ingredients: ['kit_saude', 'cafe'], result: 'energetico', name: 'Energético Paulista' },
+        { ingredients: ['mascara_gas', 'guarda_chuva'], result: 'traje_protetor', name: 'Traje Protetor' }
+      ];
 
       const CHARACTERS_DATA = {
         player: {
@@ -6095,6 +6206,52 @@
           GameState.energy = Math.min(100, GameState.energy + restore);
           SoundSystem.playUseItem();
           return { success: true, message: '🥟 Você comeu um PASTEL quentinho! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
+        },
+
+        // === HANDLERS DE ITENS CRAFTADOS ===
+        conjunto_musical: function() {
+          var room = GameState.playerLocation;
+          var pacified = 0;
+          var attracted = 0;
+
+          // Pacificar inimigos (como violão)
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlive && !c.isAlly && c.location === room) {
+              c.pacifiedTurns = (c.pacifiedTurns || 0) + 3;
+              pacified++;
+            }
+          });
+
+          // Atrair aliados (como pandeiro)
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlive && c.isAlly && c.location !== room) {
+              c.location = room;
+              attracted++;
+            }
+          });
+
+          SoundSystem.playUseItem();
+          ScreenEffects.flash('rgba(255, 200, 0, 0.4)');
+          var msg = '🎵 Você toca o CONJUNTO MUSICAL!';
+          if (pacified > 0) msg += ' ' + pacified + ' inimigo(s) pacificado(s)!';
+          if (attracted > 0) msg += ' ' + attracted + ' aliado(s) atraído(s)!';
+          if (pacified === 0 && attracted === 0) msg += ' A música ecoa... mas ninguém responde.';
+          return { success: true, message: msg, consumed: false };
+        },
+
+        energetico: function() {
+          var player = GameState.characters.player;
+          var oldHp = player.hp;
+          player.hp = Math.min(player.maxHp, player.hp + 50);
+          var healed = player.hp - oldHp;
+          GameState.skipNextTimeAdvance = true;
+          SoundSystem.playHeal();
+          ScreenEffects.flash('rgba(0, 255, 100, 0.4)');
+          return {
+            success: true,
+            message: '⚡ Você bebeu o ENERGÉTICO PAULISTA! +' + healed + ' HP! Sua próxima ação não avança o tempo!',
+            consumed: true
+          };
         }
       };
 
@@ -6410,6 +6567,39 @@
           if (result.advanceTime === undefined) result.advanceTime = result.success;
           return result;
         },
+
+        // Crafting - combinar 2 itens
+        craft: function(itemId1, itemId2) {
+          if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+          if (!GameState.playerInventory.includes(itemId1) || !GameState.playerInventory.includes(itemId2)) {
+            return { success: false, message: 'Você não tem esses itens!' };
+          }
+          // Buscar receita (ordem não importa)
+          var recipe = CRAFTING_RECIPES.find(function(r) {
+            return (r.ingredients.includes(itemId1) && r.ingredients.includes(itemId2) && itemId1 !== itemId2);
+          });
+          if (!recipe) {
+            return { success: false, message: '⚗️ Esses itens não combinam entre si.' };
+          }
+          // Remover ingredientes
+          var idx1 = GameState.playerInventory.indexOf(itemId1);
+          if (idx1 > -1) GameState.playerInventory.splice(idx1, 1);
+          var idx2 = GameState.playerInventory.indexOf(itemId2);
+          if (idx2 > -1) GameState.playerInventory.splice(idx2, 1);
+          // Criar item resultante
+          if (!GameState.items[recipe.result]) {
+            GameState.items[recipe.result] = Utils.deepClone(ITEMS_DATA[recipe.result]);
+          }
+          GameState.items[recipe.result].location = 'inventory';
+          GameState.playerInventory.push(recipe.result);
+          // Achievement
+          Achievements.tryUnlock('alquimista');
+          SoundSystem.playPickup();
+          ScreenEffects.flash('rgba(212, 168, 70, 0.5)');
+          Log.add('⚗️ Você combinou ' + GameState.items[itemId1 === recipe.ingredients[0] ? itemId1 : itemId2]?.name + ' + ' + GameState.items[itemId1 === recipe.ingredients[0] ? itemId2 : itemId1]?.name + ' = ' + ITEMS_DATA[recipe.result].name + '!', 'success');
+          return { success: true, message: '⚗️ Você criou: ' + ITEMS_DATA[recipe.result].name + '! ' + ITEMS_DATA[recipe.result].description, advanceTime: true };
+        },
+
 
         // Atacar personagem
         attack: function(characterId) {
@@ -7817,11 +8007,32 @@
 
           if (GameState.playerInventory.length === 0) {
             container.innerHTML = '<span style="color: var(--text-muted)">Inventário vazio.</span>';
+            // Reset craft mode if inventory empty
+            if (GameState.craftMode) { GameState.craftMode = false; GameState.craftSelection = []; this.updateCraftUI(); }
             return;
           }
 
+          var craftMode = GameState.craftMode || false;
+          var craftSel = GameState.craftSelection || [];
+
           container.innerHTML = GameState.playerInventory.map(itemId => {
             const item = GameState.items[itemId];
+            var isSelected = craftSel.includes(itemId);
+            var selectedClass = isSelected ? ' craft-selected' : '';
+            var craftClickable = craftMode ? ` onclick="Game.craftSelect('${item.id}')" style="cursor:pointer;"` : '';
+
+            if (craftMode) {
+              return `<div class="inventory-item${selectedClass}"${craftClickable}>
+                <div>
+                  <span class="inventory-item-name">${item.name}</span>
+                  <span class="inventory-item-weight">(${item.weight}kg)</span>
+                </div>
+                <div class="inventory-actions">
+                  ${isSelected ? '<span style="color: var(--accent-gold);">✔</span>' : '<span style="color: var(--text-muted);">○</span>'}
+                </div>
+              </div>`;
+            }
+
             const useBtn = item.isUsable ?
               `<button class="btn btn-small" onclick="Game.use('${item.id}')" title="Usar">✋</button>` : '';
             return `<div class="inventory-item">
@@ -8903,6 +9114,56 @@
           this.processAction(Actions.dropItem(itemId));
         },
 
+        // === CRAFTING UI ===
+        toggleCraftMode: function() {
+          GameState.craftMode = !GameState.craftMode;
+          GameState.craftSelection = [];
+          this.updateCraftUI();
+          UI.updateInventory();
+        },
+
+        updateCraftUI: function() {
+          var btn = document.getElementById('craft-toggle-btn');
+          var status = document.getElementById('craft-status');
+          if (GameState.craftMode) {
+            btn.classList.add('craft-active');
+            btn.textContent = '✖';
+            btn.title = 'Cancelar combinação';
+            status.style.display = 'block';
+            var sel = GameState.craftSelection || [];
+            if (sel.length === 0) status.textContent = '⚗️ Selecione o 1º item para combinar';
+            else if (sel.length === 1) status.textContent = '⚗️ Agora selecione o 2º item';
+          } else {
+            btn.classList.remove('craft-active');
+            btn.textContent = '⚗️';
+            btn.title = 'Combinar itens';
+            status.style.display = 'none';
+          }
+        },
+
+        craftSelect: function(itemId) {
+          if (!GameState.craftMode) return;
+          var sel = GameState.craftSelection || [];
+          // Deselect if already selected
+          var idx = sel.indexOf(itemId);
+          if (idx > -1) { sel.splice(idx, 1); GameState.craftSelection = sel; this.updateCraftUI(); UI.updateInventory(); return; }
+          if (sel.length >= 2) return;
+          sel.push(itemId);
+          GameState.craftSelection = sel;
+          if (sel.length === 2) {
+            // Attempt craft
+            var result = Actions.craft(sel[0], sel[1]);
+            GameState.craftMode = false;
+            GameState.craftSelection = [];
+            this.processAction(result);
+            this.updateCraftUI();
+          } else {
+            this.updateCraftUI();
+            UI.updateInventory();
+          }
+        },
+
+
         use: function(itemId, targetId) {
           const result = Actions.useItem(itemId, targetId);
 
@@ -9121,7 +9382,8 @@
           colecionador: { icon: '🎒', name: 'Colecionador', desc: 'Ter 8+ itens ao mesmo tempo' },
           diplomata: { icon: '🤝', name: 'Diplomata', desc: 'Converter o Demônio e hipnotizar o Feiticeiro' },
           sobrevivente: { icon: '💪', name: 'Sobrevivente', desc: 'Vencer com menos de 10 HP' },
-          explorador: { icon: '🗺️', name: 'Explorador', desc: 'Visitar todas as salas' }
+          explorador: { icon: '🗺️', name: 'Explorador', desc: 'Visitar todas as salas' },
+          alquimista: { icon: '⚗️', name: 'Alquimista', desc: 'Criar seu primeiro item craftado' }
         },
         unlockedThisSession: new Set(),
         tryUnlock: function(key) {
