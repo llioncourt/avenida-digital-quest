@@ -6651,12 +6651,7 @@
           // ===== SISTEMA DE ENERGIA (FOME) =====
           GameState.energy = Math.max(0, GameState.energy - 2);
           if (GameState.energy <= 0) {
-            GameState.characters.player.hp -= 3;
-            Log.add('😰 Você está exausto e perdendo forças! -3 HP. Coma algo para recuperar energia!', 'danger');
-            if (GameState.characters.player.hp <= 0) {
-              GameState.characters.player.hp = 0;
-              GameState.characters.player.isAlive = false;
-            }
+            Rules.damagePlayer(3, '😰 Você está exausto e perdendo forças! -3 HP. Coma algo para recuperar energia!');
           } else if (GameState.energy <= 20) {
             Log.add('⚡ Energia baixa (' + GameState.energy + '/100)! Procure comida: Coxinha, Açaí ou Pastel.', 'warning');
           }
@@ -6681,12 +6676,7 @@
             // Tropeço noturno sem lanterna (15% chance ao mover)
             if (!Rules.hasEffect('nightVision') && Utils.random() < 0.15) {
               var tripDmg = 5;
-              GameState.characters.player.hp -= tripDmg;
-              Log.add('🌑 Você tropeça no escuro! -' + tripDmg + ' HP. Uma LANTERNA ajudaria.', 'danger');
-              if (GameState.characters.player.hp <= 0) {
-                GameState.characters.player.hp = 0;
-                GameState.characters.player.isAlive = false;
-              }
+              Rules.damagePlayer(tripDmg, '🌑 Você tropeça no escuro! -' + tripDmg + ' HP. Uma LANTERNA ajudaria.');
             }
           }
 
