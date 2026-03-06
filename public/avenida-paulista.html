@@ -2111,7 +2111,7 @@
           id: 'teto_masp',
           name: 'Teto do MASP',
           description: 'O topo do MASP. Daqui você tem uma vista panorâmica de toda a Avenida Paulista. O vento é forte e você sente uma presença maligna. Símbolos arcanos estão desenhados no chão.',
-          exits: {},
+          exits: { 'MASP': 'masp' },
           requiresFlight: false,
           ruinName: 'Teto Colapsado do MASP',
           ruinDescription: 'O teto do MASP está parcialmente destruído. Os símbolos arcanos foram apagados pela explosão. Buracos enormes revelam o interior devastado do museu abaixo.'
@@ -9031,11 +9031,10 @@
         closeExplosionModal: function(playerDied) {
           Modals.hide();
           GameState._explosionInProgress = false;
-          if (playerDied) {
-            const gameCheck = Rules.checkGameOver();
-            if (gameCheck.ended) {
-              Modals.showGameOver(gameCheck.reason);
-            }
+          // Sempre verificar game over (vitória OU derrota) após explosão
+          const gameCheck = Rules.checkGameOver();
+          if (gameCheck.ended) {
+            Modals.showGameOver(gameCheck.reason);
           }
         },
 
