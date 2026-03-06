@@ -1831,6 +1831,19 @@
       .bomb-indicator.active { display: inline-block; }
       @keyframes bomb-pulse {
         0%, 100% { transform: scale(1); }
+
+      /* ========== WEATHER INDICATORS ========== */
+      .weather-indicator {
+        display: none;
+        font-size: 1rem;
+        padding: 0.3rem 0.2rem;
+        cursor: default;
+        animation: weather-pulse 2s ease-in-out infinite;
+      }
+      .weather-indicator.active { display: inline-block; }
+      @keyframes weather-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
         50% { transform: scale(1.2); }
       }
       .bomb-tooltip {
@@ -2017,6 +2030,9 @@
                 >
                   🎵
                 </button>
+                <span id="weather-rain" class="weather-indicator" title="Chovendo">🌧️</span>
+                <span id="weather-wind" class="weather-indicator" title="Vento forte">🌬️</span>
+                <span id="weather-fog" class="weather-indicator" title="Neblina">🌫️</span>
               </div>
             </div>
             <div id="log-container" class="scroll-indicator-container"></div>
@@ -3091,6 +3107,22 @@
         }
       };
 
+      const WeatherIndicators = {
+        update: function() {
+          var mapping = { 'weather-rain': 'rain', 'weather-wind': 'wind_howl', 'weather-fog': 'fog' };
+          Object.keys(mapping).forEach(function(elemId) {
+            var el = document.getElementById(elemId);
+            if (el) {
+              if (RandomEvents.isActive(mapping[elemId])) {
+                el.classList.add('active');
+              } else {
+                el.classList.remove('active');
+              }
+            }
+          });
+        }
+      };
+
       const RandomEvents = {
         activeEvents: {},
         activeSounds: {},
@@ -3168,6 +3200,7 @@
           if (this.visuals[eventId]) {
             this.visuals[eventId](true);
           }
+          WeatherIndicators.update();
         },
 
         endEvent: function(eventId) {
@@ -3196,6 +3229,7 @@
               }
             });
           }
+          WeatherIndicators.update();
         },
 
         isActive: function(eventId) {
