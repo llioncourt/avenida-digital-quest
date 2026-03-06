@@ -5045,7 +5045,7 @@
           if (player.canFly) return true;
 
           // Verificar se tem asa delta no inventário
-          return GameState.playerInventory.includes('asa_delta');
+          return Rules.hasEffect('flight');
         },
 
         // Verificar se pode ir para uma sala
@@ -5070,7 +5070,7 @@
         // Recalcular maxWeight de forma idempotente
         recalcMaxWeight: function() {
           var base = 20;
-          if (GameState.playerInventory.includes('mochila')) base += 20;
+          if (Rules.hasEffect('weightBonus')) base += 20;
           GameState.characters.player.maxWeight = base;
         },
 
@@ -5630,25 +5630,7 @@
           };
         },
 
-        // Comidas - restauram energia
-        coxinha: function() {
-          var restore = 30;
-          GameState.energy = Math.min(100, GameState.energy + restore);
-          SoundSystem.playUseItem();
-          return { success: true, message: '🍗 Você comeu uma COXINHA crocante! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
-        },
-        acai: function() {
-          var restore = 50;
-          GameState.energy = Math.min(100, GameState.energy + restore);
-          SoundSystem.playUseItem();
-          return { success: true, message: '🫐 Você tomou um AÇAÍ revigorante! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
-        },
-        pastel: function() {
-          var restore = 20;
-          GameState.energy = Math.min(100, GameState.energy + restore);
-          SoundSystem.playUseItem();
-          return { success: true, message: '🥟 Você comeu um PASTEL quentinho! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
-        },
+        // Comidas - handler genérico detectado pelo campo energyRestore no item (ver useItem)
 
         // === HANDLERS DE ITENS CRAFTADOS ===
         conjunto_musical: function() {
