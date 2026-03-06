@@ -1844,12 +1844,9 @@
         animation: weather-pulse 2s ease-in-out infinite;
       }
       .weather-indicator.active { display: inline-flex; align-items: center; }
-      .weather-tooltip {
+      #weather-tooltip-content {
         display: none;
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
+        position: fixed;
         background: rgba(0,0,0,0.9);
         color: #0f0;
         font-size: 0.7rem;
@@ -1860,7 +1857,6 @@
         pointer-events: none;
         border: 1px solid rgba(0,255,0,0.3);
       }
-      .weather-indicator:hover .weather-tooltip { display: block; }
       @keyframes weather-pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
@@ -2031,9 +2027,9 @@
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 0.5rem;">
               <div style="display:flex; align-items:center; gap:0.3rem;">
                 <h3 class="modern-pulse-title" style="margin:0;">Avenida Paulista</h3>
-                <span id="weather-rain" class="weather-indicator">🌧️<span class="weather-tooltip">Está chovendo</span></span>
-                <span id="weather-wind" class="weather-indicator">🌬️<span class="weather-tooltip">Vento forte</span></span>
-                <span id="weather-fog" class="weather-indicator">🌫️<span class="weather-tooltip">Neblina densa</span></span>
+                <span id="weather-rain" class="weather-indicator" data-tooltip="Está chovendo">🌧️</span>
+                <span id="weather-wind" class="weather-indicator" data-tooltip="Vento forte">🌬️</span>
+                <span id="weather-fog" class="weather-indicator" data-tooltip="Neblina densa">🌫️</span>
               </div>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
                 <button id="bomb-indicator-btn" class="bomb-indicator" title="Bomba ativa">💣<div class="bomb-tooltip" id="bomb-tooltip-content"></div></button>
