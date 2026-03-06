@@ -7855,105 +7855,78 @@
           viewport.addEventListener('touchend', this.handleTouchEnd.bind(this));
         },
 
-        handleMouseDown: function(e) {
+        // === Shared drag helpers ===
+        _startDrag: function(x, y, roomEl) {
           const viewport = document.getElementById('minimap-viewport');
-          const roomEl = e.target.closest('.map-room');
-
           if (roomEl) {
-            // Iniciar drag de node
             this.isDragging = true;
             this.dragType = 'node';
             this.dragTarget = roomEl.getAttribute('data-room-id');
             roomEl.classList.add('dragging');
             viewport.classList.add('dragging-node');
-          } else if (e.target === viewport || e.target.id === 'minimap') {
-            // Iniciar pan do mapa
+          } else {
             this.isDragging = true;
             this.dragType = 'pan';
             viewport.classList.add('dragging');
           }
-
-          this.startX = e.clientX;
-          this.startY = e.clientY;
-
-          e.preventDefault();
+          this.startX = x;
+          this.startY = y;
         },
 
-        handleMouseMove: function(e) {
+        _moveDrag: function(x, y) {
           if (!this.isDragging) return;
-
           const viewport = document.getElementById('minimap-viewport');
           if (!viewport) return;
 
           if (this.dragType === 'pan') {
-            // Pan do mapa
-            const deltaX = e.clientX - this.startX;
-            const deltaY = e.clientY - this.startY;
-
-            this.offsetX += deltaX;
-            this.offsetY += deltaY;
-
-            this.startX = e.clientX;
-            this.startY = e.clientY;
-
+            this.offsetX += x - this.startX;
+            this.offsetY += y - this.startY;
+            this.startX = x;
+            this.startY = y;
             this.applyTransform();
           } else if (this.dragType === 'node' && this.dragTarget) {
-            // Drag de node
             const viewportRect = viewport.getBoundingClientRect();
-            const width = viewportRect.width;
-            const height = viewportRect.height;
+            const mx = (x - viewportRect.left - this.offsetX) / this.zoom;
+            const my = (y - viewportRect.top - this.offsetY) / this.zoom;
 
-            // Converter coordenadas do mouse para coordenadas do mapa
-            const x = (e.clientX - viewportRect.left - this.offsetX) / this.zoom;
-            const y = (e.clientY - viewportRect.top - this.offsetY) / this.zoom;
-
-            // Converter para porcentagem
             this.customPositions[this.dragTarget] = {
-              x: (x / width) * 100,
-              y: (y / height) * 100
+              x: (mx / viewportRect.width) * 100,
+              y: (my / viewportRect.height) * 100
             };
 
-            // Atualizar posição do elemento diretamente (sem redesenhar tudo)
+            // Atualizar posição do elemento diretamente (mouse) ou redesenhar (touch)
             const roomEl = document.querySelector(`[data-room-id="${this.dragTarget}"]`);
             if (roomEl) {
-              roomEl.style.left = x + 'px';
-              roomEl.style.top = y + 'px';
+              roomEl.style.left = mx + 'px';
+              roomEl.style.top = my + 'px';
             }
-
-            // Atualizar conexões
             Render.updateMinimap();
           }
         },
 
-        handleMouseUp: function(e) {
+        _endDrag: function(endX, endY, clickThreshold) {
           if (!this.isDragging) return;
-
           const viewport = document.getElementById('minimap-viewport');
 
-          // Se foi um clique rápido num node de saída válida, mover
           if (this.dragType === 'node') {
             const roomEl = document.querySelector(`[data-room-id="${this.dragTarget}"]`);
             if (roomEl) {
               roomEl.classList.remove('dragging');
 
-              // Se quase não moveu, considerar como clique
-              const deltaX = Math.abs(e.clientX - this.startX);
-              const deltaY = Math.abs(e.clientY - this.startY);
-              if (deltaX < 5 && deltaY < 5) {
-                // Verificar se é saída válida
+              const deltaX = Math.abs(endX - this.startX);
+              const deltaY = Math.abs(endY - this.startY);
+              if (deltaX < clickThreshold && deltaY < clickThreshold) {
                 if (roomEl.classList.contains('valid-exit')) {
                   Game.move(this.dragTarget);
                 } else if (roomEl.classList.contains('blocked-exit')) {
                   const room = GameState.rooms[this.dragTarget];
                   const msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
-                    ? 'Um escudo de força mágico bloqueia o acesso!'
+                    ? '🛡️ Um escudo de força mágico bloqueia o acesso! Derrote o Feiticeiro para removê-lo.'
                     : '✈️ Você precisa voar para acessar ' + (room ? room.name : 'este local') + '.';
                   Log.add(msg, 'warning');
                 }
               }
             }
-
-            // Salvar posições após drag de node
             this.savePositions();
           }
 
@@ -7967,6 +7940,23 @@
           this.dragTarget = null;
         },
 
+        // === Mouse handlers ===
+        handleMouseDown: function(e) {
+          const roomEl = e.target.closest('.map-room');
+          const viewport = document.getElementById('minimap-viewport');
+          const isPan = !roomEl && (e.target === viewport || e.target.id === 'minimap');
+          this._startDrag(e.clientX, e.clientY, roomEl || (isPan ? null : undefined));
+          if (roomEl || isPan) e.preventDefault();
+        },
+
+        handleMouseMove: function(e) {
+          this._moveDrag(e.clientX, e.clientY);
+        },
+
+        handleMouseUp: function(e) {
+          this._endDrag(e.clientX, e.clientY, 5);
+        },
+
         handleWheel: function(e) {
           e.preventDefault();
 
@@ -7976,12 +7966,10 @@
           const delta = e.deltaY > 0 ? -0.15 : 0.15;
           const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta));
 
-          // Zoom no ponto do cursor
           const rect = viewport.getBoundingClientRect();
           const cursorX = e.clientX - rect.left;
           const cursorY = e.clientY - rect.top;
 
-          // Ajustar offset para zoom centrado no cursor
           const zoomRatio = newZoom / this.zoom;
           this.offsetX = cursorX - (cursorX - this.offsetX) * zoomRatio;
           this.offsetY = cursorY - (cursorY - this.offsetY) * zoomRatio;
@@ -7991,9 +7979,9 @@
           this.savePositions();
         },
 
+        // === Touch handlers ===
         handleTouchStart: function(e) {
           if (e.touches.length === 2) {
-            // Pinch zoom - calcular distância inicial
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
             this.lastPinchDistance = Math.hypot(
@@ -8002,126 +7990,41 @@
             );
             e.preventDefault();
           } else if (e.touches.length === 1) {
-            // Single touch - pan ou drag
             const touch = e.touches[0];
             const roomEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.map-room');
-            const viewport = document.getElementById('minimap-viewport');
-
-            if (roomEl) {
-              this.isDragging = true;
-              this.dragType = 'node';
-              this.dragTarget = roomEl.getAttribute('data-room-id');
-              roomEl.classList.add('dragging');
-              viewport.classList.add('dragging-node');
-            } else {
-              this.isDragging = true;
-              this.dragType = 'pan';
-              viewport.classList.add('dragging');
-            }
-
-            this.startX = touch.clientX;
-            this.startY = touch.clientY;
+            this._startDrag(touch.clientX, touch.clientY, roomEl);
             e.preventDefault();
           }
         },
 
         handleTouchMove: function(e) {
           if (e.touches.length === 2) {
-            // Pinch zoom
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
-
             const currentDistance = Math.hypot(
               touch2.clientX - touch1.clientX,
               touch2.clientY - touch1.clientY
             );
-
             if (this.lastPinchDistance) {
               const delta = (currentDistance - this.lastPinchDistance) * 0.01;
               this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta));
               this.applyTransform();
             }
-
             this.lastPinchDistance = currentDistance;
             e.preventDefault();
           } else if (e.touches.length === 1 && this.isDragging) {
-            const touch = e.touches[0];
-            const viewport = document.getElementById('minimap-viewport');
-            if (!viewport) return;
-
-            if (this.dragType === 'pan') {
-              const deltaX = touch.clientX - this.startX;
-              const deltaY = touch.clientY - this.startY;
-
-              this.offsetX += deltaX;
-              this.offsetY += deltaY;
-
-              this.startX = touch.clientX;
-              this.startY = touch.clientY;
-
-              this.applyTransform();
-            } else if (this.dragType === 'node' && this.dragTarget) {
-              const viewportRect = viewport.getBoundingClientRect();
-              const width = viewportRect.width;
-              const height = viewportRect.height;
-
-              const x = (touch.clientX - viewportRect.left - this.offsetX) / this.zoom;
-              const y = (touch.clientY - viewportRect.top - this.offsetY) / this.zoom;
-
-              this.customPositions[this.dragTarget] = {
-                x: (x / width) * 100,
-                y: (y / height) * 100
-              };
-
-              Render.updateMinimap();
-            }
-
+            this._moveDrag(e.touches[0].clientX, e.touches[0].clientY);
             e.preventDefault();
           }
         },
 
         handleTouchEnd: function(e) {
           this.lastPinchDistance = null;
-
-          if (this.isDragging) {
-            const viewport = document.getElementById('minimap-viewport');
-
-            if (this.dragType === 'node') {
-              const roomEl = document.querySelector(`[data-room-id="${this.dragTarget}"]`);
-              if (roomEl) {
-                roomEl.classList.remove('dragging');
-
-                // Verificar se foi um tap (toque rápido sem arrastar) para navegar
-                if (e.changedTouches && e.changedTouches.length > 0) {
-                  const touch = e.changedTouches[0];
-                  const deltaX = Math.abs(touch.clientX - this.startX);
-                  const deltaY = Math.abs(touch.clientY - this.startY);
-
-                  // Se moveu menos de 10px, considerar como tap (navegar)
-                  if (deltaX < 10 && deltaY < 10) {
-                    if (roomEl.classList.contains('valid-exit')) {
-                      Game.move(this.dragTarget);
-                    } else if (roomEl.classList.contains('blocked-exit')) {
-                      const room = GameState.rooms[this.dragTarget];
-                      const msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
-                        ? '🛡️ Um escudo de força mágico bloqueia o acesso! Derrote o Feiticeiro para removê-lo.'
-                        : '✈️ Você precisa voar para acessar ' + (room ? room.name : 'este local') + '.';
-                      Log.add(msg, 'warning');
-                    }
-                  }
-                }
-              }
-              this.savePositions();
-            }
-
-            if (viewport) {
-              viewport.classList.remove('dragging');
-              viewport.classList.remove('dragging-node');
-            }
-
-            this.isDragging = false;
-            this.dragType = null;
-            this.dragTarget = null;
+          if (this.isDragging && e.changedTouches && e.changedTouches.length > 0) {
+            const touch = e.changedTouches[0];
+            this._endDrag(touch.clientX, touch.clientY, 10);
+          } else if (this.isDragging) {
+            this._endDrag(this.startX, this.startY, 10);
           }
         },
 
