@@ -1,99 +1,69 @@
 
 
-## Plano: Italico no Combate + Log de Saida de NPCs + Aliados Seguem o Jogador
+# Animações de Transição para Mudança de Sala
 
-### 1. Italico na janela de combate
+## Objetivo
 
-**Problema:** O modal de combate usa `div.textContent = line.text` (linhas ~5794, 5807, 5948), que renderiza tudo como texto puro. O `*texto*` nunca vira `<em>`.
+Adicionar animações visuais suaves quando o jogador muda de sala, dando feedback cinematográfico à navegação.
 
-**Correcao:** Trocar `textContent` por `innerHTML` com a mesma regex ja usada no Log:
+## O que será animado
 
-```javascript
-div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-```
+1. **Fade-out/Fade-in do painel de localização** (`#location-panel`) — ao mudar de sala, o conteúdo faz fade-out rápido, atualiza, e faz fade-in
+2. **Slide dos itens e personagens** — os botões de itens e personagens entram com um leve slide-up escalonado (staggered)
+3. **Flash sutil no nome da sala** — o `#location-name` pulsa brevemente ao mudar
 
-Aplicar em 3 locais dentro de `CombatModal`:
-- Linha ~5794: linhas do atacante
-- Linha ~5807: linhas do defensor
-- Linha ~5948: linhas de resultado
+## Implementação Técnica
 
-### 2. Log quando NPC sai da sala do jogador
+### 1. CSS: Adicionar keyframes e classes de animação
 
-**Problema:** Quando um NPC esta na mesma sala que o jogador e se move para outro lugar, nao ha mensagem no log.
+```css
+/* Transição de sala */
+#location-panel.room-transition-out {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+#location-panel.room-transition-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
 
-**Correcao:** Em `processNPCMovement` (linha ~6223), apos `char.location = Utils.randomChoice(validExits)`, adicionar verificacao: se `prevLocation === GameState.playerLocation` e `char.location !== GameState.playerLocation`, logar para onde o NPC foi.
+/* Nome da sala brilha ao entrar */
+@keyframes room-name-glow {
+  0% { text-shadow: 0 0 0 transparent; }
+  50% { text-shadow: 0 0 12px var(--accent-gold); }
+  100% { text-shadow: 0 0 0 transparent; }
+}
+.room-name-glow { animation: room-name-glow 0.6s ease; }
 
-```javascript
-// NPC sai da sala do jogador
-if (prevLocation === GameState.playerLocation && char.location !== GameState.playerLocation) {
-  var destRoom = GameState.rooms[char.location];
-  var icon = char.isAlly ? '🤝' : '⚔️';
-  Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
+/* Itens e personagens entram com stagger */
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.btn-item, .btn-character {
+  animation: slide-up-fade 0.25s ease backwards;
 }
 ```
 
-Inserir logo apos a linha `char.location = Utils.randomChoice(validExits)` (linha ~6225), antes do bloco de frases de movimento.
+Cada botão de item/personagem recebe um `animation-delay` incremental via inline style no render (0ms, 50ms, 100ms...).
 
-### 3. Aliados seguem o jogador temporariamente
+### 2. JavaScript: Modificar `Game.move()` para animar
 
-**Mecanica:** Quando o jogador encontra um aliado (entra na mesma sala ou o aliado entra na sala do jogador), o aliado entra em modo "seguindo" por 3 turnos. Durante esse periodo, quando o jogador se move, o aliado se move junto. Apos os 3 turnos, o aliado volta ao comportamento normal de movimento aleatorio.
+Na função `Game.move()` (linha ~9147), em vez de chamar `Render.update()` diretamente:
 
-**Implementacao:**
+1. Adicionar classe `room-transition-out` ao `#location-panel`
+2. Após 150ms (via `setTimeout`), chamar `Render.update()` e trocar para classe `room-transition-in`
+3. Adicionar classe `room-name-glow` ao `#location-name` (removida após 600ms)
 
-**3A.** Adicionar campo `followingPlayer` e `followTurnsLeft` ao estado dos aliados. Nao precisa ser nos dados iniciais — setar dinamicamente.
+### 3. Stagger nos botões renderizados
 
-**3B.** Em `processNPCMovement`, quando o NPC encontra o jogador (ja tem o bloco na linha ~6236) ou quando o jogador entra numa sala com aliado: ativar o modo seguir.
+Em `Render.updateItems()` e `Render.updateCharacters()`, adicionar `style="animation-delay: ${index * 50}ms"` a cada botão gerado.
 
-```javascript
-// Ativar follow quando aliado encontra o jogador
-if (char.isAlly && char.location === GameState.playerLocation) {
-  if (!char.followingPlayer) {
-    char.followingPlayer = true;
-    char.followTurnsLeft = 3;
-    Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
-  }
-}
-```
+## Resumo das alterações
 
-**3C.** Em `processNPCMovement`, aliados em modo "seguindo" nao se movem aleatoriamente — eles ficam parados (o movimento deles sera tratado quando o jogador se move).
-
-```javascript
-// Aliado seguindo o jogador não se move sozinho
-if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
-```
-
-**3D.** Em `Actions.move` (quando o jogador se move), mover aliados que estao seguindo junto:
-
-```javascript
-// Mover aliados que estão seguindo
-Object.values(GameState.characters).forEach(function(c) {
-  if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
-    c.location = roomId; // mesma sala que o jogador
-    c.followTurnsLeft--;
-    if (c.followTurnsLeft <= 0) {
-      c.followingPlayer = false;
-      Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
-    }
-  }
-});
-```
-
-**3E.** Tambem ativar o follow quando o jogador entra numa sala com aliado (em `Actions.move`, apos mudar `GameState.playerLocation`):
-
-```javascript
-// Verificar aliados na nova sala
-Object.values(GameState.characters).forEach(function(c) {
-  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
-    c.followingPlayer = true;
-    c.followTurnsLeft = 3;
-    Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
-  }
-});
-```
-
-### Resumo
-
-1. **3 linhas** trocando `textContent` por `innerHTML` com regex no CombatModal
-2. **~5 linhas** adicionando log de saida de NPC da sala do jogador em `processNPCMovement`
-3. **~25 linhas** implementando sistema de aliado seguir jogador temporariamente (3 turnos) em `processNPCMovement` e `Actions.move`
+- **1 arquivo**: `public/avenida-paulista.html`
+- **CSS**: ~20 linhas novas de keyframes e classes
+- **JS**: ~15 linhas modificadas em `Game.move()`, `Render.updateItems()` e `Render.updateCharacters()`
 
