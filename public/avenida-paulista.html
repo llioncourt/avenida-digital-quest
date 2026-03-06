@@ -1835,16 +1835,33 @@
       /* ========== WEATHER INDICATORS ========== */
       .weather-indicator {
         display: none;
+        position: relative;
         font-size: 1rem;
         padding: 0.3rem 0.2rem;
         cursor: default;
         animation: weather-pulse 2s ease-in-out infinite;
       }
-      .weather-indicator.active { display: inline-block; }
+      .weather-indicator.active { display: inline-flex; align-items: center; }
+      .weather-tooltip {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.9);
+        color: #0f0;
+        font-size: 0.7rem;
+        padding: 0.3rem 0.5rem;
+        border-radius: 4px;
+        white-space: nowrap;
+        z-index: 9999;
+        pointer-events: none;
+        border: 1px solid rgba(0,255,0,0.3);
+      }
+      .weather-indicator:hover .weather-tooltip { display: block; }
       @keyframes weather-pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
-        50% { transform: scale(1.2); }
       }
       .bomb-tooltip {
         display: none;
@@ -2010,7 +2027,12 @@
         <div id="left-column">
           <div id="log-panel">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 0.5rem;">
-              <h3 class="modern-pulse-title">Avenida Paulista</h3>
+              <div style="display:flex; align-items:center; gap:0.3rem;">
+                <h3 class="modern-pulse-title" style="margin:0;">Avenida Paulista</h3>
+                <span id="weather-rain" class="weather-indicator">🌧️<span class="weather-tooltip">Está chovendo</span></span>
+                <span id="weather-wind" class="weather-indicator">🌬️<span class="weather-tooltip">Vento forte</span></span>
+                <span id="weather-fog" class="weather-indicator">🌫️<span class="weather-tooltip">Neblina densa</span></span>
+              </div>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
                 <button id="bomb-indicator-btn" class="bomb-indicator" title="Bomba ativa">💣<div class="bomb-tooltip" id="bomb-tooltip-content"></div></button>
                 <button class="journal-btn" onclick="Journal.showModal()" title="Diário">📓</button>
@@ -2030,9 +2052,6 @@
                 >
                   🎵
                 </button>
-                <span id="weather-rain" class="weather-indicator" title="Chovendo">🌧️</span>
-                <span id="weather-wind" class="weather-indicator" title="Vento forte">🌬️</span>
-                <span id="weather-fog" class="weather-indicator" title="Neblina">🌫️</span>
               </div>
             </div>
             <div id="log-container" class="scroll-indicator-container"></div>
