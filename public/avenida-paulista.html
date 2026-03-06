@@ -6603,8 +6603,17 @@
       // ============================================================================
 
       const Events = {
+        // Avançar tempo com check de café
+        maybeAdvanceTime: function() {
+          if (GameState.skipNextTimeAdvance) {
+            GameState.skipNextTimeAdvance = false;
+            Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+          } else {
+            Events.advanceTime();
+          }
+        },
+
         // Avançar tempo
-        advanceTime: function() {
           GameState.time += 5;
 
           // Processar bônus temporários
@@ -8380,11 +8389,7 @@
           Log.add('Você deve derrotá-la antes que ela complete o ritual!', 'info');
 
           // Descobrir itens na sala inicial
-          Object.values(GameState.items).forEach(function(item) {
-            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
-              GameState.discoveredItems.add(item.id);
-            }
-          });
+          Rules.discoverItemsInRoom();
 
           // Atualizar UI
           Render.update();
