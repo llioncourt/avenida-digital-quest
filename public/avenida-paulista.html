@@ -5819,12 +5819,7 @@
           // MODO NOTURNO: Tropeço sem lanterna após 21:00
           if (GameState.time >= 21 * 60 && !Rules.hasEffect('nightVision')) {
             if (Utils.random() < 0.15) {
-              GameState.characters.player.hp -= 5;
-              Log.add('🌑 Você tropeça no escuro e se machuca! -5 HP. Uma LANTERNA evitaria isso.', 'danger');
-              if (GameState.characters.player.hp <= 0) {
-                GameState.characters.player.hp = 0;
-                GameState.characters.player.isAlive = false;
-              }
+              Rules.damagePlayer(5, '🌑 Você tropeça no escuro e se machuca! -5 HP. Uma LANTERNA evitaria isso.');
             }
           }
 
@@ -5855,12 +5850,7 @@
             if (trap.type === 'pisoQuebrado') {
               if (Utils.random() < 0.25) {
                 var trapDmg = 10;
-                GameState.characters.player.hp -= trapDmg;
-                Log.add('⚠️ ARMADILHA! O piso cede sob seus pés! -' + trapDmg + ' HP!', 'danger');
-                if (GameState.characters.player.hp <= 0) {
-                  GameState.characters.player.hp = 0;
-                  GameState.characters.player.isAlive = false;
-                }
+                Rules.damagePlayer(trapDmg, '⚠️ ARMADILHA! O piso cede sob seus pés! -' + trapDmg + ' HP!');
               } else {
                 Log.add('⚠️ O piso range perigosamente, mas você passa com cuidado.', 'warning');
               }
@@ -5874,12 +5864,7 @@
             } else if (trap.type === 'gasResidual') {
               if (!Rules.hasEffect('gasImmunity')) {
                 var gasDmg = 5;
-                GameState.characters.player.hp -= gasDmg;
-                Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + gasDmg + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
-                if (GameState.characters.player.hp <= 0) {
-                  GameState.characters.player.hp = 0;
-                  GameState.characters.player.isAlive = false;
-                }
+                Rules.damagePlayer(gasDmg, '⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + gasDmg + ' HP! Uma MÁSCARA GÁS ajudaria.');
               } else {
                 Log.add('😷 Gás residual detectado, mas sua MÁSCARA GÁS te protege!', 'success');
               }
@@ -5887,17 +5872,7 @@
           }
 
           // Mover aliados que estão seguindo o jogador
-          Object.values(GameState.characters).forEach(function(c) {
-            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
-              c.location = roomId;
-              c.followTurnsLeft--;
-              if (c.followTurnsLeft <= 0) {
-                c.followingPlayer = false;
-                c.followCooldown = true;
-                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
-              }
-            }
-          });
+          Rules.moveFollowingAllies(roomId);
 
           // Verificar aliados na nova sala para ativar follow
           Object.values(GameState.characters).forEach(function(c) {
