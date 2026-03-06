@@ -9162,9 +9162,11 @@
           vendedor.tradeInventory.splice(vidx, 1);
           GameState.playerInventory.push(vendorItemId);
           vendedor.tradeInventory.push(playerItemId);
-          if (playerItemId === 'mochila') {
+          // onDrop hook para item dado ao vendedor
+          var givenAwayItem = GameState.items[playerItemId];
+          if (givenAwayItem && givenAwayItem.onDrop === 'recalcWeight') {
             Rules.recalcMaxWeight();
-            // Dropar itens excedentes ao trocar a mochila
+            // Dropar itens excedentes ao trocar
             while (Rules.getInventoryWeight() > GameState.characters.player.maxWeight && GameState.playerInventory.length > 0) {
               var excessId = GameState.playerInventory[GameState.playerInventory.length - 1];
               var excessItem = GameState.items[excessId];
@@ -9173,7 +9175,9 @@
               Log.add('🎒 ' + excessItem.name + ' caiu da mochila!', 'info');
             }
           }
-          if (vendorItemId === 'mochila') {
+          // onPickup hook para item recebido do vendedor
+          var receivedItem = GameState.items[vendorItemId];
+          if (receivedItem && receivedItem.onPickup === 'recalcWeight') {
             Rules.recalcMaxWeight();
           }
           var givenItem = GameState.items[vendorItemId];
