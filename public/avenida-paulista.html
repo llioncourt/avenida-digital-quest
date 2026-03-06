@@ -8008,7 +8008,7 @@
           if (GameState.playerInventory.length === 0) {
             container.innerHTML = '<span style="color: var(--text-muted)">Inventário vazio.</span>';
             // Reset craft mode if inventory empty
-            if (GameState.craftMode) { GameState.craftMode = false; GameState.craftSelection = []; this.updateCraftUI(); }
+            if (GameState.craftMode) { GameState.craftMode = false; GameState.craftSelection = []; Game.updateCraftUI(); }
             return;
           }
 
@@ -9120,7 +9120,7 @@
           GameState.craftMode = !GameState.craftMode;
           GameState.craftSelection = [];
           this.updateCraftUI();
-          UI.updateInventory();
+          Render.updateInventory();
         },
 
         updateCraftUI: function() {
@@ -9147,7 +9147,7 @@
           var sel = GameState.craftSelection || [];
           // Deselect if already selected
           var idx = sel.indexOf(itemId);
-          if (idx > -1) { sel.splice(idx, 1); GameState.craftSelection = sel; this.updateCraftUI(); UI.updateInventory(); return; }
+          if (idx > -1) { sel.splice(idx, 1); GameState.craftSelection = sel; this.updateCraftUI(); Render.updateInventory(); return; }
           if (sel.length >= 2) return;
           sel.push(itemId);
           GameState.craftSelection = sel;
@@ -9160,7 +9160,7 @@
             this.updateCraftUI();
           } else {
             this.updateCraftUI();
-            UI.updateInventory();
+            Render.updateInventory();
           }
         },
 
