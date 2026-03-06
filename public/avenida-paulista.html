@@ -5631,17 +5631,7 @@
           ScreenEffects.flash('rgba(200, 150, 50, 0.5)');
 
           // Mover aliados que estão seguindo
-          Object.values(GameState.characters).forEach(function(c) {
-            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
-              c.location = targetRoomId;
-              c.followTurnsLeft--;
-              if (c.followTurnsLeft <= 0) {
-                c.followingPlayer = false;
-                c.followCooldown = true;
-                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
-              }
-            }
-          });
+          Rules.moveFollowingAllies(targetRoomId);
 
           return {
             success: true,
