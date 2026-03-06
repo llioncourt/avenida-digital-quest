@@ -8501,21 +8501,8 @@
         processAction: function(result) {
           // Combat modal handles its own flow
           if (result.combatModal) {
-            // Still advance time
-            if (result.success && result.advanceTime) {
-              if (GameState.skipNextTimeAdvance) {
-                GameState.skipNextTimeAdvance = false;
-                Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
-              } else {
-                Events.advanceTime();
-              }
-            }
-            // Discover items
-            Object.values(GameState.items).forEach(function(item) {
-              if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
-                GameState.discoveredItems.add(item.id);
-              }
-            });
+            if (result.success && result.advanceTime) Events.maybeAdvanceTime();
+            Rules.discoverItemsInRoom();
             Render.update();
             return;
           }
@@ -8525,14 +8512,7 @@
             Log.add(result.message, type);
           }
 
-          if (result.success && result.advanceTime) {
-            if (GameState.skipNextTimeAdvance) {
-              GameState.skipNextTimeAdvance = false;
-              Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
-            } else {
-              Events.advanceTime();
-            }
-          }
+          if (result.success && result.advanceTime) Events.maybeAdvanceTime();
 
           // Verificar fim de jogo (não durante explosão - o modal de explosão controla o fluxo)
           if (!GameState._explosionInProgress) {
@@ -8542,13 +8522,7 @@
             }
           }
 
-          // Descobrir itens na sala atual
-          Object.values(GameState.items).forEach(function(item) {
-            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
-              GameState.discoveredItems.add(item.id);
-            }
-          });
-
+          Rules.discoverItemsInRoom();
           Render.update();
         },
 
