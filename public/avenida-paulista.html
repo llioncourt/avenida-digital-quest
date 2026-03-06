@@ -5837,6 +5837,13 @@
           }, 0);
         },
 
+        // Recalcular maxWeight de forma idempotente
+        recalcMaxWeight: function() {
+          var base = 20;
+          if (GameState.playerInventory.includes('mochila')) base += 20;
+          GameState.characters.player.maxWeight = base;
+        },
+
         // Verificar se pode pegar item
         canPickupItem: function(itemId) {
           const item = GameState.items[itemId];
@@ -6664,9 +6671,9 @@
           item.location = null;
           GameState.playerInventory.push(itemId);
 
-          // Mochila: aumentar maxWeight ao pegar
+          // Mochila: recalcular maxWeight ao pegar
           if (itemId === 'mochila') {
-            GameState.characters.player.maxWeight += 20;
+            Rules.recalcMaxWeight();
             Log.add('🎒 Capacidade de peso aumentada para ' + GameState.characters.player.maxWeight + 'kg!', 'success');
           }
 
@@ -6726,9 +6733,9 @@
           GameState.playerInventory.splice(idx, 1);
           item.location = GameState.playerLocation;
 
-          // Mochila: reduzir maxWeight ao largar e dropar excesso
+          // Mochila: recalcular maxWeight ao largar e dropar excesso
           if (itemId === 'mochila') {
-            GameState.characters.player.maxWeight = Math.max(20, GameState.characters.player.maxWeight - 20);
+            Rules.recalcMaxWeight();
             Log.add('🎒 Capacidade de peso voltou para ' + GameState.characters.player.maxWeight + 'kg.', 'info');
 
             // Dropar itens excedentes (mais recentes primeiro)
@@ -9926,7 +9933,7 @@
           GameState.playerInventory.push(vendorItemId);
           vendedor.tradeInventory.push(playerItemId);
           if (playerItemId === 'mochila') {
-            GameState.characters.player.maxWeight = Math.max(20, GameState.characters.player.maxWeight - 20);
+            Rules.recalcMaxWeight();
             // Dropar itens excedentes ao trocar a mochila
             while (Rules.getInventoryWeight() > GameState.characters.player.maxWeight && GameState.playerInventory.length > 0) {
               var excessId = GameState.playerInventory[GameState.playerInventory.length - 1];
@@ -9937,7 +9944,7 @@
             }
           }
           if (vendorItemId === 'mochila') {
-            GameState.characters.player.maxWeight += 20;
+            Rules.recalcMaxWeight();
           }
           var givenItem = GameState.items[vendorItemId];
           var takenItem = GameState.items[playerItemId];
