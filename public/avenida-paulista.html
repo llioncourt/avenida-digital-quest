@@ -5891,8 +5891,8 @@
           item.location = null;
           GameState.playerInventory.push(itemId);
 
-          // Mochila: recalcular maxWeight ao pegar
-          if (itemId === 'mochila') {
+          // onPickup hook (ex: mochila recalcula peso)
+          if (item.onPickup === 'recalcWeight') {
             Rules.recalcMaxWeight();
             Log.add('🎒 Capacidade de peso aumentada para ' + GameState.characters.player.maxWeight + 'kg!', 'success');
           }
