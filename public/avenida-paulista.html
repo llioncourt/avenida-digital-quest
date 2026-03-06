@@ -308,6 +308,57 @@
         animation: slide-up-fade 0.25s ease backwards;
       }
 
+      /* Grid para modal de seleção de item */
+      .item-select-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .item-select-grid .btn {
+        width: 100%;
+        text-align: center;
+      }
+
+      /* Animação especial: Teto do MASP */
+      @keyframes teto-flash {
+        0% { opacity: 0; }
+        15% { opacity: 0.7; }
+        30% { opacity: 0.2; }
+        50% { opacity: 0.6; }
+        100% { opacity: 0; }
+      }
+      @keyframes screen-shake {
+        0%, 100% { transform: translateX(0); }
+        15% { transform: translateX(-4px); }
+        30% { transform: translateX(4px); }
+        45% { transform: translateX(-3px); }
+        60% { transform: translateX(3px); }
+        75% { transform: translateX(-2px); }
+        90% { transform: translateX(2px); }
+      }
+      .teto-masp-glow {
+        animation: teto-masp-glow-anim 1s ease;
+      }
+      @keyframes teto-masp-glow-anim {
+        0% { text-shadow: 0 0 0 transparent; }
+        30% { text-shadow: 0 0 20px #ff2222, 0 0 40px #8b0000; }
+        60% { text-shadow: 0 0 14px #cc00cc, 0 0 30px #660066; }
+        100% { text-shadow: 0 0 0 transparent; }
+      }
+      .teto-flash-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(212,168,70,0.4));
+        pointer-events: none;
+        z-index: 9999;
+        animation: teto-flash 0.5s ease forwards;
+      }
+      .screen-shake {
+        animation: screen-shake 0.4s ease;
+      }
+
+
       .lanterna-indicator {
         position: absolute;
         top: 0.6rem;
@@ -9178,8 +9229,24 @@
           // Se mudou de sala, animar transição
           var self = this;
           if (prevRoom !== roomId) {
+            var isTeto = (roomId === 'teto_masp');
+            var delay = isTeto ? 300 : 160;
+
             panel.classList.remove('room-transition-in');
             panel.classList.add('room-transition-out');
+
+            // Efeitos especiais do Teto do MASP
+            if (isTeto) {
+              var flashEl = document.createElement('div');
+              flashEl.className = 'teto-flash-overlay';
+              document.body.appendChild(flashEl);
+              document.getElementById('game-container').classList.add('screen-shake');
+              setTimeout(function() {
+                flashEl.remove();
+                document.getElementById('game-container').classList.remove('screen-shake');
+              }, 500);
+            }
+
             setTimeout(function() {
               self.processAction(Actions.moveTo(roomId));
 
@@ -9201,11 +9268,12 @@
 
               // Glow no nome da sala
               var nameEl = document.getElementById('location-name');
-              nameEl.classList.remove('room-name-glow');
-              void nameEl.offsetWidth; // force reflow
-              nameEl.classList.add('room-name-glow');
-              setTimeout(function() { nameEl.classList.remove('room-name-glow'); }, 650);
-            }, 160);
+              var glowClass = isTeto ? 'teto-masp-glow' : 'room-name-glow';
+              nameEl.classList.remove('room-name-glow', 'teto-masp-glow');
+              void nameEl.offsetWidth;
+              nameEl.classList.add(glowClass);
+              setTimeout(function() { nameEl.classList.remove(glowClass); }, isTeto ? 1050 : 650);
+            }, delay);
           } else {
             // Mesma sala (tentativa inválida)
             this.processAction(Actions.moveTo(roomId));
@@ -9415,10 +9483,12 @@
 
           const content = `
             <p>Escolha um item para aplicar a CERA MÁGICA:</p>
-            <div class="button-group" style="margin-top: 1rem; justify-content: center;">
+            <div class="item-select-grid" style="margin-top: 1rem;">
               ${itemButtons}
             </div>
-            <button class="btn" onclick="Modals.hide()" style="margin-top: 1rem;">Cancelar</button>
+            <div style="text-align: center; margin-top: 1rem;">
+              <button class="btn" onclick="Modals.hide()">Cancelar</button>
+            </div>
           `;
           Modals.show('🕯️ CERA MÁGICA', content);
         },
