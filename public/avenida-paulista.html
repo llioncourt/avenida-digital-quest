@@ -7945,8 +7945,9 @@
           const roomEl = e.target.closest('.map-room');
           const viewport = document.getElementById('minimap-viewport');
           const isPan = !roomEl && (e.target === viewport || e.target.id === 'minimap');
-          this._startDrag(e.clientX, e.clientY, roomEl || (isPan ? null : undefined));
-          if (roomEl || isPan) e.preventDefault();
+          if (!roomEl && !isPan) return;
+          this._startDrag(e.clientX, e.clientY, roomEl);
+          e.preventDefault();
         },
 
         handleMouseMove: function(e) {
