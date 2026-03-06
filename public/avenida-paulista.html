@@ -4489,11 +4489,224 @@
       };
 
       // ============================================================================
-      // MUSIC SYSTEM - Background Music via Web Audio API
+      // MIDI PLAYER FACTORY - Shared logic for all music systems
       // ============================================================================
 
       // MIDI data embedded as Base64 for offline/standalone playback
       const MIDI_BASE64 = "TVRoZAAAAAYAAQACABhNVHJrAAAAEwD/UQMGRU8A/1gEBAIYCAD/LwBNVHJrAAAIdwD/BBRBY291c3RpYyBHcmFuZCBQaWFubwDAAAGQJCoAkDMmC4AzAACAJAABkDIlC4AyAAGQMyULgDMAAJAyJQuQMyUBgDIAC5AyJQGAMwAMgDIAAZAzJQuAMwAAkDIlDIAyAAKQMyUAkCI1DpAyJQKAIgAAgDMABoAyAAGQMyULgDMAAZAyJQuAMgAAkDMqAJArQAuQMiUBgDMAAIArAAuQMyUBgDIADIAzAACQMiULkDcvAJAzJQCQJDoBgDIADIAzAACANwAAgCQAAZAyIwCQNSMLgDIAAIA1AAGQNyQAkDMlC4AzAACANwAAkDUjAJAyJQyANQAAgDIAAJAzJACQNyULkDIkAJA1JAGAMwAAgDcACpAzJAKANQAAgDIAAZA3JQWAMwAAgDcAAZAzJAOQMiQCgDMAAJA1JAuQNyUAkDMlAJAiOQGANQAAgDIAC5AyIwGAIgAAgDMAAIA3AAOQMiQDgDIAApA1IwSAMgAAgDUAAZAzJACQNyULgDcAAIAzAACQMiQAkDUkDIAyAACANQAAkCs6AJAzKAyAKwAAgDMAAJA1JACQMiYLkDclAJAzJACQKygBgDIAAIA1AAuQMiMBgDcAAIArAACAMwABkDUkC4A1AACAMgAAkCQ5AJAzJwCQNywAkEMrDIA3AACAMwAAgEMAAIAkAAKQPioAkDIqCoA+AACAMgACkDMlAJBDKgqAMwAAgEMAAZA+KgCQMioLgD4AAIAyAAGQQyoFgEMAAZAzJQWAMwAAkD4qAJAyKgyAMgAAgD4AApAzJQCQQyoKgDMAAIBDAAGQRSsAkDIlC4AyAACARQABkEYsAJAiNguARgAAgCIAAJA+KQCQMikLkDMlAJBFKgGAMgAAgD4AC5AyJQGAMwAAgEUAAZBDKguAQwAAgDIAAZArQACQMyUAkEEpC4ArAACAMwAAgEEAAZA+LACQMiwLgDIAAIA+AACQMyUAkEUqC5AyKgGARQAAgDMADIAyAAGQNywAkDMlAJAkPAuAMwAAgDcAAIAkAACQPioAkCQ2AJAyKguQMyUAkEMqAYAyAACAJAAAgD4ADIBDAACAMwABkD4qAJAyKguAMgAAgD4AAZBDKgCQMyULgDMAAIBDAAGQMioAkD4qC4A+AACAMgAAkEMqAJAzJQyAQwAAgDMAApAyJQCQRSoKgEUAAIAyAAGQMyUAkEYrAJAiPAuARgAAgCIAAIAzAAGQMisLgDIAAJAzJQCQRSoLkEMqAJAyJQGARQAAgDMADIAyAACAQwABkCs9AJAzJQCQQSkLgEEAAIAzAACAKwABkD4qAJAyKguAPgAAgDIAAZBFKwCQMyULgEUAAIAzAACQMioMgDIAAZApPgCQRiwAkDMkC4BGAACAMwAAgCkAAZApMwCQPCoLgDwAAIApAACQQSoAkDMlDIAzAACAQQACkDwqAJA1JgqANQAAgDwAAZBBKgCQMyULgDMAAIBBAAGQNSoAkDwqC4A1AACAPAABkEEqAJAzJQuAMwAAgEEAAJA1KgCQQyoMgEMAAIA1AAKQIjkAkDMkAJBGKwqARgAAgCIAAIAzAAGQPCoLgDwAAZBDKgWAQwACkDMkBIAzAACQNSQAkDwqDIA8AACANQAAkC5CAJBGKQCQQSkGgEEAAIAuAACARgABkDMiBYAzAAKQPCoAkDUmApA1JQKANQAAgDwABoA1AAGQQyoAkDMkC4AzAACAQwAAkEEqAJA1KgyANQAAgEEAAZBGKQCQKT4FgEYAAIApAACQMyQFkCk4AYAzAAGQPC0LgCkAAIA8AAGQQSoAkDMkC4BBAACAMwAAkDwqAJA1KguQQSoAkDMlAYA8AACANQAMgDMAAIBBAAGQPCoAkDUnC4A8AACANQABkDMlAJBBKguAMwAAgEEAAZA1KgCQQyoLgEMAAIA1AACQIj0AkDMjAJBGKgyAIgAAgDMAAIBGAAKQPCoAkDUnCoA8AACANQACkDMlAJBDKgqAMwAAgEMAAZA8KgCQNSQLgDUAAIA8AAGQMyMAkC5BC4AzAACALgACkDwqAJA1JgqAPAAAgDUAApAzJQCQQyoKgEMAAIAzAAGQQSoAkDUqCpA3KgCQMyQAkEMqAYA1AACAQQACkCQ9CZAyKgCQPioBgDcAAIAzAACAQwAAgCQADIAyAACAPgABkDMlAJBDKguAMwAAgEMAAJA+KgCQMioMgDIAAIA+AACQMyUAkEMqC5A+KgCQMioBgEMAAIAzAAyAPgAAgDIAAZBDKgCQMyULgEMAAIAzAAGQRSsAkDIlC4AyAACARQAAkDMmAJBGLACQIjsMgDMAAIAiAACARgAAkDIrAJA+KwuQMyUAkEUqAYA+AACAMgALkDIlAYBFAACAMwABkEMqC4AyAACAQwABkEEnAJAzJACQPioAkCtDC4AzAACAQQAAgCsAAIA+AAGQMiwAkD4sC4AyAACAPgAAkEUqAJAzJQyAMwAAgEUAAZAyKgCQPioLgD4AAIAyAACQJD0AkDMkAJBDKgCQNyoMgDMAAIBDAACANwAAgCQAAJA+KgCQMioLkEMqAYA+AACAMgACkDMlCoAzAACAQwABkDIqC4AyAAGQQyoAkDMlC4BDAACAMwAAkD4qAJAyKgyAMgAAgD4AApAzJQCQQyoKgEMAAIAzAAGQRSoAkDIlC4BFAACAMgABkDMmAJAiPQCQRisLgEYAAIAzAACAIgAAkD4pAJAyKQyAPgAAgDIAAJAzJQCQRSoLkDIlAYBFAACAMwACkEMqCoBDAACAMgABkCtCAJBBKQCQMyULgEEAAIArAACAMwABkDIrAJA+KwuAPgAAgDIAAJBFKwCQMyUMgDMAAIBFAAGQMioLgDIAAZBDKwCQJEJfgCQAAIBDAAD/LwA=";
+      const COMBAT_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAABLAD/UQMGGoAA/wMPIC0gaW5zdHJ1bWVudGFsc5BDf4FmkDNYAIBDfwCQRViBP4AzWACARVgokDBZAJA/WQCQQ1mBQIAwWQCAP1kmkDNYAIBDWQCQRViBQIAzWCaARVgnkCtYAJBGWIFAgCtYAIBGWCaQPlkAkEVZgT+APlkAgEVZKJArWQCQRlmBP4ArWSeQKVkAgEZZAJBIWYFmgClZAIBIWSeQJFcAkDlXAJBKV4EZgCRXJ4A5VwCASlcmkClWAJBIVoE/gClWJ4BIVgGQK1kAkDJZAJBKWYFAgCtZJpAmWgCAMlkAkDtaAIBKWQCQT1qBP4AmWgCAO1pNgE9aAZAyVgCQSlaBQIAyVgCASlYmkCtXAJA7VwCQT1eBP4ArVwCAO1cAgE9XAP8vAA==";
+      const DEFEAT_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAA2QD/UQMGGoAA/wMPIC0gaW5zdHJ1bWVudGFsTJAkdgCQPHaBQIAkdiaAPHYBkCZaAJA3WgCQPFqBZoAmWiaAN1oBkCdYAJA3WIFAgCdYAIA3WCaQKVoAkD5agUCAPFomgClaAJArWQCQNVkAkD9ZgWaANVkAgD5aAZA1WSWAK1mBQYA1WSeQK1YAkDNWgT+AK1YnkClZAJAyWYFmgClZAJAwWgCQPFoAgD9ZJ4AzViaAMlmBQJAmVgCQN1aBGYAmViaAN1YokCRZgT+AMFoAgDxaAYAkWQD/LwA=";
+      const VICTORY_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAApQD/UQMGGoAA/wMPIC0gaW5zdHJ1bWVudGFsAJAkdgCQQ3aBQIAkdiaAQ3YmkCRYAJA8WACQQFiBGYAkWCeAQFgnkCRYAJBDWIE/gDxYAYAkWACAQ1gmkCtaAJBAWgCQSFqBQIArWiaAQFoAgEhaAZAoWgCQQ1qBP4AoWieAQ1omkCZaAJA8WoEZgCZaJoA8WiiQJFcAkExXgUCAJFcAgExXAP8vAA==";
+      const CLICK_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAANgD/UQMPQkAA/wMPIC0gaW5zdHJ1bWVudGFsHpBFdACQR3QAkEh0eoBHdACASHQ+gEV0AP8vAA==";
+      const GAMEOVER_MIDI_BASE64 = "TVRoZAAAAAYAAQACAeBNVHJrAAACUgD/UQMHNXgA/wMPIC0gaW5zdHJ1bWVudGFsYZArWgCAK1qDR5ApRgCAKUaDaJAmRgCAJkaDR5ApTSCAKU2DSJA6fwCAOn+DZ5A5RYFjgDlFggWQNUQAgDVEg2iQOUoAgDlKg2eQOlcAkENXYYBDVyKQRUNhgEVDAJBGRGGARkQhkEhEYYA6VwCASEQBkDlGAJBKRmGASkYhkE9EYYBPRCGQSkVhgEpFAJBPRGGAT0QBgDlGIJA1RQCQTUVhgE1FIZBMRWGATEUBkEpEYYBKRCGQRkRhgDVFAIBGRCGQOUUAgDlFYpBGRGGARkQhkEVEYYBFRCGQRkJhkDpIAIA6SACARkIhkENIYYBDSACQRUqBAoBFSgCQRkNhgEZDIZBIRGGASEQBkDlCAJBKQmGAOUIAgEpCIZBPQ2GAT0MhkEpFYYBKRQCQT0NhgE9DIpA1QwCQTUNhgE1DIZBMRmGQSkcAgExGYYBKRyGQRkNhgEZDAYA1QyCQOUQAgDlEYpBGRGGARkQhkEVDYYBFQyGQRkRhkDpHAIA6RwCARkQhkENHYYBDRwCQRUWBAoBFRQCQRkRhgEZEIpBIRWGQOUUAgEhFAJBKRWGASkUhkE9GYYBPRiGQSkVhgEpFAZBPRmGAT0YggDlFAZA1RQCANUUAkE1FYZBMRgCATUWBApBKRQCATEZhgEpFIZBGRWGARkUBkDlGIIA5RmKQRkdhgEZHIZBFRWGARUUhkEZEYYBGRCGQOkgAkENIYYBDSAGQRUdhgEVHIZBGRmGARkZhgDpIAP8vAE1UcmsAAAE1AP9RAwc1eAD/AwcgLSBiYXNzYZArf4NHkClCAIArf4NHgClCIZAmQoNHgCZCIZApQoNHgClCAJArTQCQOk2DZ5ApQwCAK00AgDpNgWSQOUKBQ4A5QiCAKUMhkCZCAJA1QoNHgCZCAIA1QiGQKUQAkDlEgkWAOUSBApArRACQOkQggClEAIA6RINHgCtEAZApRINHgClEIJAmQ4NHgCZDAJApQyGQOUODBoA5Q0CAKUMBkCtCAJA6QoNngCtCAIA6QgGQKUNhkDlDgkWAOUMhgClDIZAmQ4NHgCZDAJApRCCQOUODJoA5QyGAKUQAkCtDAJA6Q4NngCtDAIA6QwGQKUKDR4ApQiGQNUKDR5ApQgCANUIgkDlCg0eAKUIAgDlCAZArTQCQOk0ggDpNgyeAK00A/y8A";
+
+      // Generic MIDI parser - shared by all music systems
+      function parseMidiBase64(base64) {
+        var binaryString = atob(base64);
+        var bytes = new Uint8Array(binaryString.length);
+        for (var i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        var pos = 0;
+        var notes = [];
+
+        var readUint32 = function() { return (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++]; };
+        var readUint16 = function() { return (bytes[pos++] << 8) | bytes[pos++]; };
+        var readVarLen = function() {
+          var value = 0, b;
+          do { b = bytes[pos++]; value = (value << 7) | (b & 0x7F); } while (b & 0x80);
+          return value;
+        };
+        var readString = function(len) { var str = ''; for (var i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
+
+        if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
+        readUint32();
+        readUint16();
+        var numTracks = readUint16();
+        var ticksPerQuarter = readUint16();
+        var microsecondsPerBeat = 500000;
+
+        for (var t = 0; t < numTracks; t++) {
+          if (readString(4) !== 'MTrk') continue;
+          var trackLength = readUint32();
+          var trackEnd = pos + trackLength;
+          var absoluteTime = 0;
+          var runningStatus = 0;
+          var activeNotes = {};
+          var tickToSeconds = function(ticks) { return (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000); };
+
+          while (pos < trackEnd) {
+            absoluteTime += readVarLen();
+            var statusByte = bytes[pos];
+            if (statusByte < 0x80) statusByte = runningStatus;
+            else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
+            var cmd = statusByte & 0xF0;
+
+            if (cmd === 0x90) {
+              var note = bytes[pos++], vel = bytes[pos++];
+              if (vel > 0) activeNotes[note] = { start: absoluteTime, vel: vel };
+              else if (activeNotes[note]) {
+                notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
+                delete activeNotes[note];
+              }
+            } else if (cmd === 0x80) {
+              var note2 = bytes[pos++]; pos++;
+              if (activeNotes[note2]) {
+                notes.push({ t: tickToSeconds(activeNotes[note2].start), n: note2, d: tickToSeconds(absoluteTime - activeNotes[note2].start), v: activeNotes[note2].vel });
+                delete activeNotes[note2];
+              }
+            } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
+            else if (cmd === 0xC0 || cmd === 0xD0) pos++;
+            else if (statusByte === 0xFF) {
+              var type = bytes[pos++], len = readVarLen();
+              if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
+              pos += len;
+            } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
+          }
+        }
+
+        notes.sort(function(a, b) { return a.t - b.t; });
+        var lastNote = notes[notes.length - 1];
+        var duration = lastNote ? lastNote.t + lastNote.d : 0;
+        return { notes: notes, duration: duration };
+      }
+
+      // Factory: creates a MIDI player with specific audio parameters
+      // config: { base64, volume, osc1Type, osc2Type, freqMult, gain1, gain2, attack, decay, sustain, release, name }
+      function createMidiPlayer(config) {
+        return {
+          isPlaying: false,
+          isLoaded: false,
+          volume: config.volume,
+          notes: [],
+          duration: 0,
+          scheduledOscs: [],
+
+          init: function() {
+            this.loadMIDI();
+          },
+
+          loadMIDI: function() {
+            try {
+              var result = parseMidiBase64(config.base64);
+              this.notes = result.notes;
+              this.duration = result.duration;
+              this.isLoaded = true;
+              console.log((config.name || 'MidiPlayer') + ': Loaded ' + result.notes.length + ' notes, duration: ' + result.duration.toFixed(2) + 's');
+            } catch (err) {
+              console.error((config.name || 'MidiPlayer') + ': Failed to load MIDI', err);
+            }
+          },
+
+          playNote: function(note, startTime, duration, velocity) {
+            var ctx = SoundSystem.audioCtx;
+            if (!ctx || !SoundSystem.enabled) return;
+
+            var freq = 440 * Math.pow(2, (note - 69) / 12);
+            var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
+
+            var osc1 = ctx.createOscillator();
+            osc1.type = config.osc1Type;
+            osc1.frequency.value = freq;
+
+            var osc2 = ctx.createOscillator();
+            osc2.type = config.osc2Type;
+            osc2.frequency.value = freq * config.freqMult;
+
+            var g1 = ctx.createGain();
+            var g2 = ctx.createGain();
+            var masterGain = ctx.createGain();
+
+            g1.gain.value = config.gain1;
+            g2.gain.value = config.gain2;
+
+            osc1.connect(g1);
+            osc2.connect(g2);
+            g1.connect(masterGain);
+            g2.connect(masterGain);
+            masterGain.connect(ctx.destination);
+
+            var now = startTime;
+            masterGain.gain.setValueAtTime(0, now);
+            masterGain.gain.linearRampToValueAtTime(vol, now + config.attack);
+            masterGain.gain.linearRampToValueAtTime(vol * config.sustain, now + config.attack + config.decay);
+            masterGain.gain.setValueAtTime(vol * config.sustain, now + duration - config.release);
+            masterGain.gain.linearRampToValueAtTime(0, now + duration);
+
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + duration + 0.05);
+            osc2.stop(now + duration + 0.05);
+
+            this.scheduledOscs.push(osc1, osc2);
+          },
+
+          scheduleNotes: function() {
+            if (!this.isLoaded || !SoundSystem.audioCtx) return;
+            var ctx = SoundSystem.audioCtx;
+            var startTime = ctx.currentTime;
+            for (var i = 0; i < this.notes.length; i++) {
+              var note = this.notes[i];
+              this.playNote(note.n, startTime + note.t, note.d, note.v);
+            }
+          },
+
+          start: function() {
+            if (!this.isLoaded) return;
+            this.stop();
+            SoundSystem.resume();
+            this.isPlaying = true;
+            this.scheduleNotes();
+          },
+
+          stop: function() {
+            this.isPlaying = false;
+            this.scheduledOscs.forEach(function(osc) {
+              try { osc.stop(); } catch(e) {}
+            });
+            this.scheduledOscs = [];
+          }
+        };
+      }
+
+      // ============================================================================
+      // MUSIC SYSTEM INSTANCES
+      // ============================================================================
+
+      var CombatMusicSystem = createMidiPlayer({
+        base64: COMBAT_MIDI_BASE64, volume: 0.12, name: 'CombatMusicSystem',
+        osc1Type: 'sawtooth', osc2Type: 'square', freqMult: 2,
+        gain1: 0.6, gain2: 0.2, attack: 0.005, decay: 0.08, sustain: 0.5, release: 0.1
+      });
+
+      var DefeatMusicSystem = createMidiPlayer({
+        base64: DEFEAT_MIDI_BASE64, volume: 0.35, name: 'DefeatMusicSystem',
+        osc1Type: 'triangle', osc2Type: 'sine', freqMult: 0.5,
+        gain1: 0.7, gain2: 0.3, attack: 0.02, decay: 0.15, sustain: 0.4, release: 0.2
+      });
+
+      var VictoryMusicSystem = createMidiPlayer({
+        base64: VICTORY_MIDI_BASE64, volume: 0.12, name: 'VictoryMusicSystem',
+        osc1Type: 'square', osc2Type: 'sawtooth', freqMult: 2,
+        gain1: 0.6, gain2: 0.15, attack: 0.005, decay: 0.08, sustain: 0.5, release: 0.1
+      });
+
+      var ClickMusicSystem = createMidiPlayer({
+        base64: CLICK_MIDI_BASE64, volume: 0.15, name: 'ClickMusicSystem',
+        osc1Type: 'square', osc2Type: 'triangle', freqMult: 1,
+        gain1: 0.6, gain2: 0.25, attack: 0.003, decay: 0.05, sustain: 0.3, release: 0.08
+      });
+
+      var GameOverMusicSystem = createMidiPlayer({
+        base64: GAMEOVER_MIDI_BASE64, volume: 0.4, name: 'GameOverMusicSystem',
+        osc1Type: 'triangle', osc2Type: 'sine', freqMult: 0.5,
+        gain1: 0.6, gain2: 0.25, attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.15
+      });
+
+      // ============================================================================
+      // MUSIC SYSTEM - Main background music (extends base player with loop/toggle)
+      // ============================================================================
 
       const MusicSystem = {
         isPlaying: false,
@@ -4510,133 +4723,51 @@
           await this.loadMIDI();
         },
 
-        // Parser MIDI from embedded Base64 data (no external file needed)
         loadMIDI: async function() {
           try {
-            // Decode Base64 to Uint8Array
-            const binaryString = atob(MIDI_BASE64);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            let pos = 0;
-            const notes = [];
-
-            // Funções auxiliares
-            const readUint32 = () => (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++];
-            const readUint16 = () => (bytes[pos++] << 8) | bytes[pos++];
-            const readVarLen = () => {
-              let value = 0, byte;
-              do { byte = bytes[pos++]; value = (value << 7) | (byte & 0x7F); } while (byte & 0x80);
-              return value;
-            };
-            const readString = (len) => { let str = ''; for (let i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
-
-            // Header
-            if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
-            readUint32(); // length
-            readUint16(); // format
-            const numTracks = readUint16();
-            const ticksPerQuarter = readUint16();
-
-            let microsecondsPerBeat = 500000; // 120 BPM
-
-            for (let t = 0; t < numTracks; t++) {
-              if (readString(4) !== 'MTrk') continue;
-              const trackLength = readUint32();
-              const trackEnd = pos + trackLength;
-
-              let absoluteTime = 0;
-              let runningStatus = 0;
-              const activeNotes = {};
-
-              const tickToSeconds = (ticks) => (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000);
-
-              while (pos < trackEnd) {
-                absoluteTime += readVarLen();
-                let statusByte = bytes[pos];
-
-                if (statusByte < 0x80) statusByte = runningStatus;
-                else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
-
-                const cmd = statusByte & 0xF0;
-
-                if (cmd === 0x90) {
-                  const note = bytes[pos++], vel = bytes[pos++];
-                  if (vel > 0) activeNotes[note] = { start: absoluteTime, vel };
-                  else if (activeNotes[note]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
-                    delete activeNotes[note];
-                  }
-                } else if (cmd === 0x80) {
-                  const note = bytes[pos++]; pos++;
-                  if (activeNotes[note]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
-                    delete activeNotes[note];
-                  }
-                } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
-                else if (cmd === 0xC0 || cmd === 0xD0) pos++;
-                else if (statusByte === 0xFF) {
-                  const type = bytes[pos++], len = readVarLen();
-                  if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
-                  pos += len;
-                } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
-              }
-            }
-
-            notes.sort((a, b) => a.t - b.t);
-            this.notes = notes;
-            const lastNote = notes[notes.length - 1];
-            this.duration = lastNote ? lastNote.t + lastNote.d : 0;
+            var result = parseMidiBase64(MIDI_BASE64);
+            this.notes = result.notes;
+            this.duration = result.duration;
             this.isLoaded = true;
-
-
-            // Iniciar música automaticamente após carregar
             this.start();
           } catch (err) {
             console.error('MusicSystem: Failed to load MIDI', err);
           }
         },
 
-        // Tocar uma nota sintetizada (piano-like)
         playNote: function(note, startTime, duration, velocity) {
-          const ctx = SoundSystem.audioCtx;
+          var ctx = SoundSystem.audioCtx;
           if (!ctx || !SoundSystem.enabled) return;
 
-          const freq = 440 * Math.pow(2, (note - 69) / 12);
-          const vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
+          var freq = 440 * Math.pow(2, (note - 69) / 12);
+          var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
 
-          // Oscilador principal (triangle - som mais suave)
-          const osc1 = ctx.createOscillator();
+          var osc1 = ctx.createOscillator();
           osc1.type = 'triangle';
           osc1.frequency.value = freq;
 
-          // Segundo harmônico (oitava acima, mais suave)
-          const osc2 = ctx.createOscillator();
+          var osc2 = ctx.createOscillator();
           osc2.type = 'sine';
           osc2.frequency.value = freq * 2;
 
-          // Mixer
-          const gain1 = ctx.createGain();
-          const gain2 = ctx.createGain();
-          const masterGain = ctx.createGain();
+          var g1 = ctx.createGain();
+          var g2 = ctx.createGain();
+          var masterGain = ctx.createGain();
 
-          gain1.gain.value = 0.7;
-          gain2.gain.value = 0.3;
+          g1.gain.value = 0.7;
+          g2.gain.value = 0.3;
 
-          osc1.connect(gain1);
-          osc2.connect(gain2);
-          gain1.connect(masterGain);
-          gain2.connect(masterGain);
+          osc1.connect(g1);
+          osc2.connect(g2);
+          g1.connect(masterGain);
+          g2.connect(masterGain);
           masterGain.connect(ctx.destination);
 
-          // Envelope ADSR
-          const now = startTime;
-          const attackTime = 0.01;
-          const decayTime = 0.1;
-          const sustainLevel = 0.6;
-          const releaseTime = 0.15;
+          var now = startTime;
+          var attackTime = 0.01;
+          var decayTime = 0.1;
+          var sustainLevel = 0.6;
+          var releaseTime = 0.15;
 
           masterGain.gain.setValueAtTime(0, now);
           masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
@@ -4652,62 +4783,41 @@
           this.scheduledOscs.push(osc1, osc2);
         },
 
-        // Agendar todas as notas
         scheduleNotes: function() {
           if (!this.isLoaded || !SoundSystem.audioCtx) return;
-
-          const ctx = SoundSystem.audioCtx;
+          var ctx = SoundSystem.audioCtx;
           this.startTime = ctx.currentTime;
-          const speed = this.playbackSpeed || 1.0;
+          var speed = this.playbackSpeed || 1.0;
 
           this.notes.forEach(note => {
-            this.playNote(
-              note.n,
-              this.startTime + (note.t / speed),
-              note.d / speed,
-              note.v
-            );
+            this.playNote(note.n, this.startTime + (note.t / speed), note.d / speed, note.v);
           });
 
-          // Agendar loop com duração ajustada pela velocidade
           if (this.isPlaying) {
             this.loopTimeoutId = setTimeout(() => {
-              if (this.isPlaying) {
-                this.scheduleNotes();
-              }
+              if (this.isPlaying) this.scheduleNotes();
             }, ((this.duration / speed) + 0.5) * 1000);
           }
         },
 
-        // Iniciar música
         start: function() {
-          if (!this.isLoaded) {
-
-            return;
-          }
-
+          if (!this.isLoaded) return;
           SoundSystem.resume();
           this.isPlaying = true;
           this.scheduleNotes();
           this.updateButton();
         },
 
-        // Parar música
         stop: function() {
           this.isPlaying = false;
-
-          // Limpar timeout de loop
           if (this.loopTimeoutId) {
             clearTimeout(this.loopTimeoutId);
             this.loopTimeoutId = null;
           }
-
-          // Parar osciladores agendados
           this.scheduledOscs.forEach(osc => {
             try { osc.stop(); } catch(e) {}
           });
           this.scheduledOscs = [];
-
           this.updateButton();
         },
 
@@ -4719,918 +4829,22 @@
           GameOverMusicSystem.start();
         },
 
-        // Toggle
         toggle: function() {
           SoundSystem.resume();
-          if (this.isPlaying) {
-            this.stop();
-          } else {
-            this.start();
-          }
+          if (this.isPlaying) this.stop();
+          else this.start();
         },
 
-        // Atualizar botão
         updateButton: function() {
-          const btn = document.getElementById('music-toggle');
+          var btn = document.getElementById('music-toggle');
           if (btn) {
             btn.textContent = this.isPlaying ? '🎵' : '🔕';
             btn.title = this.isPlaying ? 'Desligar música' : 'Ligar música';
           }
         },
 
-        // Definir velocidade de playback (para intro Star Wars)
         setSpeed: function(speed) {
           this.playbackSpeed = speed || 1.0;
-          // A velocidade será aplicada na próxima vez que as notas forem agendadas
-        }
-      };
-
-      // ============================================================================
-      // COMBAT MUSIC SYSTEM - Aggressive combat music via Web Audio API
-      // ============================================================================
-
-      const COMBAT_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAABLAD/UQMGGoAA/wMPIC0gaW5zdHJ1bWVudGFsc5BDf4FmkDNYAIBDfwCQRViBP4AzWACARVgokDBZAJA/WQCQQ1mBQIAwWQCAP1kmkDNYAIBDWQCQRViBQIAzWCaARVgnkCtYAJBGWIFAgCtYAIBGWCaQPlkAkEVZgT+APlkAgEVZKJArWQCQRlmBP4ArWSeQKVkAgEZZAJBIWYFmgClZAIBIWSeQJFcAkDlXAJBKV4EZgCRXJ4A5VwCASlcmkClWAJBIVoE/gClWJ4BIVgGQK1kAkDJZAJBKWYFAgCtZJpAmWgCAMlkAkDtaAIBKWQCQT1qBP4AmWgCAO1pNgE9aAZAyVgCQSlaBQIAyVgCASlYmkCtXAJA7VwCQT1eBP4ArVwCAO1cAgE9XAP8vAA==";
-
-      const DEFEAT_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAA2QD/UQMGGoAA/wMPIC0gaW5zdHJ1bWVudGFsTJAkdgCQPHaBQIAkdiaAPHYBkCZaAJA3WgCQPFqBZoAmWiaAN1oBkCdYAJA3WIFAgCdYAIA3WCaQKVoAkD5agUCAPFomgClaAJArWQCQNVkAkD9ZgWaANVkAgD5aAZA1WSWAK1mBQYA1WSeQK1YAkDNWgT+AK1YnkClZAJAyWYFmgClZAJAwWgCQPFoAgD9ZJ4AzViaAMlmBQJAmVgCQN1aBGYAmViaAN1YokCRZgT+AMFoAgDxaAYAkWQD/LwA=";
-
-      const VICTORY_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAApQD/UQMGGoAA/wMPIC0gaW5zdHJ1bWVudGFsAJAkdgCQQ3aBQIAkdiaAQ3YmkCRYAJA8WACQQFiBGYAkWCeAQFgnkCRYAJBDWIE/gDxYAYAkWACAQ1gmkCtaAJBAWgCQSFqBQIArWiaAQFoAgEhaAZAoWgCQQ1qBP4AoWieAQ1omkCZaAJA8WoEZgCZaJoA8WiiQJFcAkExXgUCAJFcAgExXAP8vAA==";
-
-      const CLICK_MIDI_BASE64 = "TVRoZAAAAAYAAQABAeBNVHJrAAAANgD/UQMPQkAA/wMPIC0gaW5zdHJ1bWVudGFsHpBFdACQR3QAkEh0eoBHdACASHQ+gEV0AP8vAA==";
-
-      const GAMEOVER_MIDI_BASE64 = "TVRoZAAAAAYAAQACAeBNVHJrAAACUgD/UQMHNXgA/wMPIC0gaW5zdHJ1bWVudGFsYZArWgCAK1qDR5ApRgCAKUaDaJAmRgCAJkaDR5ApTSCAKU2DSJA6fwCAOn+DZ5A5RYFjgDlFggWQNUQAgDVEg2iQOUoAgDlKg2eQOlcAkENXYYBDVyKQRUNhgEVDAJBGRGGARkQhkEhEYYA6VwCASEQBkDlGAJBKRmGASkYhkE9EYYBPRCGQSkVhgEpFAJBPRGGAT0QBgDlGIJA1RQCQTUVhgE1FIZBMRWGATEUBkEpEYYBKRCGQRkRhgDVFAIBGRCGQOUUAgDlFYpBGRGGARkQhkEVEYYBFRCGQRkJhkDpIAIA6SACARkIhkENIYYBDSACQRUqBAoBFSgCQRkNhgEZDIZBIRGGASEQBkDlCAJBKQmGAOUIAgEpCIZBPQ2GAT0MhkEpFYYBKRQCQT0NhgE9DIpA1QwCQTUNhgE1DIZBMRmGQSkcAgExGYYBKRyGQRkNhgEZDAYA1QyCQOUQAgDlEYpBGRGGARkQhkEVDYYBFQyGQRkRhkDpHAIA6RwCARkQhkENHYYBDRwCQRUWBAoBFRQCQRkRhgEZEIpBIRWGQOUUAgEhFAJBKRWGASkUhkE9GYYBPRiGQSkVhgEpFAZBPRmGAT0YggDlFAZA1RQCANUUAkE1FYZBMRgCATUWBApBKRQCATEZhgEpFIZBGRWGARkUBkDlGIIA5RmKQRkdhgEZHIZBFRWGARUUhkEZEYYBGRCGQOkgAkENIYYBDSAGQRUdhgEVHIZBGRmGARkZhgDpIAP8vAE1UcmsAAAE1AP9RAwc1eAD/AwcgLSBiYXNzYZArf4NHkClCAIArf4NHgClCIZAmQoNHgCZCIZApQoNHgClCAJArTQCQOk2DZ5ApQwCAK00AgDpNgWSQOUKBQ4A5QiCAKUMhkCZCAJA1QoNHgCZCAIA1QiGQKUQAkDlEgkWAOUSBApArRACQOkQggClEAIA6RINHgCtEAZApRINHgClEIJAmQ4NHgCZDAJApQyGQOUODBoA5Q0CAKUMBkCtCAJA6QoNngCtCAIA6QgGQKUNhkDlDgkWAOUMhgClDIZAmQ4NHgCZDAJApRCCQOUODJoA5QyGAKUQAkCtDAJA6Q4NngCtDAIA6QwGQKUKDR4ApQiGQNUKDR5ApQgCANUIgkDlCg0eAKUIAgDlCAZArTQCQOk0ggDpNgyeAK00A/y8A";
-
-      const CombatMusicSystem = {
-        isPlaying: false,
-        isLoaded: false,
-        volume: 0.12,
-        notes: [],
-        duration: 0,
-        scheduledOscs: [],
-
-        init: function() {
-          this.loadMIDI();
-        },
-
-        loadMIDI: function() {
-          try {
-            var binaryString = atob(COMBAT_MIDI_BASE64);
-            var bytes = new Uint8Array(binaryString.length);
-            for (var i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            var pos = 0;
-            var notes = [];
-
-            var readUint32 = function() { return (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++]; };
-            var readUint16 = function() { return (bytes[pos++] << 8) | bytes[pos++]; };
-            var readVarLen = function() {
-              var value = 0, b;
-              do { b = bytes[pos++]; value = (value << 7) | (b & 0x7F); } while (b & 0x80);
-              return value;
-            };
-            var readString = function(len) { var str = ''; for (var i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
-
-            if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
-            readUint32();
-            readUint16();
-            var numTracks = readUint16();
-            var ticksPerQuarter = readUint16();
-
-            var microsecondsPerBeat = 500000;
-
-            for (var t = 0; t < numTracks; t++) {
-              if (readString(4) !== 'MTrk') continue;
-              var trackLength = readUint32();
-              var trackEnd = pos + trackLength;
-
-              var absoluteTime = 0;
-              var runningStatus = 0;
-              var activeNotes = {};
-
-              var tickToSeconds = function(ticks) { return (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000); };
-
-              while (pos < trackEnd) {
-                absoluteTime += readVarLen();
-                var statusByte = bytes[pos];
-
-                if (statusByte < 0x80) statusByte = runningStatus;
-                else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
-
-                var cmd = statusByte & 0xF0;
-
-                if (cmd === 0x90) {
-                  var note = bytes[pos++], vel = bytes[pos++];
-                  if (vel > 0) activeNotes[note] = { start: absoluteTime, vel: vel };
-                  else if (activeNotes[note]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
-                    delete activeNotes[note];
-                  }
-                } else if (cmd === 0x80) {
-                  var note2 = bytes[pos++]; pos++;
-                  if (activeNotes[note2]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note2].start), n: note2, d: tickToSeconds(absoluteTime - activeNotes[note2].start), v: activeNotes[note2].vel });
-                    delete activeNotes[note2];
-                  }
-                } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
-                else if (cmd === 0xC0 || cmd === 0xD0) pos++;
-                else if (statusByte === 0xFF) {
-                  var type = bytes[pos++], len = readVarLen();
-                  if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
-                  pos += len;
-                } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
-              }
-            }
-
-            notes.sort(function(a, b) { return a.t - b.t; });
-            this.notes = notes;
-            var lastNote = notes[notes.length - 1];
-            this.duration = lastNote ? lastNote.t + lastNote.d : 0;
-            this.isLoaded = true;
-            console.log('CombatMusicSystem: Loaded ' + notes.length + ' notes, duration: ' + this.duration.toFixed(2) + 's');
-          } catch (err) {
-            console.error('CombatMusicSystem: Failed to load MIDI', err);
-          }
-        },
-
-        playNote: function(note, startTime, duration, velocity) {
-          var ctx = SoundSystem.audioCtx;
-          if (!ctx || !SoundSystem.enabled) return;
-
-          var freq = 440 * Math.pow(2, (note - 69) / 12);
-          var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
-
-          // Aggressive timbre: sawtooth (main) + square (harmonic)
-          var osc1 = ctx.createOscillator();
-          osc1.type = 'sawtooth';
-          osc1.frequency.value = freq;
-
-          var osc2 = ctx.createOscillator();
-          osc2.type = 'square';
-          osc2.frequency.value = freq * 2;
-
-          var gain1 = ctx.createGain();
-          var gain2 = ctx.createGain();
-          var masterGain = ctx.createGain();
-
-          gain1.gain.value = 0.6;
-          gain2.gain.value = 0.2;
-
-          osc1.connect(gain1);
-          osc2.connect(gain2);
-          gain1.connect(masterGain);
-          gain2.connect(masterGain);
-          masterGain.connect(ctx.destination);
-
-          var now = startTime;
-          var attackTime = 0.005;
-          var decayTime = 0.08;
-          var sustainLevel = 0.5;
-          var releaseTime = 0.1;
-
-          masterGain.gain.setValueAtTime(0, now);
-          masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
-          masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
-          masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
-          masterGain.gain.linearRampToValueAtTime(0, now + duration);
-
-          osc1.start(now);
-          osc2.start(now);
-          osc1.stop(now + duration + 0.05);
-          osc2.stop(now + duration + 0.05);
-
-          this.scheduledOscs.push(osc1, osc2);
-        },
-
-        scheduleNotes: function() {
-          if (!this.isLoaded || !SoundSystem.audioCtx) return;
-          var ctx = SoundSystem.audioCtx;
-          var startTime = ctx.currentTime;
-
-          for (var i = 0; i < this.notes.length; i++) {
-            var note = this.notes[i];
-            this.playNote(note.n, startTime + note.t, note.d, note.v);
-          }
-          // NO loop - plays once and stops
-        },
-
-        start: function() {
-          if (!this.isLoaded) return;
-          this.stop(); // clean previous
-          SoundSystem.resume();
-          this.isPlaying = true;
-          this.scheduleNotes();
-        },
-
-        stop: function() {
-          this.isPlaying = false;
-          this.scheduledOscs.forEach(function(osc) {
-            try { osc.stop(); } catch(e) {}
-          });
-          this.scheduledOscs = [];
-        }
-      };
-
-      // ============================================================================
-      // DEFEAT MUSIC SYSTEM - Somber defeat/damage music via Web Audio API
-      // ============================================================================
-
-      const DefeatMusicSystem = {
-        isPlaying: false,
-        isLoaded: false,
-        volume: 0.35,
-        notes: [],
-        duration: 0,
-        scheduledOscs: [],
-
-        init: function() {
-          this.loadMIDI();
-        },
-
-        loadMIDI: function() {
-          try {
-            var binaryString = atob(DEFEAT_MIDI_BASE64);
-            var bytes = new Uint8Array(binaryString.length);
-            for (var i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            var pos = 0;
-            var notes = [];
-
-            var readUint32 = function() { return (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++]; };
-            var readUint16 = function() { return (bytes[pos++] << 8) | bytes[pos++]; };
-            var readVarLen = function() {
-              var value = 0, b;
-              do { b = bytes[pos++]; value = (value << 7) | (b & 0x7F); } while (b & 0x80);
-              return value;
-            };
-            var readString = function(len) { var str = ''; for (var i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
-
-            if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
-            readUint32();
-            readUint16();
-            var numTracks = readUint16();
-            var ticksPerQuarter = readUint16();
-
-            var microsecondsPerBeat = 500000;
-
-            for (var t = 0; t < numTracks; t++) {
-              if (readString(4) !== 'MTrk') continue;
-              var trackLength = readUint32();
-              var trackEnd = pos + trackLength;
-
-              var absoluteTime = 0;
-              var runningStatus = 0;
-              var activeNotes = {};
-
-              var tickToSeconds = function(ticks) { return (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000); };
-
-              while (pos < trackEnd) {
-                absoluteTime += readVarLen();
-                var statusByte = bytes[pos];
-
-                if (statusByte < 0x80) statusByte = runningStatus;
-                else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
-
-                var cmd = statusByte & 0xF0;
-
-                if (cmd === 0x90) {
-                  var note = bytes[pos++], vel = bytes[pos++];
-                  if (vel > 0) activeNotes[note] = { start: absoluteTime, vel: vel };
-                  else if (activeNotes[note]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
-                    delete activeNotes[note];
-                  }
-                } else if (cmd === 0x80) {
-                  var note2 = bytes[pos++]; pos++;
-                  if (activeNotes[note2]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note2].start), n: note2, d: tickToSeconds(absoluteTime - activeNotes[note2].start), v: activeNotes[note2].vel });
-                    delete activeNotes[note2];
-                  }
-                } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
-                else if (cmd === 0xC0 || cmd === 0xD0) pos++;
-                else if (statusByte === 0xFF) {
-                  var type = bytes[pos++], len = readVarLen();
-                  if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
-                  pos += len;
-                } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
-              }
-            }
-
-            notes.sort(function(a, b) { return a.t - b.t; });
-            this.notes = notes;
-            var lastNote = notes[notes.length - 1];
-            this.duration = lastNote ? lastNote.t + lastNote.d : 0;
-            this.isLoaded = true;
-            console.log('DefeatMusicSystem: Loaded ' + notes.length + ' notes, duration: ' + this.duration.toFixed(2) + 's');
-          } catch (err) {
-            console.error('DefeatMusicSystem: Failed to load MIDI', err);
-          }
-        },
-
-        playNote: function(note, startTime, duration, velocity) {
-          var ctx = SoundSystem.audioCtx;
-          if (!ctx || !SoundSystem.enabled) return;
-
-          var freq = 440 * Math.pow(2, (note - 69) / 12);
-          var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
-
-          // Somber timbre: triangle (main) + sine sub-bass
-          var osc1 = ctx.createOscillator();
-          osc1.type = 'triangle';
-          osc1.frequency.value = freq;
-
-          var osc2 = ctx.createOscillator();
-          osc2.type = 'sine';
-          osc2.frequency.value = freq * 0.5;
-
-          var gain1 = ctx.createGain();
-          var gain2 = ctx.createGain();
-          var masterGain = ctx.createGain();
-
-          gain1.gain.value = 0.7;
-          gain2.gain.value = 0.3;
-
-          osc1.connect(gain1);
-          osc2.connect(gain2);
-          gain1.connect(masterGain);
-          gain2.connect(masterGain);
-          masterGain.connect(ctx.destination);
-
-          var now = startTime;
-          var attackTime = 0.02;
-          var decayTime = 0.15;
-          var sustainLevel = 0.4;
-          var releaseTime = 0.2;
-
-          masterGain.gain.setValueAtTime(0, now);
-          masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
-          masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
-          masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
-          masterGain.gain.linearRampToValueAtTime(0, now + duration);
-
-          osc1.start(now);
-          osc2.start(now);
-          osc1.stop(now + duration + 0.05);
-          osc2.stop(now + duration + 0.05);
-
-          this.scheduledOscs.push(osc1, osc2);
-        },
-
-        scheduleNotes: function() {
-          if (!this.isLoaded || !SoundSystem.audioCtx) return;
-          var ctx = SoundSystem.audioCtx;
-          var startTime = ctx.currentTime;
-
-          for (var i = 0; i < this.notes.length; i++) {
-            var note = this.notes[i];
-            this.playNote(note.n, startTime + note.t, note.d, note.v);
-          }
-          // NO loop - plays once and stops
-        },
-
-        start: function() {
-          if (!this.isLoaded) return;
-          this.stop();
-          SoundSystem.resume();
-          this.isPlaying = true;
-          this.scheduleNotes();
-        },
-
-        stop: function() {
-          this.isPlaying = false;
-          this.scheduledOscs.forEach(function(osc) {
-            try { osc.stop(); } catch(e) {}
-          });
-          this.scheduledOscs = [];
-        }
-      };
-
-      // ============================================================================
-      // VICTORY MUSIC SYSTEM - Triumphant victory/attack music via Web Audio API
-      // ============================================================================
-
-      const VictoryMusicSystem = {
-        isPlaying: false,
-        isLoaded: false,
-        volume: 0.12,
-        notes: [],
-        duration: 0,
-        scheduledOscs: [],
-
-        init: function() {
-          this.loadMIDI();
-        },
-
-        loadMIDI: function() {
-          try {
-            var binaryString = atob(VICTORY_MIDI_BASE64);
-            var bytes = new Uint8Array(binaryString.length);
-            for (var i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            var pos = 0;
-            var notes = [];
-
-            var readUint32 = function() { return (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++]; };
-            var readUint16 = function() { return (bytes[pos++] << 8) | bytes[pos++]; };
-            var readVarLen = function() {
-              var value = 0, b;
-              do { b = bytes[pos++]; value = (value << 7) | (b & 0x7F); } while (b & 0x80);
-              return value;
-            };
-            var readString = function(len) { var str = ''; for (var i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
-
-            if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
-            readUint32();
-            readUint16();
-            var numTracks = readUint16();
-            var ticksPerQuarter = readUint16();
-
-            var microsecondsPerBeat = 500000;
-
-            for (var t = 0; t < numTracks; t++) {
-              if (readString(4) !== 'MTrk') continue;
-              var trackLength = readUint32();
-              var trackEnd = pos + trackLength;
-
-              var absoluteTime = 0;
-              var runningStatus = 0;
-              var activeNotes = {};
-
-              var tickToSeconds = function(ticks) { return (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000); };
-
-              while (pos < trackEnd) {
-                absoluteTime += readVarLen();
-                var statusByte = bytes[pos];
-
-                if (statusByte < 0x80) statusByte = runningStatus;
-                else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
-
-                var cmd = statusByte & 0xF0;
-
-                if (cmd === 0x90) {
-                  var note = bytes[pos++], vel = bytes[pos++];
-                  if (vel > 0) activeNotes[note] = { start: absoluteTime, vel: vel };
-                  else if (activeNotes[note]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
-                    delete activeNotes[note];
-                  }
-                } else if (cmd === 0x80) {
-                  var note2 = bytes[pos++]; pos++;
-                  if (activeNotes[note2]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note2].start), n: note2, d: tickToSeconds(absoluteTime - activeNotes[note2].start), v: activeNotes[note2].vel });
-                    delete activeNotes[note2];
-                  }
-                } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
-                else if (cmd === 0xC0 || cmd === 0xD0) pos++;
-                else if (statusByte === 0xFF) {
-                  var type = bytes[pos++], len = readVarLen();
-                  if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
-                  pos += len;
-                } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
-              }
-            }
-
-            notes.sort(function(a, b) { return a.t - b.t; });
-            this.notes = notes;
-            var lastNote = notes[notes.length - 1];
-            this.duration = lastNote ? lastNote.t + lastNote.d : 0;
-            this.isLoaded = true;
-            console.log('VictoryMusicSystem: Loaded ' + notes.length + ' notes, duration: ' + this.duration.toFixed(2) + 's');
-          } catch (err) {
-            console.error('VictoryMusicSystem: Failed to load MIDI', err);
-          }
-        },
-
-        playNote: function(note, startTime, duration, velocity) {
-          var ctx = SoundSystem.audioCtx;
-          if (!ctx || !SoundSystem.enabled) return;
-
-          var freq = 440 * Math.pow(2, (note - 69) / 12);
-          var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
-
-          // Triumphant timbre: square (main) + sawtooth harmonic (bright octave)
-          var osc1 = ctx.createOscillator();
-          osc1.type = 'square';
-          osc1.frequency.value = freq;
-
-          var osc2 = ctx.createOscillator();
-          osc2.type = 'sawtooth';
-          osc2.frequency.value = freq * 2; // octave above for brightness
-
-          var gain1 = ctx.createGain();
-          var gain2 = ctx.createGain();
-          var masterGain = ctx.createGain();
-
-          gain1.gain.value = 0.6;
-          gain2.gain.value = 0.15; // subtle harmonic
-
-          osc1.connect(gain1);
-          osc2.connect(gain2);
-          gain1.connect(masterGain);
-          gain2.connect(masterGain);
-          masterGain.connect(ctx.destination);
-
-          var now = startTime;
-          var attackTime = 0.005;
-          var decayTime = 0.08;
-          var sustainLevel = 0.5;
-          var releaseTime = 0.1;
-
-          masterGain.gain.setValueAtTime(0, now);
-          masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
-          masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
-          masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
-          masterGain.gain.linearRampToValueAtTime(0, now + duration);
-
-          osc1.start(now);
-          osc2.start(now);
-          osc1.stop(now + duration + 0.05);
-          osc2.stop(now + duration + 0.05);
-
-          this.scheduledOscs.push(osc1, osc2);
-        },
-
-        scheduleNotes: function() {
-          if (!this.isLoaded || !SoundSystem.audioCtx) return;
-          var ctx = SoundSystem.audioCtx;
-          var startTime = ctx.currentTime;
-
-          for (var i = 0; i < this.notes.length; i++) {
-            var note = this.notes[i];
-            this.playNote(note.n, startTime + note.t, note.d, note.v);
-          }
-          // NO loop - plays once and stops
-        },
-
-        start: function() {
-          if (!this.isLoaded) return;
-          this.stop();
-          SoundSystem.resume();
-          this.isPlaying = true;
-          this.scheduleNotes();
-        },
-
-        stop: function() {
-          this.isPlaying = false;
-          this.scheduledOscs.forEach(function(osc) {
-            try { osc.stop(); } catch(e) {}
-          });
-          this.scheduledOscs = [];
-        }
-      };
-
-      // ============================================================================
-      // CLICK MUSIC SYSTEM - Percussive click sound for combat confirm button
-      // ============================================================================
-
-      const ClickMusicSystem = {
-        isPlaying: false,
-        isLoaded: false,
-        volume: 0.15,
-        notes: [],
-        duration: 0,
-        scheduledOscs: [],
-
-        init: function() {
-          this.loadMIDI();
-        },
-
-        loadMIDI: function() {
-          try {
-            var binaryString = atob(CLICK_MIDI_BASE64);
-            var bytes = new Uint8Array(binaryString.length);
-            for (var i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            var pos = 0;
-            var notes = [];
-
-            var readUint32 = function() { return (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++]; };
-            var readUint16 = function() { return (bytes[pos++] << 8) | bytes[pos++]; };
-            var readVarLen = function() {
-              var value = 0, b;
-              do { b = bytes[pos++]; value = (value << 7) | (b & 0x7F); } while (b & 0x80);
-              return value;
-            };
-            var readString = function(len) { var str = ''; for (var i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
-
-            if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
-            readUint32();
-            readUint16();
-            var numTracks = readUint16();
-            var ticksPerQuarter = readUint16();
-
-            var microsecondsPerBeat = 500000;
-
-            for (var t = 0; t < numTracks; t++) {
-              if (readString(4) !== 'MTrk') continue;
-              var trackLength = readUint32();
-              var trackEnd = pos + trackLength;
-
-              var absoluteTime = 0;
-              var runningStatus = 0;
-              var activeNotes = {};
-
-              var tickToSeconds = function(ticks) { return (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000); };
-
-              while (pos < trackEnd) {
-                absoluteTime += readVarLen();
-                var statusByte = bytes[pos];
-
-                if (statusByte < 0x80) statusByte = runningStatus;
-                else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
-
-                var cmd = statusByte & 0xF0;
-
-                if (cmd === 0x90) {
-                  var note = bytes[pos++], vel = bytes[pos++];
-                  if (vel > 0) activeNotes[note] = { start: absoluteTime, vel: vel };
-                  else if (activeNotes[note]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
-                    delete activeNotes[note];
-                  }
-                } else if (cmd === 0x80) {
-                  var note2 = bytes[pos++]; pos++;
-                  if (activeNotes[note2]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note2].start), n: note2, d: tickToSeconds(absoluteTime - activeNotes[note2].start), v: activeNotes[note2].vel });
-                    delete activeNotes[note2];
-                  }
-                } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
-                else if (cmd === 0xC0 || cmd === 0xD0) pos++;
-                else if (statusByte === 0xFF) {
-                  var type = bytes[pos++], len = readVarLen();
-                  if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
-                  pos += len;
-                } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
-              }
-            }
-
-            notes.sort(function(a, b) { return a.t - b.t; });
-            this.notes = notes;
-            var lastNote = notes[notes.length - 1];
-            this.duration = lastNote ? lastNote.t + lastNote.d : 0;
-            this.isLoaded = true;
-            console.log('ClickMusicSystem: Loaded ' + notes.length + ' notes, duration: ' + this.duration.toFixed(2) + 's');
-          } catch (err) {
-            console.error('ClickMusicSystem: Failed to load MIDI', err);
-          }
-        },
-
-        playNote: function(note, startTime, duration, velocity) {
-          var ctx = SoundSystem.audioCtx;
-          if (!ctx || !SoundSystem.enabled) return;
-
-          var freq = 440 * Math.pow(2, (note - 69) / 12);
-          var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
-
-          // Percussive timbre: square (main) + triangle (body)
-          var osc1 = ctx.createOscillator();
-          osc1.type = 'square';
-          osc1.frequency.value = freq;
-
-          var osc2 = ctx.createOscillator();
-          osc2.type = 'triangle';
-          osc2.frequency.value = freq; // same octave for body
-
-          var gain1 = ctx.createGain();
-          var gain2 = ctx.createGain();
-          var masterGain = ctx.createGain();
-
-          gain1.gain.value = 0.6;
-          gain2.gain.value = 0.25; // triangle body
-
-          osc1.connect(gain1);
-          osc2.connect(gain2);
-          gain1.connect(masterGain);
-          gain2.connect(masterGain);
-          masterGain.connect(ctx.destination);
-
-          var now = startTime;
-          var attackTime = 0.003;
-          var decayTime = 0.05;
-          var sustainLevel = 0.3;
-          var releaseTime = 0.08;
-
-          masterGain.gain.setValueAtTime(0, now);
-          masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
-          masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
-          masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
-          masterGain.gain.linearRampToValueAtTime(0, now + duration);
-
-          osc1.start(now);
-          osc2.start(now);
-          osc1.stop(now + duration + 0.05);
-          osc2.stop(now + duration + 0.05);
-
-          this.scheduledOscs.push(osc1, osc2);
-        },
-
-        scheduleNotes: function() {
-          if (!this.isLoaded || !SoundSystem.audioCtx) return;
-          var ctx = SoundSystem.audioCtx;
-          var startTime = ctx.currentTime;
-
-          for (var i = 0; i < this.notes.length; i++) {
-            var note = this.notes[i];
-            this.playNote(note.n, startTime + note.t, note.d, note.v);
-          }
-          // NO loop - plays once and stops
-        },
-
-        start: function() {
-          if (!this.isLoaded) return;
-          this.stop();
-          SoundSystem.resume();
-          this.isPlaying = true;
-          this.scheduleNotes();
-        },
-
-        stop: function() {
-          this.isPlaying = false;
-          this.scheduledOscs.forEach(function(osc) {
-            try { osc.stop(); } catch(e) {}
-          });
-          this.scheduledOscs = [];
-        }
-      };
-
-      // ============================================================================
-      // GAME OVER MUSIC SYSTEM - Plays on victory or defeat screen
-      // ============================================================================
-
-      const GameOverMusicSystem = {
-        isPlaying: false,
-        isLoaded: false,
-        volume: 0.4,
-        notes: [],
-        duration: 0,
-        scheduledOscs: [],
-
-        init: function() {
-          this.loadMIDI();
-        },
-
-        loadMIDI: function() {
-          try {
-            var binaryString = atob(GAMEOVER_MIDI_BASE64);
-            var bytes = new Uint8Array(binaryString.length);
-            for (var i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            var pos = 0;
-            var notes = [];
-
-            var readUint32 = function() { return (bytes[pos++] << 24) | (bytes[pos++] << 16) | (bytes[pos++] << 8) | bytes[pos++]; };
-            var readUint16 = function() { return (bytes[pos++] << 8) | bytes[pos++]; };
-            var readVarLen = function() {
-              var value = 0, b;
-              do { b = bytes[pos++]; value = (value << 7) | (b & 0x7F); } while (b & 0x80);
-              return value;
-            };
-            var readString = function(len) { var str = ''; for (var i = 0; i < len; i++) str += String.fromCharCode(bytes[pos++]); return str; };
-
-            if (readString(4) !== 'MThd') throw new Error('Invalid MIDI');
-            readUint32();
-            readUint16();
-            var numTracks = readUint16();
-            var ticksPerQuarter = readUint16();
-
-            var microsecondsPerBeat = 500000;
-
-            for (var t = 0; t < numTracks; t++) {
-              if (readString(4) !== 'MTrk') continue;
-              var trackLength = readUint32();
-              var trackEnd = pos + trackLength;
-
-              var absoluteTime = 0;
-              var runningStatus = 0;
-              var activeNotes = {};
-
-              var tickToSeconds = function(ticks) { return (ticks / ticksPerQuarter) * (microsecondsPerBeat / 1000000); };
-
-              while (pos < trackEnd) {
-                absoluteTime += readVarLen();
-                var statusByte = bytes[pos];
-
-                if (statusByte < 0x80) statusByte = runningStatus;
-                else { pos++; if (statusByte < 0xF0) runningStatus = statusByte; }
-
-                var cmd = statusByte & 0xF0;
-
-                if (cmd === 0x90) {
-                  var note = bytes[pos++], vel = bytes[pos++];
-                  if (vel > 0) activeNotes[note] = { start: absoluteTime, vel: vel };
-                  else if (activeNotes[note]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note].start), n: note, d: tickToSeconds(absoluteTime - activeNotes[note].start), v: activeNotes[note].vel });
-                    delete activeNotes[note];
-                  }
-                } else if (cmd === 0x80) {
-                  var note2 = bytes[pos++]; pos++;
-                  if (activeNotes[note2]) {
-                    notes.push({ t: tickToSeconds(activeNotes[note2].start), n: note2, d: tickToSeconds(absoluteTime - activeNotes[note2].start), v: activeNotes[note2].vel });
-                    delete activeNotes[note2];
-                  }
-                } else if (cmd === 0xA0 || cmd === 0xB0 || cmd === 0xE0) pos += 2;
-                else if (cmd === 0xC0 || cmd === 0xD0) pos++;
-                else if (statusByte === 0xFF) {
-                  var type = bytes[pos++], len = readVarLen();
-                  if (type === 0x51) microsecondsPerBeat = (bytes[pos] << 16) | (bytes[pos+1] << 8) | bytes[pos+2];
-                  pos += len;
-                } else if (statusByte === 0xF0 || statusByte === 0xF7) pos += readVarLen();
-              }
-            }
-
-            notes.sort(function(a, b) { return a.t - b.t; });
-            this.notes = notes;
-            var lastNote = notes[notes.length - 1];
-            this.duration = lastNote ? lastNote.t + lastNote.d : 0;
-            this.isLoaded = true;
-            console.log('GameOverMusicSystem: Loaded ' + notes.length + ' notes, duration: ' + this.duration.toFixed(2) + 's');
-          } catch (err) {
-            console.error('GameOverMusicSystem: Failed to load MIDI', err);
-          }
-        },
-
-        playNote: function(note, startTime, duration, velocity) {
-          var ctx = SoundSystem.audioCtx;
-          if (!ctx || !SoundSystem.enabled) return;
-
-          var freq = 440 * Math.pow(2, (note - 69) / 12);
-          var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
-
-          // Timbre melancólico/épico: triangle (corpo suave) + sine (sub-oitava para peso)
-          var osc1 = ctx.createOscillator();
-          osc1.type = 'triangle';
-          osc1.frequency.value = freq;
-
-          var osc2 = ctx.createOscillator();
-          osc2.type = 'sine';
-          osc2.frequency.value = freq * 0.5;
-
-          var gain1 = ctx.createGain();
-          var gain2 = ctx.createGain();
-          var masterGain = ctx.createGain();
-
-          gain1.gain.value = 0.6;
-          gain2.gain.value = 0.25;
-
-          osc1.connect(gain1);
-          osc2.connect(gain2);
-          gain1.connect(masterGain);
-          gain2.connect(masterGain);
-          masterGain.connect(ctx.destination);
-
-          var now = startTime;
-          var attackTime = 0.02;
-          var decayTime = 0.1;
-          var sustainLevel = 0.6;
-          var releaseTime = 0.15;
-
-          masterGain.gain.setValueAtTime(0, now);
-          masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
-          masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
-          masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
-          masterGain.gain.linearRampToValueAtTime(0, now + duration);
-
-          osc1.start(now);
-          osc2.start(now);
-          osc1.stop(now + duration + 0.05);
-          osc2.stop(now + duration + 0.05);
-
-          this.scheduledOscs.push(osc1, osc2);
-        },
-
-        scheduleNotes: function() {
-          if (!this.isLoaded || !SoundSystem.audioCtx) return;
-          var ctx = SoundSystem.audioCtx;
-          var startTime = ctx.currentTime;
-
-          for (var i = 0; i < this.notes.length; i++) {
-            var note = this.notes[i];
-            this.playNote(note.n, startTime + note.t, note.d, note.v);
-          }
-        },
-
-        start: function() {
-          if (!this.isLoaded) return;
-          this.stop();
-          SoundSystem.resume();
-          this.isPlaying = true;
-          this.scheduleNotes();
-        },
-
-        stop: function() {
-          this.isPlaying = false;
-          this.scheduledOscs.forEach(function(osc) {
-            try { osc.stop(); } catch(e) {}
-          });
-          this.scheduledOscs = [];
         }
       };
 
