@@ -5953,8 +5953,8 @@
           GameState.playerInventory.splice(idx, 1);
           item.location = GameState.playerLocation;
 
-          // Mochila: recalcular maxWeight ao largar e dropar excesso
-          if (itemId === 'mochila') {
+          // onDrop hook (ex: mochila recalcula peso)
+          if (item.onDrop === 'recalcWeight') {
             Rules.recalcMaxWeight();
             Log.add('🎒 Capacidade de peso voltou para ' + GameState.characters.player.maxWeight + 'kg.', 'info');
 
