@@ -6608,10 +6608,6 @@
           }
           attackerLines.push({ text: 'TOTAL: ' + atk.totalAttack, cls: 'combat-total' });
 
-          // Extra message (e.g. attack phrase) belongs to attacker
-          if (this.pendingCombat.result.extraMessage) {
-            attackerLines.push({ text: this.pendingCombat.result.extraMessage, cls: 'combat-result-damage' });
-          }
 
           // Build defender lines
           var defenderLines = [
@@ -6778,7 +6774,9 @@
             resultLines.push({ text: '❤️ HP RESTANTE: ' + result.remainingHp + '/' + this.pendingCombat.defender.maxHp, cls: 'combat-result-hp' });
           }
 
-          // Extra message now shown on attacker card (see attackerLines above)
+          if (result.extraMessage) {
+            resultLines.push({ text: result.extraMessage, cls: 'combat-result-damage' });
+          }
 
           // Calculate dynamic delay based on active music duration
           var isPlayerAttacking = this.pendingCombat.result.playerIsAttacker;
