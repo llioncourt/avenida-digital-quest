@@ -10039,22 +10039,6 @@
 
       Criaturas sobrenaturais passam a vagar pelas ruas. Um DEMÔNIO é visto nas sombras. O FEITICEIRO se esconde no túnel, aguardando o anoitecer. Mas nem tudo está perdido. Aliados improváveis surgem pelo caminho — uma CORUJA sábia, um fiel CACHORRO CARAMELO, e outros heróis urbanos.
 
-        // Tooltip do clima: position fixed via JS (igual bomba)
-        var weatherTooltip = document.createElement('div');
-        weatherTooltip.id = 'weather-tooltip-content';
-        document.body.appendChild(weatherTooltip);
-        document.querySelectorAll('.weather-indicator').forEach(function(ind) {
-          ind.addEventListener('mouseenter', function() {
-            var rect = ind.getBoundingClientRect();
-            weatherTooltip.textContent = ind.getAttribute('data-tooltip');
-            weatherTooltip.style.display = 'block';
-            weatherTooltip.style.top = (rect.bottom + 6) + 'px';
-            weatherTooltip.style.left = (rect.left + rect.width / 2 - weatherTooltip.offsetWidth / 2) + 'px';
-          });
-          ind.addEventListener('mouseleave', function() {
-            weatherTooltip.style.display = 'none';
-          });
-        });
 
       Artefatos místicos estão espalhados pela cidade. Uma ESPADA lendária. Um ESCUDO ancestral. E um LIVRO que guarda o segredo para conter as forças do mal. Você é a última esperança. Explore a cidade, reúna aliados, encontre armas e derrote a Bruxa antes que o ritual seja concluído...
 
