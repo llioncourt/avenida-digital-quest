@@ -5039,6 +5039,50 @@
       // ============================================================================
 
       const Rules = {
+        // Aplicar dano ao jogador com check de morte centralizado
+        damagePlayer: function(amount, message) {
+          var player = GameState.characters.player;
+          player.hp -= amount;
+          if (message) Log.add(message, 'danger');
+          if (player.hp <= 0) {
+            player.hp = 0;
+            player.isAlive = false;
+          }
+          return player.hp <= 0;
+        },
+
+        // Mover aliados que estão seguindo o jogador para uma sala
+        moveFollowingAllies: function(roomId) {
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+              c.location = roomId;
+              c.followTurnsLeft--;
+              if (c.followTurnsLeft <= 0) {
+                c.followingPlayer = false;
+                c.followCooldown = true;
+                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+              }
+            }
+          });
+        },
+
+        // Descobrir itens na sala atual do jogador
+        discoverItemsInRoom: function() {
+          Object.values(GameState.items).forEach(function(item) {
+            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
+              GameState.discoveredItems.add(item.id);
+            }
+          });
+        },
+
+        // Verificar se uma sala é visível no minimapa
+        isRoomVisible: function(roomId) {
+          if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
+            return GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
+          }
+          return true;
+        },
+
         // Verificar se jogador pode voar
         canPlayerFly: function() {
           const player = GameState.characters.player;
