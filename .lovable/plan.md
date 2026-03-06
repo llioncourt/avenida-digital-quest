@@ -1,46 +1,99 @@
 
 
-# Plano: Scrollbar no Mapa + 2 Bug Fixes
+## Plano: Italico no Combate + Log de Saida de NPCs + Aliados Seguem o Jogador
 
-## 1. Scrollbar visivel no modal do Mapa Antigo
+### 1. Italico na janela de combate
 
-O `.mapa-antigo-scroll` ja tem `overflow-y: auto` e estilos de scrollbar webkit (linha 1054-1056), mas o `#modal` nao tem `max-height` nem `overflow` controlado. O modal cresce sem limite e ultrapassa a tela.
+**Problema:** O modal de combate usa `div.textContent = line.text` (linhas ~5794, 5807, 5948), que renderiza tudo como texto puro. O `*texto*` nunca vira `<em>`.
 
-**Correcao:** Adicionar `max-height: 85vh` e `overflow-y: auto` ao `#modal` (linha 999), e reduzir o `max-height` do `.mapa-antigo-scroll` para `60vh` para garantir que o scroll funcione dentro do modal. Tambem adicionar estilos de scrollbar no proprio `#modal` para Firefox (`scrollbar-width: thin`).
-
-## 2. Bug: Personagens mortos sendo atacados
-
-O problema esta em `processNext` (linha 6599). Quando multiplos combates sao enfileirados no mesmo turno contra o mesmo alvo, o primeiro combate mata o alvo, mas os seguintes continuam sendo processados. O `processNext` atualiza o HP e recalcula `killed`, mas nunca **pula** combates contra alvos ja mortos.
-
-**Correcao:** Em `processNext`, apos atualizar HP do defensor (linha 6617-6621), adicionar verificacao: se o defensor ja esta morto (`!defChar.isAlive`), pular esse combate e chamar `processNext()` recursivamente.
+**Correcao:** Trocar `textContent` por `innerHTML` com a mesma regex ja usada no Log:
 
 ```javascript
-if (defChar && !defChar.isAlive) {
-  this.processNext();
-  return;
+div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+```
+
+Aplicar em 3 locais dentro de `CombatModal`:
+- Linha ~5794: linhas do atacante
+- Linha ~5807: linhas do defensor
+- Linha ~5948: linhas de resultado
+
+### 2. Log quando NPC sai da sala do jogador
+
+**Problema:** Quando um NPC esta na mesma sala que o jogador e se move para outro lugar, nao ha mensagem no log.
+
+**Correcao:** Em `processNPCMovement` (linha ~6223), apos `char.location = Utils.randomChoice(validExits)`, adicionar verificacao: se `prevLocation === GameState.playerLocation` e `char.location !== GameState.playerLocation`, logar para onde o NPC foi.
+
+```javascript
+// NPC sai da sala do jogador
+if (prevLocation === GameState.playerLocation && char.location !== GameState.playerLocation) {
+  var destRoom = GameState.rooms[char.location];
+  var icon = char.isAlly ? '🤝' : '⚔️';
+  Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
 }
 ```
 
-Mesma verificacao para o atacante — se o atacante morreu num combate anterior, pular tambem.
+Inserir logo apos a linha `char.location = Utils.randomChoice(validExits)` (linha ~6225), antes do bloco de frases de movimento.
 
-## 3. Bug: Frase de efeito do inimigo no card errado
+### 3. Aliados seguem o jogador temporariamente
 
-A `extraMessage` (linha 6841-6843) esta sendo adicionada ao `resultLines` que vai para o `defCard` (card do defensor). Para ataques de NPCs, a frase deveria aparecer no card do **atacante**.
+**Mecanica:** Quando o jogador encontra um aliado (entra na mesma sala ou o aliado entra na sala do jogador), o aliado entra em modo "seguindo" por 3 turnos. Durante esse periodo, quando o jogador se move, o aliado se move junto. Apos os 3 turnos, o aliado volta ao comportamento normal de movimento aleatorio.
 
-**Correcao:** Em `showResult`, em vez de sempre colocar no `defCard`, verificar: se `playerIsAttacker` e false (NPC atacando), colocar a `extraMessage` no `atkCard` (card do atacante). Se `playerIsAttacker` e true, manter no `defCard` (para a invocacao do demonio pela Bruxa).
+**Implementacao:**
+
+**3A.** Adicionar campo `followingPlayer` e `followTurnsLeft` ao estado dos aliados. Nao precisa ser nos dados iniciais — setar dinamicamente.
+
+**3B.** Em `processNPCMovement`, quando o NPC encontra o jogador (ja tem o bloco na linha ~6236) ou quando o jogador entra numa sala com aliado: ativar o modo seguir.
 
 ```javascript
-if (result.extraMessage) {
-  var targetCard = result.playerIsAttacker 
-    ? document.getElementById('combat-card-defender')
-    : document.getElementById('combat-card-attacker');
-  // adicionar linha com animacao no card correto
+// Ativar follow quando aliado encontra o jogador
+if (char.isAlly && char.location === GameState.playerLocation) {
+  if (!char.followingPlayer) {
+    char.followingPlayer = true;
+    char.followTurnsLeft = 3;
+    Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
+  }
 }
 ```
 
-## Resumo
+**3C.** Em `processNPCMovement`, aliados em modo "seguindo" nao se movem aleatoriamente — eles ficam parados (o movimento deles sera tratado quando o jogador se move).
 
-1. **CSS**: `max-height` + `overflow` no `#modal` + scrollbar styles
-2. **processNext**: ~4 linhas para pular combates contra mortos
-3. **showResult**: ~8 linhas para redirecionar extraMessage ao card do atacante quando NPC ataca
+```javascript
+// Aliado seguindo o jogador não se move sozinho
+if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
+```
+
+**3D.** Em `Actions.move` (quando o jogador se move), mover aliados que estao seguindo junto:
+
+```javascript
+// Mover aliados que estão seguindo
+Object.values(GameState.characters).forEach(function(c) {
+  if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+    c.location = roomId; // mesma sala que o jogador
+    c.followTurnsLeft--;
+    if (c.followTurnsLeft <= 0) {
+      c.followingPlayer = false;
+      Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+    }
+  }
+});
+```
+
+**3E.** Tambem ativar o follow quando o jogador entra numa sala com aliado (em `Actions.move`, apos mudar `GameState.playerLocation`):
+
+```javascript
+// Verificar aliados na nova sala
+Object.values(GameState.characters).forEach(function(c) {
+  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
+    c.followingPlayer = true;
+    c.followTurnsLeft = 3;
+    Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
+  }
+});
+```
+
+### Resumo
+
+1. **3 linhas** trocando `textContent` por `innerHTML` com regex no CombatModal
+2. **~5 linhas** adicionando log de saida de NPC da sala do jogador em `processNPCMovement`
+3. **~25 linhas** implementando sistema de aliado seguir jogador temporariamente (3 turnos) em `processNPCMovement` e `Actions.move`
 
