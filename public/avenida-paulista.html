@@ -1894,7 +1894,11 @@
             </div>
 
             <div class="panel" id="inventory-panel">
-              <h3 class="section-title">🎒 Inventário</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h3 class="section-title" style="margin-bottom: 0;">🎒 Inventário</h3>
+                <button class="btn btn-small craft-toggle-btn" id="craft-toggle-btn" onclick="Game.toggleCraftMode()" title="Combinar itens">⚗️</button>
+              </div>
+              <div id="craft-status" style="display: none; padding: 4px 8px; margin-bottom: 6px; background: rgba(212,168,70,0.15); border: 1px solid var(--accent-gold-dim); border-radius: var(--radius); font-size: 0.8rem; color: var(--accent-gold);"></div>
               <div class="inventory-scroll-wrap scroll-indicator-container" id="inventory-scroll-wrap">
                 <div id="inventory-list"></div>
               </div>
@@ -7986,11 +7990,32 @@
 
           if (GameState.playerInventory.length === 0) {
             container.innerHTML = '<span style="color: var(--text-muted)">Inventário vazio.</span>';
+            // Reset craft mode if inventory empty
+            if (GameState.craftMode) { GameState.craftMode = false; GameState.craftSelection = []; this.updateCraftUI(); }
             return;
           }
 
+          var craftMode = GameState.craftMode || false;
+          var craftSel = GameState.craftSelection || [];
+
           container.innerHTML = GameState.playerInventory.map(itemId => {
             const item = GameState.items[itemId];
+            var isSelected = craftSel.includes(itemId);
+            var selectedClass = isSelected ? ' craft-selected' : '';
+            var craftClickable = craftMode ? ` onclick="Game.craftSelect('${item.id}')" style="cursor:pointer;"` : '';
+
+            if (craftMode) {
+              return `<div class="inventory-item${selectedClass}"${craftClickable}>
+                <div>
+                  <span class="inventory-item-name">${item.name}</span>
+                  <span class="inventory-item-weight">(${item.weight}kg)</span>
+                </div>
+                <div class="inventory-actions">
+                  ${isSelected ? '<span style="color: var(--accent-gold);">✔</span>' : '<span style="color: var(--text-muted);">○</span>'}
+                </div>
+              </div>`;
+            }
+
             const useBtn = item.isUsable ?
               `<button class="btn btn-small" onclick="Game.use('${item.id}')" title="Usar">✋</button>` : '';
             return `<div class="inventory-item">
@@ -9071,6 +9096,56 @@
         drop: function(itemId) {
           this.processAction(Actions.dropItem(itemId));
         },
+
+        // === CRAFTING UI ===
+        toggleCraftMode: function() {
+          GameState.craftMode = !GameState.craftMode;
+          GameState.craftSelection = [];
+          this.updateCraftUI();
+          UI.updateInventory();
+        },
+
+        updateCraftUI: function() {
+          var btn = document.getElementById('craft-toggle-btn');
+          var status = document.getElementById('craft-status');
+          if (GameState.craftMode) {
+            btn.classList.add('craft-active');
+            btn.textContent = '✖';
+            btn.title = 'Cancelar combinação';
+            status.style.display = 'block';
+            var sel = GameState.craftSelection || [];
+            if (sel.length === 0) status.textContent = '⚗️ Selecione o 1º item para combinar';
+            else if (sel.length === 1) status.textContent = '⚗️ Agora selecione o 2º item';
+          } else {
+            btn.classList.remove('craft-active');
+            btn.textContent = '⚗️';
+            btn.title = 'Combinar itens';
+            status.style.display = 'none';
+          }
+        },
+
+        craftSelect: function(itemId) {
+          if (!GameState.craftMode) return;
+          var sel = GameState.craftSelection || [];
+          // Deselect if already selected
+          var idx = sel.indexOf(itemId);
+          if (idx > -1) { sel.splice(idx, 1); GameState.craftSelection = sel; this.updateCraftUI(); UI.updateInventory(); return; }
+          if (sel.length >= 2) return;
+          sel.push(itemId);
+          GameState.craftSelection = sel;
+          if (sel.length === 2) {
+            // Attempt craft
+            var result = Actions.craft(sel[0], sel[1]);
+            GameState.craftMode = false;
+            GameState.craftSelection = [];
+            this.processAction(result);
+            this.updateCraftUI();
+          } else {
+            this.updateCraftUI();
+            UI.updateInventory();
+          }
+        },
+
 
         use: function(itemId, targetId) {
           const result = Actions.useItem(itemId, targetId);
