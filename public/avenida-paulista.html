@@ -6308,6 +6308,12 @@
             } else {
               GameState.playerLocation = roomId;
               GameState.characters.player.location = roomId;
+              if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
+              GameState.visitedRooms.add(roomId);
+              Journal.recordRoom(roomId);
+              var totalRoomsFlying = Object.keys(GameState.rooms).length;
+              if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
+              SoundSystem.playMove();
               return {
                 success: true,
                 message: 'Você salta da Antena e a ASA DELTA te carrega pelos céus de São Paulo!',
