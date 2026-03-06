@@ -3107,6 +3107,22 @@
         }
       };
 
+      const WeatherIndicators = {
+        update: function() {
+          var mapping = { 'weather-rain': 'rain', 'weather-wind': 'wind_howl', 'weather-fog': 'fog' };
+          Object.keys(mapping).forEach(function(elemId) {
+            var el = document.getElementById(elemId);
+            if (el) {
+              if (RandomEvents.isActive(mapping[elemId])) {
+                el.classList.add('active');
+              } else {
+                el.classList.remove('active');
+              }
+            }
+          });
+        }
+      };
+
       const RandomEvents = {
         activeEvents: {},
         activeSounds: {},
