@@ -10042,6 +10042,22 @@
 
       Artefatos místicos estão espalhados pela cidade. Uma ESPADA lendária. Um ESCUDO ancestral. E um LIVRO que guarda o segredo para conter as forças do mal. Você é a última esperança. Explore a cidade, reúna aliados, encontre armas e derrote a Bruxa antes que o ritual seja concluído...
 
+        // Tooltip do clima: position fixed com posicionamento via JS
+        var weatherTooltip = document.createElement('div');
+        weatherTooltip.id = 'weather-tooltip-content';
+        document.body.appendChild(weatherTooltip);
+        document.querySelectorAll('.weather-indicator').forEach(function(ind) {
+          ind.addEventListener('mouseenter', function() {
+            var rect = ind.getBoundingClientRect();
+            weatherTooltip.textContent = ind.getAttribute('data-tooltip');
+            weatherTooltip.style.display = 'block';
+            weatherTooltip.style.top = (rect.bottom + 6) + 'px';
+            weatherTooltip.style.left = (rect.left + rect.width / 2 - weatherTooltip.offsetWidth / 2) + 'px';
+          });
+          ind.addEventListener('mouseleave', function() {
+            weatherTooltip.style.display = 'none';
+          });
+        });
 
       O destino de São Paulo está em suas mãos.
         `,
