@@ -1051,17 +1051,11 @@
       }
 
       .mapa-antigo-scroll {
-        max-height: 60vh;
-        overflow-y: auto;
         padding-right: 0.5rem;
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
       }
-
-      .mapa-antigo-scroll::-webkit-scrollbar { width: 6px; }
-      .mapa-antigo-scroll::-webkit-scrollbar-track { background: rgba(139, 105, 20, 0.1); border-radius: 3px; }
-      .mapa-antigo-scroll::-webkit-scrollbar-thumb { background: #8B6914; border-radius: 3px; }
 
       .mapa-section {
         border: 1px solid rgba(139, 105, 20, 0.3);
@@ -1082,7 +1076,15 @@
       .mapa-section-rooms {
         display: flex;
         flex-direction: column;
+        max-height: 35vh;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #8B6914 rgba(139, 105, 20, 0.1);
       }
+
+      .mapa-section-rooms::-webkit-scrollbar { width: 6px; }
+      .mapa-section-rooms::-webkit-scrollbar-track { background: rgba(139, 105, 20, 0.1); border-radius: 3px; }
+      .mapa-section-rooms::-webkit-scrollbar-thumb { background: #8B6914; border-radius: 3px; }
 
       .mapa-room-btn {
         display: flex;
