@@ -10154,6 +10154,23 @@
           });
         }
 
+        // Tooltip do clima: position fixed via JS (igual bomba)
+        var weatherTooltip = document.createElement('div');
+        weatherTooltip.id = 'weather-tooltip-content';
+        document.body.appendChild(weatherTooltip);
+        document.querySelectorAll('.weather-indicator').forEach(function(ind) {
+          ind.addEventListener('mouseenter', function() {
+            var rect = ind.getBoundingClientRect();
+            weatherTooltip.textContent = ind.getAttribute('data-tooltip');
+            weatherTooltip.style.display = 'block';
+            weatherTooltip.style.top = (rect.bottom + 6) + 'px';
+            weatherTooltip.style.left = (rect.left + rect.width / 2 - weatherTooltip.offsetWidth / 2) + 'px';
+          });
+          ind.addEventListener('mouseleave', function() {
+            weatherTooltip.style.display = 'none';
+          });
+        });
+
         // Scroll indicator listeners
         document.querySelectorAll('.scroll-indicator-container').forEach(el => {
           el.addEventListener('scroll', () => GameUI.updateScrollIndicators());
