@@ -9668,6 +9668,14 @@
           vendedor.tradeInventory.push(playerItemId);
           if (playerItemId === 'mochila') {
             GameState.characters.player.maxWeight = Math.max(20, GameState.characters.player.maxWeight - 20);
+            // Dropar itens excedentes ao trocar a mochila
+            while (Rules.getInventoryWeight() > GameState.characters.player.maxWeight && GameState.playerInventory.length > 0) {
+              var excessId = GameState.playerInventory[GameState.playerInventory.length - 1];
+              var excessItem = GameState.items[excessId];
+              GameState.playerInventory.pop();
+              excessItem.location = GameState.playerLocation;
+              Log.add('🎒 ' + excessItem.name + ' caiu da mochila!', 'info');
+            }
           }
           if (vendorItemId === 'mochila') {
             GameState.characters.player.maxWeight += 20;
