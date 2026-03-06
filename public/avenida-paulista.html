@@ -6108,9 +6108,9 @@
             totalDefense: defenseMove.power
           };
 
-          // Check if attacking bruxa triggers demon
+          // Check if attacking target triggers onFirstHit
           let extraMessage = null;
-          if (target.id === 'bruxa' && !killed && !GameState.demonSummoned) {
+          if (target.onFirstHit === 'summonDemon' && !killed && !GameState.demonSummoned) {
             extraMessage = '⚡ A BRUXA invoca o DEMÔNIO!';
           }
 
@@ -6133,12 +6133,12 @@
               t.hp = 0;
               t.isAlive = false;
               SoundSystem.playEnemyDefeat();
-              if (t.id === 'bombardeador') {
+              if (t.onDeath === 'glitchEffect') {
                 GlitchEffect.trigger(3000);
               }
             }
-            // Demon summoning
-            if (t.id === 'bruxa' && t.isAlive && !GameState.demonSummoned) {
+            // Demon summoning via onFirstHit hook
+            if (t.onFirstHit === 'summonDemon' && t.isAlive && !GameState.demonSummoned) {
               GameState.demonSummoned = true;
               const demon = GameState.characters.demonio;
               demon.location = t.location;
@@ -7222,7 +7222,7 @@
                     t.hp = 0;
                     t.isAlive = false;
                     Log.add(`${ally.name} derrotou ${t.name} com ${attackMove.name}!`, 'success');
-                    if (t.id === 'bombardeador') {
+                    if (t.onDeath === 'glitchEffect') {
                       GlitchEffect.trigger(3000);
                     }
                   } else {
