@@ -1835,9 +1835,7 @@
       }
       .bomb-tooltip {
         display: none;
-        position: absolute;
-        top: 110%;
-        right: 0;
+        position: fixed;
         background: var(--bg-secondary);
         border: 1px solid var(--accent-gold);
         border-radius: var(--radius);
@@ -1850,7 +1848,6 @@
         box-shadow: 0 0 12px rgba(255, 100, 0, 0.3);
         line-height: 1.6;
       }
-      .bomb-indicator:hover .bomb-tooltip { display: block; }
 
       /* ========== JOURNAL MODAL ========== */
       .journal-tabs {
