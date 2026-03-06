@@ -1,99 +1,84 @@
 
 
-## Plano: Italico no Combate + Log de Saida de NPCs + Aliados Seguem o Jogador
+# Oportunidades de Refatoracao Adicionais
 
-### 1. Italico na janela de combate
+Apos analisar todo o arquivo (9.429 linhas), aqui estao as areas com maior potencial de melhoria, ordenadas por impacto.
 
-**Problema:** O modal de combate usa `div.textContent = line.text` (linhas ~5794, 5807, 5948), que renderiza tudo como texto puro. O `*texto*` nunca vira `<em>`.
+---
 
-**Correcao:** Trocar `textContent` por `innerHTML` com a mesma regex ja usada no Log:
+## 1. Unificar `processNPCAttacks` e `processAllyAttacks` (~80 linhas salvas)
 
-```javascript
-div.innerHTML = line.text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-```
+Essas duas funcoes (linhas 7055-7247) sao quase identicas: ambas iteram personagens, verificam se estao vivos/na sala, escolhem golpe aleatorio, calculam dano, e fazem enqueue no CombatModal. A unica diferenca e quem ataca quem.
 
-Aplicar em 3 locais dentro de `CombatModal`:
-- Linha ~5794: linhas do atacante
-- Linha ~5807: linhas do defensor
-- Linha ~5948: linhas de resultado
+**Solucao:** Criar `processCombatFor(filterFn, targetFilterFn)` parametrizado, ou um unico `processAutoCombat()` que trata ambos os casos.
 
-### 2. Log quando NPC sai da sala do jogador
+---
 
-**Problema:** Quando um NPC esta na mesma sala que o jogador e se move para outro lugar, nao ha mensagem no log.
+## 2. Extrair logica de "mover aliados seguidores" para funcao reutilizavel (~20 linhas salvas)
 
-**Correcao:** Em `processNPCMovement` (linha ~6223), apos `char.location = Utils.randomChoice(validExits)`, adicionar verificacao: se `prevLocation === GameState.playerLocation` e `char.location !== GameState.playerLocation`, logar para onde o NPC foi.
+O bloco que move aliados em modo follow aparece em **3 locais**:
+- `Actions.moveTo` (linha 5845)
+- `ItemUseHandlers.mapa_antigo` (linha 5590)
+- Potencialmente outros itens de teletransporte
 
-```javascript
-// NPC sai da sala do jogador
-if (prevLocation === GameState.playerLocation && char.location !== GameState.playerLocation) {
-  var destRoom = GameState.rooms[char.location];
-  var icon = char.isAlly ? '🤝' : '⚔️';
-  Log.add(icon + ' ' + char.name + ' foi para ' + destRoom.name + '.', 'info');
-}
-```
+**Solucao:** Criar `Rules.moveFollowingAllies(roomId)` chamado nos 3 locais.
 
-Inserir logo apos a linha `char.location = Utils.randomChoice(validExits)` (linha ~6225), antes do bloco de frases de movimento.
+---
 
-### 3. Aliados seguem o jogador temporariamente
+## 3. Consolidar "descobrir itens na sala" (~10 linhas salvas)
 
-**Mecanica:** Quando o jogador encontra um aliado (entra na mesma sala ou o aliado entra na sala do jogador), o aliado entra em modo "seguindo" por 3 turnos. Durante esse periodo, quando o jogador se move, o aliado se move junto. Apos os 3 turnos, o aliado volta ao comportamento normal de movimento aleatorio.
+O bloco que descobre itens na sala atual (`Object.values(GameState.items).forEach(...)` com `discoveredItems.add`) aparece **3 vezes** em `processAction` (linhas 8559, 8591) e `Game.init` (linha 8433).
 
-**Implementacao:**
+**Solucao:** Criar `Rules.discoverItemsInRoom()`.
 
-**3A.** Adicionar campo `followingPlayer` e `followTurnsLeft` ao estado dos aliados. Nao precisa ser nos dados iniciais — setar dinamicamente.
+---
 
-**3B.** Em `processNPCMovement`, quando o NPC encontra o jogador (ja tem o bloco na linha ~6236) ou quando o jogador entra numa sala com aliado: ativar o modo seguir.
+## 4. Consolidar checks de morte do jogador (~15 linhas salvas)
 
-```javascript
-// Ativar follow quando aliado encontra o jogador
-if (char.isAlly && char.location === GameState.playerLocation) {
-  if (!char.followingPlayer) {
-    char.followingPlayer = true;
-    char.followTurnsLeft = 3;
-    Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
-  }
-}
-```
+O padrao `if (player.hp <= 0) { player.hp = 0; player.isAlive = false; }` aparece em **7+ locais** (chuva, energia, tropeço noturno, armadilhas, etc).
 
-**3C.** Em `processNPCMovement`, aliados em modo "seguindo" nao se movem aleatoriamente — eles ficam parados (o movimento deles sera tratado quando o jogador se move).
+**Solucao:** Criar `Rules.damagePlayer(amount, message)` que aplica dano, faz o check de morte, e loga automaticamente.
 
-```javascript
-// Aliado seguindo o jogador não se move sozinho
-if (char.isAlly && char.followingPlayer && char.followTurnsLeft > 0) return;
-```
+---
 
-**3D.** Em `Actions.move` (quando o jogador se move), mover aliados que estao seguindo junto:
+## 5. Dados duplicados em `processAction` (~15 linhas salvas)
 
-```javascript
-// Mover aliados que estão seguindo
-Object.values(GameState.characters).forEach(function(c) {
-  if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
-    c.location = roomId; // mesma sala que o jogador
-    c.followTurnsLeft--;
-    if (c.followTurnsLeft <= 0) {
-      c.followingPlayer = false;
-      Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
-    }
-  }
-});
-```
+O bloco de `skipNextTimeAdvance` + `advanceTime` e repetido identicamente para o caso normal e o caso `combatModal` (linhas 8550-8556 e 8573-8580).
 
-**3E.** Tambem ativar o follow quando o jogador entra numa sala com aliado (em `Actions.move`, apos mudar `GameState.playerLocation`):
+**Solucao:** Extrair para `Events.maybeAdvanceTime()`.
 
-```javascript
-// Verificar aliados na nova sala
-Object.values(GameState.characters).forEach(function(c) {
-  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer) {
-    c.followingPlayer = true;
-    c.followTurnsLeft = 3;
-    Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
-  }
-});
-```
+---
 
-### Resumo
+## 6. MinimapController: mouse e touch duplicados (~60 linhas salvas)
 
-1. **3 linhas** trocando `textContent` por `innerHTML` com regex no CombatModal
-2. **~5 linhas** adicionando log de saida de NPC da sala do jogador em `processNPCMovement`
-3. **~25 linhas** implementando sistema de aliado seguir jogador temporariamente (3 turnos) em `processNPCMovement` e `Actions.move`
+`handleMouseDown`/`handleTouchStart`, `handleMouseMove`/`handleTouchMove`, e `handleMouseUp`/`handleTouchEnd` compartilham ~80% da logica. A unica diferenca e `e.clientX` vs `e.touches[0].clientX`.
+
+**Solucao:** Extrair a logica comum para `_startDrag(x, y, roomEl)`, `_moveDrag(x, y)`, `_endDrag(x, y)` e chamar dos handlers de mouse/touch.
+
+---
+
+## 7. Render.updateMinimap: 3 blocos de "ocultar subsolo_masp" (~12 linhas salvas)
+
+O check `roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)` com `canReveal` aparece **3 vezes** no updateMinimap (linhas 7604, 7627, 7679).
+
+**Solucao:** Criar `isRoomVisible(roomId)` e usar nos 3 locais.
+
+---
+
+## Resumo
+
+| Refatoracao | Linhas salvas | Risco |
+|---|---|---|
+| Unificar NPC/Ally attacks | ~80 | Medio |
+| Extrair moveFollowingAllies | ~20 | Baixo |
+| Extrair discoverItemsInRoom | ~10 | Baixo |
+| Extrair damagePlayer | ~15 | Baixo |
+| Extrair maybeAdvanceTime | ~15 | Baixo |
+| Unificar mouse/touch minimap | ~60 | Medio |
+| Extrair isRoomVisible | ~12 | Baixo |
+| **Total** | **~212** | |
+
+Arquivo final estimado: ~9.200 linhas (reducao de ~2.5%).
+
+O ganho principal nao e em linhas, mas em **manutencao**: cada padrao repetido e um bug em potencial (corrigir em um lugar e esquecer nos outros). Com essas funcoes auxiliares, a logica fica centralizada.
 
