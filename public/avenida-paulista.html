@@ -5993,7 +5993,16 @@
             return { success: false, message: `${item.name} não pode ser usado ativamente.` };
           }
 
-          const handler = ItemUseHandlers[itemId];
+          // Handler genérico para comida (itens com energyRestore)
+          var handler = ItemUseHandlers[itemId];
+          if (!handler && item.energyRestore) {
+            handler = function() {
+              var restore = item.energyRestore;
+              GameState.energy = Math.min(100, GameState.energy + restore);
+              SoundSystem.playUseItem();
+              return { success: true, message: '🍽️ Você consumiu ' + item.name + '! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
+            };
+          }
           if (!handler) {
             return { success: false, message: 'Este item não tem efeito definido!' };
           }
