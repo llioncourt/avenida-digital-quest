@@ -6899,17 +6899,18 @@
               return; // NPC paralisado não se move
             }
 
-            // Feiticeiro fica preso até 18:00
-            if (char.id === 'feiticeiro' && GameState.time < 18 * 60) return;
+            // Movimento declarativo: movementLock nos dados do personagem
+            if (char.movementLock) {
+              if (char.movementLock.always) return;
+              if (char.movementLock.until && GameState.time < char.movementLock.until) return;
+              if (char.movementLock.untilSummoned && !char.isSummoned) return;
+            }
 
-            // Bruxa fica no teto do MASP
-            if (char.id === 'bruxa') return;
-
-            // Demônio só existe se invocado
-            if (char.id === 'demonio' && !char.isSummoned) return;
-
-            // Demônio convertido fica na sala da Bruxa enquanto ela estiver viva
-            if (char.id === 'demonio' && char.isAlly && GameState.characters.bruxa.isAlive) return;
+            // guardsTarget: aliado convertido fica na sala do alvo enquanto ele estiver vivo
+            if (char.guardsTarget && char.isAlly) {
+              var guardTarget = GameState.characters[char.guardsTarget];
+              if (guardTarget && guardTarget.isAlive) return;
+            }
 
             // Limpar cooldown quando aliado não está na mesma sala que o jogador
             if (char.isAlly && char.followCooldown && char.location !== GameState.playerLocation) {
