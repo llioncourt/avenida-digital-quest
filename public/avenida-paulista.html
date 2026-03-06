@@ -2418,7 +2418,8 @@
           weight: 12,
           canFly: true,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['flight', 'windVulnerable']
         },
         cera_magica: {
           id: 'cera_magica',
@@ -2451,7 +2452,8 @@
           weight: 2,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['gasImmunity']
         },
         hipnodisco: {
           id: 'hipnodisco',
@@ -2485,7 +2487,8 @@
           weight: 2,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['nightVision', 'revealAdjacent']
         },
         cafe: {
           id: 'cafe',
@@ -2529,7 +2532,8 @@
           weight: 3,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['rainProtection', 'safeJump']
         },
         mapa_antigo: {
           id: 'mapa_antigo',
@@ -2562,7 +2566,10 @@
           weight: 0,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['weightBonus'],
+          onPickup: 'recalcWeight',
+          onDrop: 'recalcWeight'
         },
         reliquia: {
           id: 'reliquia',
@@ -2574,7 +2581,8 @@
           canFly: false,
           isUsable: false,
           singleUse: false,
-          startsInWorld: false
+          startsInWorld: false,
+          passiveEffects: ['regen']
         },
         coxinha: {
           id: 'coxinha',
@@ -2651,7 +2659,8 @@
           isUsable: false,
           singleUse: false,
           startsInWorld: false,
-          isCrafted: true
+          isCrafted: true,
+          passiveEffects: ['nightVision', 'revealAdjacent', 'revealTraps']
         },
         conjunto_musical: {
           id: 'conjunto_musical',
@@ -2690,7 +2699,8 @@
           isUsable: false,
           singleUse: false,
           startsInWorld: false,
-          isCrafted: true
+          isCrafted: true,
+          passiveEffects: ['gasImmunity', 'rainProtection', 'safeJump']
         }
       };
 
