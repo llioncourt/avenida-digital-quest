@@ -9116,7 +9116,7 @@
             '<span class="toast-name">' + def.name + '</span>' +
             '</span>';
           document.body.appendChild(toast);
-          SoundSystem.play('achievement');
+          SoundSystem.playVictory();
           setTimeout(function() {
             toast.classList.add('hiding');
             setTimeout(function() { toast.remove(); }, 500);
