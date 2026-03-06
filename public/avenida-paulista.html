@@ -6565,10 +6565,24 @@
           GameState.playerInventory.splice(idx, 1);
           item.location = GameState.playerLocation;
 
-          // Mochila: reduzir maxWeight ao largar
+          // Mochila: reduzir maxWeight ao largar e dropar excesso
           if (itemId === 'mochila') {
             GameState.characters.player.maxWeight = Math.max(20, GameState.characters.player.maxWeight - 20);
             Log.add('🎒 Capacidade de peso voltou para ' + GameState.characters.player.maxWeight + 'kg.', 'info');
+
+            // Dropar itens excedentes (mais recentes primeiro)
+            var droppedItems = [];
+            while (Rules.getInventoryWeight() > GameState.characters.player.maxWeight && GameState.playerInventory.length > 0) {
+              var lastItemId = GameState.playerInventory[GameState.playerInventory.length - 1];
+              var lastItem = GameState.items[lastItemId];
+              GameState.playerInventory.pop();
+              lastItem.location = GameState.playerLocation;
+              droppedItems.push(lastItem.name);
+              Log.add('🎒 ' + lastItem.name + ' caiu da mochila!', 'info');
+            }
+            if (droppedItems.length > 0) {
+              Log.add('📦 ' + droppedItems.length + ' item(ns) ficaram no chão.', 'info');
+            }
           }
 
           return {
