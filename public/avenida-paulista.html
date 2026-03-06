@@ -2418,7 +2418,8 @@
           weight: 12,
           canFly: true,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['flight', 'windVulnerable']
         },
         cera_magica: {
           id: 'cera_magica',
@@ -2451,7 +2452,8 @@
           weight: 2,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['gasImmunity']
         },
         hipnodisco: {
           id: 'hipnodisco',
@@ -2485,7 +2487,8 @@
           weight: 2,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['nightVision', 'revealAdjacent']
         },
         cafe: {
           id: 'cafe',
@@ -2529,7 +2532,8 @@
           weight: 3,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['rainProtection', 'safeJump']
         },
         mapa_antigo: {
           id: 'mapa_antigo',
@@ -2562,7 +2566,10 @@
           weight: 0,
           canFly: false,
           isUsable: false,
-          singleUse: false
+          singleUse: false,
+          passiveEffects: ['weightBonus'],
+          onPickup: 'recalcWeight',
+          onDrop: 'recalcWeight'
         },
         reliquia: {
           id: 'reliquia',
@@ -2574,7 +2581,8 @@
           canFly: false,
           isUsable: false,
           singleUse: false,
-          startsInWorld: false
+          startsInWorld: false,
+          passiveEffects: ['regen']
         },
         coxinha: {
           id: 'coxinha',
@@ -2651,7 +2659,8 @@
           isUsable: false,
           singleUse: false,
           startsInWorld: false,
-          isCrafted: true
+          isCrafted: true,
+          passiveEffects: ['nightVision', 'revealAdjacent', 'revealTraps']
         },
         conjunto_musical: {
           id: 'conjunto_musical',
@@ -2690,7 +2699,8 @@
           isUsable: false,
           singleUse: false,
           startsInWorld: false,
-          isCrafted: true
+          isCrafted: true,
+          passiveEffects: ['gasImmunity', 'rainProtection', 'safeJump']
         }
       };
 
@@ -2733,6 +2743,7 @@
           isAlly: false,
           lastBoss: false,
           aggression: 0.35,
+          movementLock: { until: 1080 },
           moves: {
             attack: [
               { name: 'Raio Arcano', power: 10 },
@@ -2793,6 +2804,7 @@
           lastBombCreation: 0,
           bombCooldown: 60,
           aggression: 0.45,
+          onDeath: 'glitchEffect',
           moves: {
             attack: [
               { name: 'Bomba de Gas', power: 18 },
@@ -2822,6 +2834,8 @@
           lastBoss: true,
           immuneToHypnosis: true,
           aggression: 0.55,
+          movementLock: { always: true },
+          onFirstHit: 'summonDemon',
           moves: {
             attack: [
               { name: 'Maldicao Sombria', power: 22 },
@@ -2853,6 +2867,8 @@
           isSummoned: false,
           immuneToHypnosis: true,
           aggression: 0.60,
+          movementLock: { untilSummoned: true },
+          guardsTarget: 'bruxa',
           moves: {
             attack: [
               { name: 'Chamas Infernais', power: 32 },
@@ -5029,7 +5045,7 @@
           if (player.canFly) return true;
 
           // Verificar se tem asa delta no inventário
-          return GameState.playerInventory.includes('asa_delta');
+          return Rules.hasEffect('flight');
         },
 
         // Verificar se pode ir para uma sala
@@ -5054,7 +5070,7 @@
         // Recalcular maxWeight de forma idempotente
         recalcMaxWeight: function() {
           var base = 20;
-          if (GameState.playerInventory.includes('mochila')) base += 20;
+          if (Rules.hasEffect('weightBonus')) base += 20;
           GameState.characters.player.maxWeight = base;
         },
 
@@ -5100,9 +5116,17 @@
           return defense;
         },
 
-        // Verificar se jogador tem máscara de gás
+        // Verificar se jogador tem um efeito passivo (de qualquer item no inventário)
+        hasEffect: function(effect) {
+          return GameState.playerInventory.some(function(id) {
+            var item = GameState.items[id];
+            return item && item.passiveEffects && item.passiveEffects.includes(effect);
+          });
+        },
+
+        // Verificar se jogador tem máscara de gás (atalho legado)
         hasGasMask: function() {
-          return GameState.playerInventory.includes('mascara_gas');
+          return this.hasEffect('gasImmunity');
         },
 
         // Verificar condições de fim de jogo
@@ -5606,25 +5630,7 @@
           };
         },
 
-        // Comidas - restauram energia
-        coxinha: function() {
-          var restore = 30;
-          GameState.energy = Math.min(100, GameState.energy + restore);
-          SoundSystem.playUseItem();
-          return { success: true, message: '🍗 Você comeu uma COXINHA crocante! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
-        },
-        acai: function() {
-          var restore = 50;
-          GameState.energy = Math.min(100, GameState.energy + restore);
-          SoundSystem.playUseItem();
-          return { success: true, message: '🫐 Você tomou um AÇAÍ revigorante! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
-        },
-        pastel: function() {
-          var restore = 20;
-          GameState.energy = Math.min(100, GameState.energy + restore);
-          SoundSystem.playUseItem();
-          return { success: true, message: '🥟 Você comeu um PASTEL quentinho! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
-        },
+        // Comidas - handler genérico detectado pelo campo energyRestore no item (ver useItem)
 
         // === HANDLERS DE ITENS CRAFTADOS ===
         conjunto_musical: function() {
@@ -5697,7 +5703,7 @@
 
           // PULO MORTAL: Pular da Antena sem Asa Delta = morte (a menos que tenha guarda-chuva!)
           if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
-            const hasUmbrella = GameState.playerInventory.includes('guarda_chuva');
+            const hasUmbrella = Rules.hasEffect('safeJump');
             if (!Rules.canPlayerFly() && !hasUmbrella) {
               // MORTE!
               const player = GameState.characters.player;
@@ -5755,7 +5761,7 @@
 
           // SALA SECRETA: Subsolo do MASP - requer lanterna + noite
           if (roomId === 'subsolo_masp') {
-            var hasLanternaForSecret = GameState.playerInventory.includes('lanterna');
+            var hasLanternaForSecret = Rules.hasEffect('nightVision');
             if (!hasLanternaForSecret || GameState.time < 20 * 60) {
               if (!hasLanternaForSecret) {
                 return { success: false, message: '🔦 Está escuro demais para ver a entrada secreta. Uma LANTERNA ajudaria...' };
@@ -5767,7 +5773,7 @@
           }
 
           // MODO NOTURNO: Tropeço sem lanterna após 21:00
-          if (GameState.time >= 21 * 60 && !GameState.playerInventory.includes('lanterna')) {
+          if (GameState.time >= 21 * 60 && !Rules.hasEffect('nightVision')) {
             if (Utils.random() < 0.15) {
               GameState.characters.player.hp -= 5;
               Log.add('🌑 Você tropeça no escuro e se machuca! -5 HP. Uma LANTERNA evitaria isso.', 'danger');
@@ -5822,7 +5828,7 @@
                 Log.add('⚠️ ARMADILHA! Você tropeça num fio e deixa cair ' + GameState.items[droppedId].name + '!', 'danger');
               }
             } else if (trap.type === 'gasResidual') {
-              if (!GameState.playerInventory.includes('mascara_gas')) {
+              if (!Rules.hasEffect('gasImmunity')) {
                 var gasDmg = 5;
                 GameState.characters.player.hp -= gasDmg;
                 Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + gasDmg + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
@@ -5885,8 +5891,8 @@
           item.location = null;
           GameState.playerInventory.push(itemId);
 
-          // Mochila: recalcular maxWeight ao pegar
-          if (itemId === 'mochila') {
+          // onPickup hook (ex: mochila recalcula peso)
+          if (item.onPickup === 'recalcWeight') {
             Rules.recalcMaxWeight();
             Log.add('🎒 Capacidade de peso aumentada para ' + GameState.characters.player.maxWeight + 'kg!', 'success');
           }
@@ -5947,8 +5953,8 @@
           GameState.playerInventory.splice(idx, 1);
           item.location = GameState.playerLocation;
 
-          // Mochila: recalcular maxWeight ao largar e dropar excesso
-          if (itemId === 'mochila') {
+          // onDrop hook (ex: mochila recalcula peso)
+          if (item.onDrop === 'recalcWeight') {
             Rules.recalcMaxWeight();
             Log.add('🎒 Capacidade de peso voltou para ' + GameState.characters.player.maxWeight + 'kg.', 'info');
 
@@ -5987,7 +5993,16 @@
             return { success: false, message: `${item.name} não pode ser usado ativamente.` };
           }
 
-          const handler = ItemUseHandlers[itemId];
+          // Handler genérico para comida (itens com energyRestore)
+          var handler = ItemUseHandlers[itemId];
+          if (!handler && item.energyRestore) {
+            handler = function() {
+              var restore = item.energyRestore;
+              GameState.energy = Math.min(100, GameState.energy + restore);
+              SoundSystem.playUseItem();
+              return { success: true, message: '🍽️ Você consumiu ' + item.name + '! +' + restore + ' energia! (Energia: ' + GameState.energy + '/100)', consumed: true };
+            };
+          }
           if (!handler) {
             return { success: false, message: 'Este item não tem efeito definido!' };
           }
@@ -6093,9 +6108,9 @@
             totalDefense: defenseMove.power
           };
 
-          // Check if attacking bruxa triggers demon
+          // Check if attacking target triggers onFirstHit
           let extraMessage = null;
-          if (target.id === 'bruxa' && !killed && !GameState.demonSummoned) {
+          if (target.onFirstHit === 'summonDemon' && !killed && !GameState.demonSummoned) {
             extraMessage = '⚡ A BRUXA invoca o DEMÔNIO!';
           }
 
@@ -6118,12 +6133,12 @@
               t.hp = 0;
               t.isAlive = false;
               SoundSystem.playEnemyDefeat();
-              if (t.id === 'bombardeador') {
+              if (t.onDeath === 'glitchEffect') {
                 GlitchEffect.trigger(3000);
               }
             }
-            // Demon summoning
-            if (t.id === 'bruxa' && t.isAlive && !GameState.demonSummoned) {
+            // Demon summoning via onFirstHit hook
+            if (t.onFirstHit === 'summonDemon' && t.isAlive && !GameState.demonSummoned) {
               GameState.demonSummoned = true;
               const demon = GameState.characters.demonio;
               demon.location = t.location;
@@ -6596,7 +6611,7 @@
           WorldSanity.enforce();
 
           // Regeneração passiva da Relíquia Paulistana
-          if (GameState.playerInventory.includes('reliquia')) {
+          if (Rules.hasEffect('regen')) {
             var player = GameState.characters.player;
             if (player.hp < player.maxHp) {
               player.hp = Math.min(player.hp + 1, player.maxHp);
@@ -6613,7 +6628,7 @@
           RandomEvents.process();
 
           // Dano de chuva (se ativa e jogador não tem guarda-chuva e está ao ar livre)
-          if (RandomEvents.isActive('rain') && !GameState.playerInventory.includes('guarda_chuva')) {
+          if (RandomEvents.isActive('rain') && !Rules.hasEffect('rainProtection')) {
             var indoorRooms = ['shopping', 'cinema', 'tunel', 'livraria', 'colegio', 'subsolo_masp'];
             if (!indoorRooms.includes(GameState.playerLocation)) {
               if (Utils.random() < 0.15) {
@@ -6655,7 +6670,7 @@
               }
             });
             // Tropeço noturno sem lanterna (15% chance ao mover)
-            if (!GameState.playerInventory.includes('lanterna') && Utils.random() < 0.15) {
+            if (!Rules.hasEffect('nightVision') && Utils.random() < 0.15) {
               var tripDmg = 5;
               GameState.characters.player.hp -= tripDmg;
               Log.add('🌑 Você tropeça no escuro! -' + tripDmg + ' HP. Uma LANTERNA ajudaria.', 'danger');
@@ -6671,7 +6686,7 @@
           GameState.fogActive = RandomEvents.isActive('fog');
 
           // Vento forte: empurra jogador com asa delta
-          if (RandomEvents.isActive('wind_howl') && GameState.playerInventory.includes('asa_delta')) {
+          if (RandomEvents.isActive('wind_howl') && Rules.hasEffect('windVulnerable')) {
             if (Utils.random() < 0.2) {
               var currentExits = Object.values(GameState.rooms[GameState.playerLocation].exits);
               if (currentExits.length > 0) {
@@ -6884,17 +6899,18 @@
               return; // NPC paralisado não se move
             }
 
-            // Feiticeiro fica preso até 18:00
-            if (char.id === 'feiticeiro' && GameState.time < 18 * 60) return;
+            // Movimento declarativo: movementLock nos dados do personagem
+            if (char.movementLock) {
+              if (char.movementLock.always) return;
+              if (char.movementLock.until && GameState.time < char.movementLock.until) return;
+              if (char.movementLock.untilSummoned && !char.isSummoned) return;
+            }
 
-            // Bruxa fica no teto do MASP
-            if (char.id === 'bruxa') return;
-
-            // Demônio só existe se invocado
-            if (char.id === 'demonio' && !char.isSummoned) return;
-
-            // Demônio convertido fica na sala da Bruxa enquanto ela estiver viva
-            if (char.id === 'demonio' && char.isAlly && GameState.characters.bruxa.isAlive) return;
+            // guardsTarget: aliado convertido fica na sala do alvo enquanto ele estiver vivo
+            if (char.guardsTarget && char.isAlly) {
+              var guardTarget = GameState.characters[char.guardsTarget];
+              if (guardTarget && guardTarget.isAlive) return;
+            }
 
             // Limpar cooldown quando aliado não está na mesma sala que o jogador
             if (char.isAlly && char.followCooldown && char.location !== GameState.playerLocation) {
@@ -7206,7 +7222,7 @@
                     t.hp = 0;
                     t.isAlive = false;
                     Log.add(`${ally.name} derrotou ${t.name} com ${attackMove.name}!`, 'success');
-                    if (t.id === 'bombardeador') {
+                    if (t.onDeath === 'glitchEffect') {
                       GlitchEffect.trigger(3000);
                     }
                   } else {
@@ -7221,7 +7237,7 @@
                 if (target.hp <= 0) {
                   target.hp = 0;
                   target.isAlive = false;
-                  if (target.id === 'bombardeador') {
+                  if (target.onDeath === 'glitchEffect') {
                     GlitchEffect.trigger(3000);
                   }
                 }
@@ -7381,7 +7397,7 @@
           var oldIndicator = document.querySelector('.lanterna-indicator');
           if (oldIndicator) oldIndicator.remove();
 
-          if (GameState.playerInventory.includes('lanterna')) {
+          if (Rules.hasEffect('revealAdjacent')) {
             var isNight = GameState.time >= 1200;
             var adjacentData = [];
             if (isNight) {
@@ -7475,7 +7491,7 @@
             return;
           }
 
-          const hasLanterna = GameState.playerInventory.includes('lanterna');
+          const hasLanterna = Rules.hasEffect('revealAdjacent');
           container.innerHTML = chars.map(function(char, idx) {
             var delay = 'style="animation-delay:' + (idx * 50) + 'ms;';
             // Vendedor: botão especial de troca
@@ -7586,7 +7602,7 @@
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
             // Ocultar subsolo_masp até ser visitado ou revelado pela lanterna
             if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-              var canReveal = GameState.playerLocation === 'masp' && GameState.playerInventory.includes('lanterna') && GameState.time >= 20 * 60;
+              var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
               if (!canReveal) return;
             }
             // Usar posição customizada se existir
@@ -7609,7 +7625,7 @@
 
               // Ocultar conexões para subsolo_masp até ser visitado ou revelado
               if (exitId === 'subsolo_masp' && !GameState.visitedRooms.has(exitId)) {
-                var canRevealExit = GameState.playerLocation === 'masp' && GameState.playerInventory.includes('lanterna') && GameState.time >= 20 * 60;
+                var canRevealExit = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
                 if (!canRevealExit) return;
               }
 
@@ -7661,7 +7677,7 @@
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
             // Ocultar subsolo_masp até ser visitado ou revelado
             if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-              var canReveal2 = GameState.playerLocation === 'masp' && GameState.playerInventory.includes('lanterna') && GameState.time >= 20 * 60;
+              var canReveal2 = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
               if (!canReveal2) return;
             }
             // Usar posição customizada se existir
@@ -9146,9 +9162,11 @@
           vendedor.tradeInventory.splice(vidx, 1);
           GameState.playerInventory.push(vendorItemId);
           vendedor.tradeInventory.push(playerItemId);
-          if (playerItemId === 'mochila') {
+          // onDrop hook para item dado ao vendedor
+          var givenAwayItem = GameState.items[playerItemId];
+          if (givenAwayItem && givenAwayItem.onDrop === 'recalcWeight') {
             Rules.recalcMaxWeight();
-            // Dropar itens excedentes ao trocar a mochila
+            // Dropar itens excedentes ao trocar
             while (Rules.getInventoryWeight() > GameState.characters.player.maxWeight && GameState.playerInventory.length > 0) {
               var excessId = GameState.playerInventory[GameState.playerInventory.length - 1];
               var excessItem = GameState.items[excessId];
@@ -9157,7 +9175,9 @@
               Log.add('🎒 ' + excessItem.name + ' caiu da mochila!', 'info');
             }
           }
-          if (vendorItemId === 'mochila') {
+          // onPickup hook para item recebido do vendedor
+          var receivedItem = GameState.items[vendorItemId];
+          if (receivedItem && receivedItem.onPickup === 'recalcWeight') {
             Rules.recalcMaxWeight();
           }
           var givenItem = GameState.items[vendorItemId];
