@@ -5116,9 +5116,17 @@
           return defense;
         },
 
-        // Verificar se jogador tem máscara de gás
+        // Verificar se jogador tem um efeito passivo (de qualquer item no inventário)
+        hasEffect: function(effect) {
+          return GameState.playerInventory.some(function(id) {
+            var item = GameState.items[id];
+            return item && item.passiveEffects && item.passiveEffects.includes(effect);
+          });
+        },
+
+        // Verificar se jogador tem máscara de gás (atalho legado)
         hasGasMask: function() {
-          return GameState.playerInventory.includes('mascara_gas');
+          return this.hasEffect('gasImmunity');
         },
 
         // Verificar condições de fim de jogo
