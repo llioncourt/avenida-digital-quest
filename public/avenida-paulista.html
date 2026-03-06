@@ -8990,7 +8990,8 @@
           // Randomizar itens (SEMPRE em groundRooms - itens não voam!)
           const itemsToPlace = Object.keys(GameState.items).filter(i =>
             i !== 'livro' && i !== 'bomba' && i !== 'reliquia' &&
-            i !== 'coxinha' && i !== 'acai' && i !== 'pastel'
+            i !== 'coxinha' && i !== 'acai' && i !== 'pastel' &&
+            !GameState.items[i].isCrafted
           );
           itemsToPlace.forEach(itemId => {
             GameState.items[itemId].location = Utils.randomChoice(groundRooms);
