@@ -2743,6 +2743,7 @@
           isAlly: false,
           lastBoss: false,
           aggression: 0.35,
+          movementLock: { until: 1080 },
           moves: {
             attack: [
               { name: 'Raio Arcano', power: 10 },
@@ -2803,6 +2804,7 @@
           lastBombCreation: 0,
           bombCooldown: 60,
           aggression: 0.45,
+          onDeath: 'glitchEffect',
           moves: {
             attack: [
               { name: 'Bomba de Gas', power: 18 },
@@ -2832,6 +2834,8 @@
           lastBoss: true,
           immuneToHypnosis: true,
           aggression: 0.55,
+          movementLock: { always: true },
+          onFirstHit: 'summonDemon',
           moves: {
             attack: [
               { name: 'Maldicao Sombria', power: 22 },
@@ -2863,6 +2867,8 @@
           isSummoned: false,
           immuneToHypnosis: true,
           aggression: 0.60,
+          movementLock: { untilSummoned: true },
+          guardsTarget: 'bruxa',
           moves: {
             attack: [
               { name: 'Chamas Infernais', power: 32 },
