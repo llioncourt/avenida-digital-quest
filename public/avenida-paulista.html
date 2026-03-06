@@ -1817,6 +1817,41 @@
         font-size: 1rem;
       }
 
+      /* ========== BOMB INDICATOR ========== */
+      .bomb-indicator {
+        background: none;
+        border: none;
+        padding: 0.3rem 0.5rem;
+        cursor: pointer;
+        font-size: 1rem;
+        position: relative;
+        display: none;
+        animation: bomb-pulse 1.5s ease-in-out infinite;
+      }
+      .bomb-indicator.active { display: inline-block; }
+      @keyframes bomb-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+      }
+      .bomb-tooltip {
+        display: none;
+        position: absolute;
+        bottom: 110%;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--accent-gold);
+        border-radius: var(--radius);
+        padding: 0.6rem 0.8rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+        z-index: 100;
+        box-shadow: 0 0 12px rgba(255, 100, 0, 0.3);
+        line-height: 1.6;
+      }
+      .bomb-indicator:hover .bomb-tooltip { display: block; }
+
       /* ========== JOURNAL MODAL ========== */
       .journal-tabs {
         display: flex;
@@ -1967,6 +2002,7 @@
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 0.5rem;">
               <h3 class="modern-pulse-title">Avenida Paulista</h3>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
+                <button id="bomb-indicator-btn" class="bomb-indicator" title="Bomba ativa">💣<div class="bomb-tooltip" id="bomb-tooltip-content"></div></button>
                 <button class="journal-btn" onclick="Journal.showModal()" title="Diário">📓</button>
                 <button
                   id="sound-toggle"
@@ -7710,6 +7746,9 @@
           // Não criar se já existe uma bomba armada
           if (GameState.armedBomb) return;
 
+          // Bombardeador não pode colocar bombas no subsolo do MASP
+          if (bombardeador.location === 'subsolo_masp') return;
+
           // Pequena chance de criar e armar bomba (5%)
           if (Utils.random() < 0.05) {
             // Timer aleatório entre 10 e 20 turnos
@@ -7958,6 +7997,55 @@
       // RENDER - Atualização da interface
       // ============================================================================
 
+      // BFS para calcular distância mínima entre duas salas
+      function getBombDistance(startId, targetId) {
+        if (startId === targetId) return 0;
+        var visited = {};
+        visited[startId] = true;
+        var queue = [[startId, 0]];
+        while (queue.length > 0) {
+          var item = queue.shift();
+          var curr = item[0];
+          var dist = item[1];
+          var room = GameState.rooms[curr];
+          if (!room || !room.exits) continue;
+          var exitKeys = Object.keys(room.exits);
+          for (var i = 0; i < exitKeys.length; i++) {
+            var next = room.exits[exitKeys[i]];
+            if (next === targetId) return dist + 1;
+            if (!visited[next]) {
+              visited[next] = true;
+              queue.push([next, dist + 1]);
+            }
+          }
+        }
+        return -1; // inacessível
+      }
+
+      const BombIndicator = {
+        update: function() {
+          var btn = document.getElementById('bomb-indicator-btn');
+          var tooltip = document.getElementById('bomb-tooltip-content');
+          if (!btn || !tooltip) return;
+
+          if (!GameState.armedBomb) {
+            btn.classList.remove('active');
+            return;
+          }
+
+          btn.classList.add('active');
+          var bomb = GameState.armedBomb;
+          var roomName = GameState.rooms[bomb.location] ? GameState.rooms[bomb.location].name : bomb.location;
+          var dist = getBombDistance(GameState.playerLocation, bomb.location);
+          var distText = dist < 0 ? 'inacessível' : dist + ' sala' + (dist !== 1 ? 's' : '');
+
+          tooltip.innerHTML =
+            '💣 Bomba em <strong>' + roomName + '</strong><br>' +
+            '⏱️ ' + bomb.turnsLeft + ' turno' + (bomb.turnsLeft !== 1 ? 's' : '') + ' restante' + (bomb.turnsLeft !== 1 ? 's' : '') + '<br>' +
+            '🚶 ' + distText + ' de distância';
+        }
+      };
+
       const Render = {
         update: function() {
           this.updateHeader();
@@ -7968,6 +8056,7 @@
           this.updateInventory();
           this.updateWitchIndicator();
           this.updateMinimap();
+          BombIndicator.update();
         },
 
         updateTheme: function() {
