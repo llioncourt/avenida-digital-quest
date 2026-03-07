@@ -7063,190 +7063,116 @@
           }
         },
 
-        // Ataques dos NPCs
-        processNPCAttacks: function() {
-          const playerRoom = GameState.playerLocation;
-          const player = GameState.characters.player;
+        // Combate autônomo unificado (NPCs hostis → jogador + aliados → inimigos)
+        processAutoCombat: function() {
+          var playerRoom = GameState.playerLocation;
+          var player = GameState.characters.player;
 
-          Object.values(GameState.characters).forEach(char => {
-            if (char.id === 'player') return;
-            if (!char.isAlive) return;
-            if (char.isNeutral) return; // Vendedor não ataca
+          Object.values(GameState.characters).forEach(function(char) {
+            if (char.id === 'player' || !char.isAlive || char.isNeutral || !char.location) return;
             if (CombatModal.isTargetedForKill(char.id)) return;
-            if (char.isAlly) return;
-            if (char.location !== playerRoom) return;
-            // Pacificado pelo violão ou paralisado pelo grafite
             if (char.pacifiedTurns && char.pacifiedTurns > 0) return;
             if (char.paralyzedTurns && char.paralyzedTurns > 0) return;
 
-            // Usar aggression do NPC (fallback 0.4)
-            const aggression = char.aggression !== undefined ? char.aggression : 0.4;
-            if (Utils.random() < aggression) {
-              // Escolher golpe de ataque aleatório
-              const attackMove = char.moves && char.moves.attack && char.moves.attack.length > 0
+            var isAlly = char.isAlly;
+
+            if (!isAlly) {
+              // === NPC hostil ataca o jogador ===
+              if (char.location !== playerRoom) return;
+
+              var aggression = char.aggression !== undefined ? char.aggression : 0.4;
+              if (Utils.random() >= aggression) return;
+
+              var attackMove = char.moves && char.moves.attack && char.moves.attack.length > 0
                 ? Utils.randomChoice(char.moves.attack)
                 : { name: 'Ataque', power: char.attackPower };
 
-              const playerDefense = Rules.getPlayerDefensePower();
-              let damage = Math.max(1, attackMove.power - playerDefense);
+              var playerDefense = Rules.getPlayerDefensePower();
+              var damage = Math.max(1, attackMove.power - playerDefense);
 
               // Bombardeador usa gás
               if (char.usesGas) {
                 if (Rules.hasGasMask()) {
-                  Log.add(`${char.name} lança ${attackMove.name}, mas sua MÁSCARA GÁS te protege!`, 'success');
+                  Log.add(char.name + ' lança ' + attackMove.name + ', mas sua MÁSCARA GÁS te protege!', 'success');
                   return;
                 } else {
                   damage += 10;
-                  Log.add(`${char.name} usa ${attackMove.name}! Você precisa de uma MÁSCARA GÁS!`, 'danger');
+                  Log.add(char.name + ' usa ' + attackMove.name + '! Você precisa de uma MÁSCARA GÁS!', 'danger');
                 }
               }
 
-              const killed = player.hp - damage <= 0;
+              var killed = player.hp - damage <= 0;
 
-              // Frase de ataque do NPC
-              let attackPhrase = null;
+              // Frase de ataque
+              var attackPhrase = null;
               if (Utils.random() < 0.5) {
-                const phrases = NPC_PHRASES[char.id];
-                if (phrases && phrases.attack) {
-                  attackPhrase = Utils.randomChoice(phrases.attack);
-                }
+                var phrases = NPC_PHRASES[char.id];
+                if (phrases && phrases.attack) attackPhrase = Utils.randomChoice(phrases.attack);
               }
 
-              const attackerData = {
-                name: '🗡️ ' + char.name.toUpperCase(),
-                hp: char.hp, maxHp: char.maxHp,
-                attackPower: attackMove.power,
-                moveName: attackMove.name,
-                items: [],
-                totalAttack: attackMove.power
-              };
-              const defenderData = {
-                name: '🛡️ JOGADOR',
-                hp: player.hp, maxHp: player.maxHp,
-                defensePower: player.defensePower,
-                items: CombatModal.getPlayerDefenseItems(),
-                totalDefense: playerDefense
-              };
-              const combatResult = {
-                damage: damage,
-                killed: killed,
-                remainingHp: Math.max(0, player.hp - damage),
-                targetId: 'player',
-                attackerId: char.id,
-                extraMessage: attackPhrase ? ('💬 "' + attackPhrase + '"') : null,
-                playerIsAttacker: false
-              };
+              CombatModal.enqueue(
+                { name: '🗡️ ' + char.name.toUpperCase(), hp: char.hp, maxHp: char.maxHp, attackPower: attackMove.power, moveName: attackMove.name, items: [], totalAttack: attackMove.power },
+                { name: '🛡️ JOGADOR', hp: player.hp, maxHp: player.maxHp, defensePower: player.defensePower, items: CombatModal.getPlayerDefenseItems(), totalDefense: playerDefense },
+                { damage: damage, killed: killed, remainingHp: Math.max(0, player.hp - damage), targetId: 'player', attackerId: char.id, extraMessage: attackPhrase ? ('💬 "' + attackPhrase + '"') : null, playerIsAttacker: false },
+                function(result) {
+                  Rules.damagePlayer(result.damage);
+                  SoundSystem.playHit();
+                  ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
+                  Log.add(char.name + ' usa ' + attackMove.name + ' causando ' + result.damage + ' de dano! (HP: ' + GameState.characters.player.hp + '/' + player.maxHp + ')', 'danger');
+                }
+              );
+            } else {
+              // === Aliado ataca inimigos ===
+              var enemiesInRoom = Object.values(GameState.characters).filter(function(c) {
+                return c.id !== 'player' && c.location === char.location && c.isAlive && !c.isAlly && !c.isNeutral;
+              });
+              if (enemiesInRoom.length === 0) return;
 
-              const applyCallback = function(result) {
-                Rules.damagePlayer(result.damage);
-                SoundSystem.playHit();
-                ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
-                Log.add(`${char.name} usa ${attackMove.name} causando ${result.damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
-              };
+              var hasBruxaTarget = char.id === 'demonio' && enemiesInRoom.some(function(e) { return e.id === 'bruxa'; });
+              var allyAggression = char.aggression !== undefined ? char.aggression : 0.5;
+              if (!hasBruxaTarget && Utils.random() >= allyAggression) return;
 
-              CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
-            }
-          });
-        },
-
-        // Ataques dos aliados contra inimigos
-        processAllyAttacks: function() {
-          const playerRoom = GameState.playerLocation;
-
-          Object.values(GameState.characters).forEach(ally => {
-            if (ally.id === 'player') return;
-            if (!ally.isAlive) return;
-            if (!ally.isAlly) return;
-            if (!ally.location) return;
-
-            // Encontrar inimigos na mesma sala (Bruxa protegida pelo escudo de força)
-            const enemiesInRoom = Object.values(GameState.characters).filter(
-              c => c.id !== 'player' &&
-                   c.location === ally.location &&
-                   c.isAlive &&
-                   !c.isAlly &&
-                   !c.isNeutral
-            );
-
-            if (enemiesInRoom.length === 0) return;
-
-            // Demônio convertido SEMPRE ataca a Bruxa (ignora aggression)
-            const hasBruxaTarget = ally.id === 'demonio' && enemiesInRoom.some(e => e.id === 'bruxa');
-            // Usar aggression do aliado (fallback 0.5)
-            const aggression = ally.aggression !== undefined ? ally.aggression : 0.5;
-            if (hasBruxaTarget || Utils.random() < aggression) {
-              // Demônio convertido prioriza a Bruxa
-              const target = (ally.id === 'demonio' && hasBruxaTarget)
-                ? enemiesInRoom.find(e => e.id === 'bruxa')
+              var target = (char.id === 'demonio' && hasBruxaTarget)
+                ? enemiesInRoom.find(function(e) { return e.id === 'bruxa'; })
                 : Utils.randomChoice(enemiesInRoom);
 
-              // Escolher golpe de ataque aleatório do aliado
-              const attackMove = ally.moves && ally.moves.attack && ally.moves.attack.length > 0
-                ? Utils.randomChoice(ally.moves.attack)
-                : { name: 'Ataque', power: ally.attackPower };
+              var allyAttackMove = char.moves && char.moves.attack && char.moves.attack.length > 0
+                ? Utils.randomChoice(char.moves.attack)
+                : { name: 'Ataque', power: char.attackPower };
 
-              // Escolher golpe de defesa aleatório do alvo
-              const defenseMove = target.moves && target.moves.defense && target.moves.defense.length > 0
+              var defenseMove = target.moves && target.moves.defense && target.moves.defense.length > 0
                 ? Utils.randomChoice(target.moves.defense)
                 : { name: 'Defesa', power: target.defensePower };
 
-              const damage = Math.max(1, attackMove.power - defenseMove.power);
-              const killed = target.hp - damage <= 0;
+              var allyDamage = Math.max(1, allyAttackMove.power - defenseMove.power);
+              var allyKilled = target.hp - allyDamage <= 0;
 
-              // Se o jogador está na mesma sala, mostrar modal
-              if (ally.location === playerRoom) {
-                const attackerData = {
-                  name: '🗡️ ' + ally.name.toUpperCase(),
-                  hp: ally.hp, maxHp: ally.maxHp,
-                  attackPower: attackMove.power,
-                  moveName: attackMove.name,
-                  items: [],
-                  totalAttack: attackMove.power
-                };
-                const defenderData = {
-                  name: '🛡️ ' + target.name.toUpperCase(),
-                  hp: target.hp, maxHp: target.maxHp,
-                  defensePower: defenseMove.power,
-                  moveName: defenseMove.name,
-                  items: [],
-                  totalDefense: defenseMove.power
-                };
-                const combatResult = {
-                  damage: damage,
-                  killed: killed,
-                  remainingHp: Math.max(0, target.hp - damage),
-                  targetId: target.id,
-                  attackerId: ally.id,
-                  extraMessage: null,
-                  playerIsAttacker: true
-                };
+              var applyAllyCallback = function(result) {
+                var t = GameState.characters[result.targetId];
+                if (!t) return;
+                t.hp -= result.damage;
+                if (t.hp <= 0) {
+                  t.hp = 0; t.isAlive = false;
+                  Log.add(char.name + ' derrotou ' + t.name + ' com ' + allyAttackMove.name + '!', 'success');
+                  if (t.onDeath === 'glitchEffect') GlitchEffect.trigger(3000);
+                } else {
+                  Log.add(char.name + ' usa ' + allyAttackMove.name + ' em ' + t.name + ' causando ' + result.damage + ' de dano! (HP: ' + t.hp + ')', 'success');
+                }
+              };
 
-                const applyCallback = function(result) {
-                  const t = GameState.characters[result.targetId];
-                  if (!t) return;
-                  t.hp -= result.damage;
-                  if (t.hp <= 0) {
-                    t.hp = 0;
-                    t.isAlive = false;
-                    Log.add(`${ally.name} derrotou ${t.name} com ${attackMove.name}!`, 'success');
-                    if (t.onDeath === 'glitchEffect') {
-                      GlitchEffect.trigger(3000);
-                    }
-                  } else {
-                    Log.add(`${ally.name} usa ${attackMove.name} em ${t.name} causando ${result.damage} de dano! (HP: ${t.hp})`, 'success');
-                  }
-                };
-
-                CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
+              if (char.location === playerRoom) {
+                CombatModal.enqueue(
+                  { name: '🗡️ ' + char.name.toUpperCase(), hp: char.hp, maxHp: char.maxHp, attackPower: allyAttackMove.power, moveName: allyAttackMove.name, items: [], totalAttack: allyAttackMove.power },
+                  { name: '🛡️ ' + target.name.toUpperCase(), hp: target.hp, maxHp: target.maxHp, defensePower: defenseMove.power, moveName: defenseMove.name, items: [], totalDefense: defenseMove.power },
+                  { damage: allyDamage, killed: allyKilled, remainingHp: Math.max(0, target.hp - allyDamage), targetId: target.id, attackerId: char.id, extraMessage: null, playerIsAttacker: true },
+                  applyAllyCallback
+                );
               } else {
-                // Player not in room - apply directly without modal
-                target.hp -= damage;
+                // Fora da sala do jogador — aplica direto sem modal
+                target.hp -= allyDamage;
                 if (target.hp <= 0) {
-                  target.hp = 0;
-                  target.isAlive = false;
-                  if (target.onDeath === 'glitchEffect') {
-                    GlitchEffect.trigger(3000);
-                  }
+                  target.hp = 0; target.isAlive = false;
+                  if (target.onDeath === 'glitchEffect') GlitchEffect.trigger(3000);
                 }
               }
             }
