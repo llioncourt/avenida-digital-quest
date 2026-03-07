@@ -5161,6 +5161,47 @@
           }
 
           return { ended: false };
+        },
+
+        // Aplicar dano ao jogador com check de morte automático
+        damagePlayer: function(amount) {
+          var p = GameState.characters.player;
+          p.hp -= amount;
+          if (p.hp <= 0) { p.hp = 0; p.isAlive = false; }
+          return p.hp;
+        },
+
+        // Descobrir itens na sala atual do jogador
+        discoverItemsInRoom: function() {
+          Object.values(GameState.items).forEach(function(item) {
+            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
+              GameState.discoveredItems.add(item.id);
+            }
+          });
+        },
+
+        // Mover aliados que estão seguindo o jogador
+        moveFollowingAllies: function(roomId) {
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+              c.location = roomId;
+              c.followTurnsLeft--;
+              if (c.followTurnsLeft <= 0) {
+                c.followingPlayer = false;
+                c.followCooldown = true;
+                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+              }
+            }
+          });
+        },
+
+        // Verificar se uma sala é visível no minimapa
+        isRoomVisible: function(roomId) {
+          if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
+            var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
+            return canReveal;
+          }
+          return true;
         }
       };
 
