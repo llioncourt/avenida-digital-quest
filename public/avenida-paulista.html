@@ -7910,8 +7910,9 @@
         handleMouseDown: function(e) {
           var roomEl = e.target.closest('.map-room');
           var isViewport = e.target === document.getElementById('minimap-viewport') || e.target.id === 'minimap';
-          this._startDrag(e.clientX, e.clientY, roomEl || (isViewport ? null : undefined));
-          if (roomEl || isViewport) e.preventDefault();
+          if (!roomEl && !isViewport) return;
+          this._startDrag(e.clientX, e.clientY, roomEl);
+          e.preventDefault();
         },
 
         handleMouseMove: function(e) {
