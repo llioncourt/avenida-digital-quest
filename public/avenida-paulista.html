@@ -7274,7 +7274,7 @@
             </div>`
           ).join('');
           container.scrollTop = container.scrollHeight;
-          requestAnimationFrame(() => GameUI.updateScrollIndicators());
+          requestAnimationFrame(() => Render.updateScrollIndicators());
         }
       };
 
@@ -9414,7 +9414,7 @@
 
         // Scroll indicator listeners
         document.querySelectorAll('.scroll-indicator-container').forEach(el => {
-          el.addEventListener('scroll', () => GameUI.updateScrollIndicators());
+          el.addEventListener('scroll', () => Render.updateScrollIndicators());
         });
 
         // Fechar modal ao clicar fora (exceto mapa exclusivo)
