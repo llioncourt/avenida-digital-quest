@@ -5161,6 +5161,47 @@
           }
 
           return { ended: false };
+        },
+
+        // Aplicar dano ao jogador com check de morte automático
+        damagePlayer: function(amount) {
+          var p = GameState.characters.player;
+          p.hp -= amount;
+          if (p.hp <= 0) { p.hp = 0; p.isAlive = false; }
+          return p.hp;
+        },
+
+        // Descobrir itens na sala atual do jogador
+        discoverItemsInRoom: function() {
+          Object.values(GameState.items).forEach(function(item) {
+            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
+              GameState.discoveredItems.add(item.id);
+            }
+          });
+        },
+
+        // Mover aliados que estão seguindo o jogador
+        moveFollowingAllies: function(roomId) {
+          Object.values(GameState.characters).forEach(function(c) {
+            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
+              c.location = roomId;
+              c.followTurnsLeft--;
+              if (c.followTurnsLeft <= 0) {
+                c.followingPlayer = false;
+                c.followCooldown = true;
+                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
+              }
+            }
+          });
+        },
+
+        // Verificar se uma sala é visível no minimapa
+        isRoomVisible: function(roomId) {
+          if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
+            var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
+            return canReveal;
+          }
+          return true;
         }
       };
 
@@ -5587,17 +5628,7 @@
           ScreenEffects.flash('rgba(200, 150, 50, 0.5)');
 
           // Mover aliados que estão seguindo
-          Object.values(GameState.characters).forEach(function(c) {
-            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
-              c.location = targetRoomId;
-              c.followTurnsLeft--;
-              if (c.followTurnsLeft <= 0) {
-                c.followingPlayer = false;
-                c.followCooldown = true;
-                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
-              }
-            }
-          });
+          Rules.moveFollowingAllies(targetRoomId);
 
           return {
             success: true,
@@ -5775,12 +5806,8 @@
           // MODO NOTURNO: Tropeço sem lanterna após 21:00
           if (GameState.time >= 21 * 60 && !Rules.hasEffect('nightVision')) {
             if (Utils.random() < 0.15) {
-              GameState.characters.player.hp -= 5;
+              Rules.damagePlayer(5);
               Log.add('🌑 Você tropeça no escuro e se machuca! -5 HP. Uma LANTERNA evitaria isso.', 'danger');
-              if (GameState.characters.player.hp <= 0) {
-                GameState.characters.player.hp = 0;
-                GameState.characters.player.isAlive = false;
-              }
             }
           }
 
@@ -5811,12 +5838,8 @@
             if (trap.type === 'pisoQuebrado') {
               if (Utils.random() < 0.25) {
                 var trapDmg = 10;
-                GameState.characters.player.hp -= trapDmg;
+                Rules.damagePlayer(trapDmg);
                 Log.add('⚠️ ARMADILHA! O piso cede sob seus pés! -' + trapDmg + ' HP!', 'danger');
-                if (GameState.characters.player.hp <= 0) {
-                  GameState.characters.player.hp = 0;
-                  GameState.characters.player.isAlive = false;
-                }
               } else {
                 Log.add('⚠️ O piso range perigosamente, mas você passa com cuidado.', 'warning');
               }
@@ -5830,12 +5853,8 @@
             } else if (trap.type === 'gasResidual') {
               if (!Rules.hasEffect('gasImmunity')) {
                 var gasDmg = 5;
-                GameState.characters.player.hp -= gasDmg;
+                Rules.damagePlayer(gasDmg);
                 Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + gasDmg + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
-                if (GameState.characters.player.hp <= 0) {
-                  GameState.characters.player.hp = 0;
-                  GameState.characters.player.isAlive = false;
-                }
               } else {
                 Log.add('😷 Gás residual detectado, mas sua MÁSCARA GÁS te protege!', 'success');
               }
@@ -5843,17 +5862,7 @@
           }
 
           // Mover aliados que estão seguindo o jogador
-          Object.values(GameState.characters).forEach(function(c) {
-            if (c.id !== 'player' && c.isAlly && c.followingPlayer && c.followTurnsLeft > 0) {
-              c.location = roomId;
-              c.followTurnsLeft--;
-              if (c.followTurnsLeft <= 0) {
-                c.followingPlayer = false;
-                c.followCooldown = true;
-                Log.add('🤝 ' + c.name + ' decide seguir seu próprio caminho.', 'info');
-              }
-            }
-          });
+          Rules.moveFollowingAllies(roomId);
 
           // Verificar aliados na nova sala para ativar follow
           Object.values(GameState.characters).forEach(function(c) {
@@ -6594,6 +6603,16 @@
       // ============================================================================
 
       const Events = {
+        // Verificar efeito do café antes de avançar tempo
+        maybeAdvanceTime: function() {
+          if (GameState.skipNextTimeAdvance) {
+            GameState.skipNextTimeAdvance = false;
+            Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+          } else {
+            Events.advanceTime();
+          }
+        },
+
         // Avançar tempo
         advanceTime: function() {
           GameState.time += 5;
@@ -6623,8 +6642,7 @@
           this.processWitchWord();
           this.processNPCMovement();
           this.processBombardeadorBombs();
-          this.processNPCAttacks();
-          this.processAllyAttacks();
+          this.processAutoCombat();
           RandomEvents.process();
 
           // Dano de chuva (se ativa e jogador não tem guarda-chuva e está ao ar livre)
@@ -6633,7 +6651,7 @@
             if (!indoorRooms.includes(GameState.playerLocation)) {
               if (Utils.random() < 0.15) {
                 var rainDmg = 5;
-                GameState.characters.player.hp -= rainDmg;
+                Rules.damagePlayer(rainDmg);
                 Log.add('🌧️ A chuva forte te encharca e você perde ' + rainDmg + ' HP! Um GUARDA-CHUVA ajudaria...', 'danger');
               }
             }
@@ -6642,12 +6660,8 @@
           // ===== SISTEMA DE ENERGIA (FOME) =====
           GameState.energy = Math.max(0, GameState.energy - 2);
           if (GameState.energy <= 0) {
-            GameState.characters.player.hp -= 3;
+            Rules.damagePlayer(3);
             Log.add('😰 Você está exausto e perdendo forças! -3 HP. Coma algo para recuperar energia!', 'danger');
-            if (GameState.characters.player.hp <= 0) {
-              GameState.characters.player.hp = 0;
-              GameState.characters.player.isAlive = false;
-            }
           } else if (GameState.energy <= 20) {
             Log.add('⚡ Energia baixa (' + GameState.energy + '/100)! Procure comida: Coxinha, Açaí ou Pastel.', 'warning');
           }
@@ -6672,12 +6686,8 @@
             // Tropeço noturno sem lanterna (15% chance ao mover)
             if (!Rules.hasEffect('nightVision') && Utils.random() < 0.15) {
               var tripDmg = 5;
-              GameState.characters.player.hp -= tripDmg;
+              Rules.damagePlayer(tripDmg);
               Log.add('🌑 Você tropeça no escuro! -' + tripDmg + ' HP. Uma LANTERNA ajudaria.', 'danger');
-              if (GameState.characters.player.hp <= 0) {
-                GameState.characters.player.hp = 0;
-                GameState.characters.player.isAlive = false;
-              }
             }
           }
 
@@ -7052,194 +7062,116 @@
           }
         },
 
-        // Ataques dos NPCs
-        processNPCAttacks: function() {
-          const playerRoom = GameState.playerLocation;
-          const player = GameState.characters.player;
+        // Combate autônomo unificado (NPCs hostis → jogador + aliados → inimigos)
+        processAutoCombat: function() {
+          var playerRoom = GameState.playerLocation;
+          var player = GameState.characters.player;
 
-          Object.values(GameState.characters).forEach(char => {
-            if (char.id === 'player') return;
-            if (!char.isAlive) return;
-            if (char.isNeutral) return; // Vendedor não ataca
+          Object.values(GameState.characters).forEach(function(char) {
+            if (char.id === 'player' || !char.isAlive || char.isNeutral || !char.location) return;
             if (CombatModal.isTargetedForKill(char.id)) return;
-            if (char.isAlly) return;
-            if (char.location !== playerRoom) return;
-            // Pacificado pelo violão ou paralisado pelo grafite
             if (char.pacifiedTurns && char.pacifiedTurns > 0) return;
             if (char.paralyzedTurns && char.paralyzedTurns > 0) return;
 
-            // Usar aggression do NPC (fallback 0.4)
-            const aggression = char.aggression !== undefined ? char.aggression : 0.4;
-            if (Utils.random() < aggression) {
-              // Escolher golpe de ataque aleatório
-              const attackMove = char.moves && char.moves.attack && char.moves.attack.length > 0
+            var isAlly = char.isAlly;
+
+            if (!isAlly) {
+              // === NPC hostil ataca o jogador ===
+              if (char.location !== playerRoom) return;
+
+              var aggression = char.aggression !== undefined ? char.aggression : 0.4;
+              if (Utils.random() >= aggression) return;
+
+              var attackMove = char.moves && char.moves.attack && char.moves.attack.length > 0
                 ? Utils.randomChoice(char.moves.attack)
                 : { name: 'Ataque', power: char.attackPower };
 
-              const playerDefense = Rules.getPlayerDefensePower();
-              let damage = Math.max(1, attackMove.power - playerDefense);
+              var playerDefense = Rules.getPlayerDefensePower();
+              var damage = Math.max(1, attackMove.power - playerDefense);
 
               // Bombardeador usa gás
               if (char.usesGas) {
                 if (Rules.hasGasMask()) {
-                  Log.add(`${char.name} lança ${attackMove.name}, mas sua MÁSCARA GÁS te protege!`, 'success');
+                  Log.add(char.name + ' lança ' + attackMove.name + ', mas sua MÁSCARA GÁS te protege!', 'success');
                   return;
                 } else {
                   damage += 10;
-                  Log.add(`${char.name} usa ${attackMove.name}! Você precisa de uma MÁSCARA GÁS!`, 'danger');
+                  Log.add(char.name + ' usa ' + attackMove.name + '! Você precisa de uma MÁSCARA GÁS!', 'danger');
                 }
               }
 
-              const killed = player.hp - damage <= 0;
+              var killed = player.hp - damage <= 0;
 
-              // Frase de ataque do NPC
-              let attackPhrase = null;
+              // Frase de ataque
+              var attackPhrase = null;
               if (Utils.random() < 0.5) {
-                const phrases = NPC_PHRASES[char.id];
-                if (phrases && phrases.attack) {
-                  attackPhrase = Utils.randomChoice(phrases.attack);
-                }
+                var phrases = NPC_PHRASES[char.id];
+                if (phrases && phrases.attack) attackPhrase = Utils.randomChoice(phrases.attack);
               }
 
-              const attackerData = {
-                name: '🗡️ ' + char.name.toUpperCase(),
-                hp: char.hp, maxHp: char.maxHp,
-                attackPower: attackMove.power,
-                moveName: attackMove.name,
-                items: [],
-                totalAttack: attackMove.power
-              };
-              const defenderData = {
-                name: '🛡️ JOGADOR',
-                hp: player.hp, maxHp: player.maxHp,
-                defensePower: player.defensePower,
-                items: CombatModal.getPlayerDefenseItems(),
-                totalDefense: playerDefense
-              };
-              const combatResult = {
-                damage: damage,
-                killed: killed,
-                remainingHp: Math.max(0, player.hp - damage),
-                targetId: 'player',
-                attackerId: char.id,
-                extraMessage: attackPhrase ? ('💬 "' + attackPhrase + '"') : null,
-                playerIsAttacker: false
-              };
-
-              const applyCallback = function(result) {
-                player.hp -= result.damage;
-                if (player.hp <= 0) {
-                  player.hp = 0;
-                  player.isAlive = false;
+              CombatModal.enqueue(
+                { name: '🗡️ ' + char.name.toUpperCase(), hp: char.hp, maxHp: char.maxHp, attackPower: attackMove.power, moveName: attackMove.name, items: [], totalAttack: attackMove.power },
+                { name: '🛡️ JOGADOR', hp: player.hp, maxHp: player.maxHp, defensePower: player.defensePower, items: CombatModal.getPlayerDefenseItems(), totalDefense: playerDefense },
+                { damage: damage, killed: killed, remainingHp: Math.max(0, player.hp - damage), targetId: 'player', attackerId: char.id, extraMessage: attackPhrase ? ('💬 "' + attackPhrase + '"') : null, playerIsAttacker: false },
+                function(result) {
+                  Rules.damagePlayer(result.damage);
+                  SoundSystem.playHit();
+                  ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
+                  Log.add(char.name + ' usa ' + attackMove.name + ' causando ' + result.damage + ' de dano! (HP: ' + GameState.characters.player.hp + '/' + player.maxHp + ')', 'danger');
                 }
-                SoundSystem.playHit();
-                ScreenEffects.flash('rgba(255, 255, 255, 0.6)');
-                Log.add(`${char.name} usa ${attackMove.name} causando ${result.damage} de dano! (HP: ${player.hp}/${player.maxHp})`, 'danger');
-              };
+              );
+            } else {
+              // === Aliado ataca inimigos ===
+              var enemiesInRoom = Object.values(GameState.characters).filter(function(c) {
+                return c.id !== 'player' && c.location === char.location && c.isAlive && !c.isAlly && !c.isNeutral;
+              });
+              if (enemiesInRoom.length === 0) return;
 
-              CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
-            }
-          });
-        },
+              var hasBruxaTarget = char.id === 'demonio' && enemiesInRoom.some(function(e) { return e.id === 'bruxa'; });
+              var allyAggression = char.aggression !== undefined ? char.aggression : 0.5;
+              if (!hasBruxaTarget && Utils.random() >= allyAggression) return;
 
-        // Ataques dos aliados contra inimigos
-        processAllyAttacks: function() {
-          const playerRoom = GameState.playerLocation;
-
-          Object.values(GameState.characters).forEach(ally => {
-            if (ally.id === 'player') return;
-            if (!ally.isAlive) return;
-            if (!ally.isAlly) return;
-            if (!ally.location) return;
-
-            // Encontrar inimigos na mesma sala (Bruxa protegida pelo escudo de força)
-            const enemiesInRoom = Object.values(GameState.characters).filter(
-              c => c.id !== 'player' &&
-                   c.location === ally.location &&
-                   c.isAlive &&
-                   !c.isAlly &&
-                   !c.isNeutral
-            );
-
-            if (enemiesInRoom.length === 0) return;
-
-            // Demônio convertido SEMPRE ataca a Bruxa (ignora aggression)
-            const hasBruxaTarget = ally.id === 'demonio' && enemiesInRoom.some(e => e.id === 'bruxa');
-            // Usar aggression do aliado (fallback 0.5)
-            const aggression = ally.aggression !== undefined ? ally.aggression : 0.5;
-            if (hasBruxaTarget || Utils.random() < aggression) {
-              // Demônio convertido prioriza a Bruxa
-              const target = (ally.id === 'demonio' && hasBruxaTarget)
-                ? enemiesInRoom.find(e => e.id === 'bruxa')
+              var target = (char.id === 'demonio' && hasBruxaTarget)
+                ? enemiesInRoom.find(function(e) { return e.id === 'bruxa'; })
                 : Utils.randomChoice(enemiesInRoom);
 
-              // Escolher golpe de ataque aleatório do aliado
-              const attackMove = ally.moves && ally.moves.attack && ally.moves.attack.length > 0
-                ? Utils.randomChoice(ally.moves.attack)
-                : { name: 'Ataque', power: ally.attackPower };
+              var allyAttackMove = char.moves && char.moves.attack && char.moves.attack.length > 0
+                ? Utils.randomChoice(char.moves.attack)
+                : { name: 'Ataque', power: char.attackPower };
 
-              // Escolher golpe de defesa aleatório do alvo
-              const defenseMove = target.moves && target.moves.defense && target.moves.defense.length > 0
+              var defenseMove = target.moves && target.moves.defense && target.moves.defense.length > 0
                 ? Utils.randomChoice(target.moves.defense)
                 : { name: 'Defesa', power: target.defensePower };
 
-              const damage = Math.max(1, attackMove.power - defenseMove.power);
-              const killed = target.hp - damage <= 0;
+              var allyDamage = Math.max(1, allyAttackMove.power - defenseMove.power);
+              var allyKilled = target.hp - allyDamage <= 0;
 
-              // Se o jogador está na mesma sala, mostrar modal
-              if (ally.location === playerRoom) {
-                const attackerData = {
-                  name: '🗡️ ' + ally.name.toUpperCase(),
-                  hp: ally.hp, maxHp: ally.maxHp,
-                  attackPower: attackMove.power,
-                  moveName: attackMove.name,
-                  items: [],
-                  totalAttack: attackMove.power
-                };
-                const defenderData = {
-                  name: '🛡️ ' + target.name.toUpperCase(),
-                  hp: target.hp, maxHp: target.maxHp,
-                  defensePower: defenseMove.power,
-                  moveName: defenseMove.name,
-                  items: [],
-                  totalDefense: defenseMove.power
-                };
-                const combatResult = {
-                  damage: damage,
-                  killed: killed,
-                  remainingHp: Math.max(0, target.hp - damage),
-                  targetId: target.id,
-                  attackerId: ally.id,
-                  extraMessage: null,
-                  playerIsAttacker: true
-                };
+              var applyAllyCallback = function(result) {
+                var t = GameState.characters[result.targetId];
+                if (!t) return;
+                t.hp -= result.damage;
+                if (t.hp <= 0) {
+                  t.hp = 0; t.isAlive = false;
+                  Log.add(char.name + ' derrotou ' + t.name + ' com ' + allyAttackMove.name + '!', 'success');
+                  if (t.onDeath === 'glitchEffect') GlitchEffect.trigger(3000);
+                } else {
+                  Log.add(char.name + ' usa ' + allyAttackMove.name + ' em ' + t.name + ' causando ' + result.damage + ' de dano! (HP: ' + t.hp + ')', 'success');
+                }
+              };
 
-                const applyCallback = function(result) {
-                  const t = GameState.characters[result.targetId];
-                  if (!t) return;
-                  t.hp -= result.damage;
-                  if (t.hp <= 0) {
-                    t.hp = 0;
-                    t.isAlive = false;
-                    Log.add(`${ally.name} derrotou ${t.name} com ${attackMove.name}!`, 'success');
-                    if (t.onDeath === 'glitchEffect') {
-                      GlitchEffect.trigger(3000);
-                    }
-                  } else {
-                    Log.add(`${ally.name} usa ${attackMove.name} em ${t.name} causando ${result.damage} de dano! (HP: ${t.hp})`, 'success');
-                  }
-                };
-
-                CombatModal.enqueue(attackerData, defenderData, combatResult, applyCallback);
+              if (char.location === playerRoom) {
+                CombatModal.enqueue(
+                  { name: '🗡️ ' + char.name.toUpperCase(), hp: char.hp, maxHp: char.maxHp, attackPower: allyAttackMove.power, moveName: allyAttackMove.name, items: [], totalAttack: allyAttackMove.power },
+                  { name: '🛡️ ' + target.name.toUpperCase(), hp: target.hp, maxHp: target.maxHp, defensePower: defenseMove.power, moveName: defenseMove.name, items: [], totalDefense: defenseMove.power },
+                  { damage: allyDamage, killed: allyKilled, remainingHp: Math.max(0, target.hp - allyDamage), targetId: target.id, attackerId: char.id, extraMessage: null, playerIsAttacker: true },
+                  applyAllyCallback
+                );
               } else {
-                // Player not in room - apply directly without modal
-                target.hp -= damage;
+                // Fora da sala do jogador — aplica direto sem modal
+                target.hp -= allyDamage;
                 if (target.hp <= 0) {
-                  target.hp = 0;
-                  target.isAlive = false;
-                  if (target.onDeath === 'glitchEffect') {
-                    GlitchEffect.trigger(3000);
-                  }
+                  target.hp = 0; target.isAlive = false;
+                  if (target.onDeath === 'glitchEffect') GlitchEffect.trigger(3000);
                 }
               }
             }
@@ -7274,7 +7206,7 @@
             </div>`
           ).join('');
           container.scrollTop = container.scrollHeight;
-          requestAnimationFrame(() => GameUI.updateScrollIndicators());
+          requestAnimationFrame(() => Render.updateScrollIndicators());
         }
       };
 
@@ -7601,10 +7533,7 @@
           const drawnConnections = new Set();
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
             // Ocultar subsolo_masp até ser visitado ou revelado pela lanterna
-            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-              var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
-              if (!canReveal) return;
-            }
+            if (!Rules.isRoomVisible(roomId)) return;
             // Usar posição customizada se existir
             let pos = roomPositions[roomId];
             if (MinimapController.customPositions[roomId]) {
@@ -7624,10 +7553,7 @@
               if (!exitRoom) return;
 
               // Ocultar conexões para subsolo_masp até ser visitado ou revelado
-              if (exitId === 'subsolo_masp' && !GameState.visitedRooms.has(exitId)) {
-                var canRevealExit = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
-                if (!canRevealExit) return;
-              }
+              if (!Rules.isRoomVisible(exitId)) return;
 
               // Não desenhar conexão para local aéreo
               if (exitRoom.requiresFlight) return;
@@ -7676,10 +7602,7 @@
           // Desenhar salas
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
             // Ocultar subsolo_masp até ser visitado ou revelado
-            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-              var canReveal2 = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
-              if (!canReveal2) return;
-            }
+            if (!Rules.isRoomVisible(roomId)) return;
             // Usar posição customizada se existir
             let pos = roomPositions[roomId];
             if (MinimapController.customPositions[roomId]) {
@@ -7906,105 +7829,71 @@
           viewport.addEventListener('touchend', this.handleTouchEnd.bind(this));
         },
 
-        handleMouseDown: function(e) {
-          const viewport = document.getElementById('minimap-viewport');
-          const roomEl = e.target.closest('.map-room');
-
+        // === Shared drag helpers ===
+        _startDrag: function(x, y, roomEl) {
+          var viewport = document.getElementById('minimap-viewport');
           if (roomEl) {
-            // Iniciar drag de node
             this.isDragging = true;
             this.dragType = 'node';
             this.dragTarget = roomEl.getAttribute('data-room-id');
             roomEl.classList.add('dragging');
             viewport.classList.add('dragging-node');
-          } else if (e.target === viewport || e.target.id === 'minimap') {
-            // Iniciar pan do mapa
+          } else {
             this.isDragging = true;
             this.dragType = 'pan';
             viewport.classList.add('dragging');
           }
-
-          this.startX = e.clientX;
-          this.startY = e.clientY;
-
-          e.preventDefault();
+          this.startX = x;
+          this.startY = y;
         },
 
-        handleMouseMove: function(e) {
+        _moveDrag: function(x, y) {
           if (!this.isDragging) return;
-
-          const viewport = document.getElementById('minimap-viewport');
+          var viewport = document.getElementById('minimap-viewport');
           if (!viewport) return;
 
           if (this.dragType === 'pan') {
-            // Pan do mapa
-            const deltaX = e.clientX - this.startX;
-            const deltaY = e.clientY - this.startY;
-
-            this.offsetX += deltaX;
-            this.offsetY += deltaY;
-
-            this.startX = e.clientX;
-            this.startY = e.clientY;
-
+            this.offsetX += x - this.startX;
+            this.offsetY += y - this.startY;
+            this.startX = x;
+            this.startY = y;
             this.applyTransform();
           } else if (this.dragType === 'node' && this.dragTarget) {
-            // Drag de node
-            const viewportRect = viewport.getBoundingClientRect();
-            const width = viewportRect.width;
-            const height = viewportRect.height;
-
-            // Converter coordenadas do mouse para coordenadas do mapa
-            const x = (e.clientX - viewportRect.left - this.offsetX) / this.zoom;
-            const y = (e.clientY - viewportRect.top - this.offsetY) / this.zoom;
-
-            // Converter para porcentagem
+            var viewportRect = viewport.getBoundingClientRect();
+            var nx = (x - viewportRect.left - this.offsetX) / this.zoom;
+            var ny = (y - viewportRect.top - this.offsetY) / this.zoom;
             this.customPositions[this.dragTarget] = {
-              x: (x / width) * 100,
-              y: (y / height) * 100
+              x: (nx / viewportRect.width) * 100,
+              y: (ny / viewportRect.height) * 100
             };
-
-            // Atualizar posição do elemento diretamente (sem redesenhar tudo)
-            const roomEl = document.querySelector(`[data-room-id="${this.dragTarget}"]`);
-            if (roomEl) {
-              roomEl.style.left = x + 'px';
-              roomEl.style.top = y + 'px';
-            }
-
-            // Atualizar conexões
+            var roomEl = document.querySelector('[data-room-id="' + this.dragTarget + '"]');
+            if (roomEl) { roomEl.style.left = nx + 'px'; roomEl.style.top = ny + 'px'; }
             Render.updateMinimap();
           }
         },
 
-        handleMouseUp: function(e) {
+        _endDrag: function(x, y, threshold) {
           if (!this.isDragging) return;
+          var viewport = document.getElementById('minimap-viewport');
 
-          const viewport = document.getElementById('minimap-viewport');
-
-          // Se foi um clique rápido num node de saída válida, mover
           if (this.dragType === 'node') {
-            const roomEl = document.querySelector(`[data-room-id="${this.dragTarget}"]`);
+            var roomEl = document.querySelector('[data-room-id="' + this.dragTarget + '"]');
             if (roomEl) {
               roomEl.classList.remove('dragging');
-
-              // Se quase não moveu, considerar como clique
-              const deltaX = Math.abs(e.clientX - this.startX);
-              const deltaY = Math.abs(e.clientY - this.startY);
-              if (deltaX < 5 && deltaY < 5) {
-                // Verificar se é saída válida
+              var deltaX = Math.abs(x - this.startX);
+              var deltaY = Math.abs(y - this.startY);
+              if (deltaX < threshold && deltaY < threshold) {
                 if (roomEl.classList.contains('valid-exit')) {
                   Game.move(this.dragTarget);
                 } else if (roomEl.classList.contains('blocked-exit')) {
-                  const room = GameState.rooms[this.dragTarget];
-                  const msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
+                  var room = GameState.rooms[this.dragTarget];
+                  var msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
                     ? 'Um escudo de força mágico bloqueia o acesso!'
                     : '✈️ Você precisa voar para acessar ' + (room ? room.name : 'este local') + '.';
                   Log.add(msg, 'warning');
                 }
               }
             }
-
-            // Salvar posições após drag de node
             this.savePositions();
           }
 
@@ -8012,10 +7901,26 @@
             viewport.classList.remove('dragging');
             viewport.classList.remove('dragging-node');
           }
-
           this.isDragging = false;
           this.dragType = null;
           this.dragTarget = null;
+        },
+
+        // === Mouse handlers (thin wrappers) ===
+        handleMouseDown: function(e) {
+          var roomEl = e.target.closest('.map-room');
+          var isViewport = e.target === document.getElementById('minimap-viewport') || e.target.id === 'minimap';
+          if (!roomEl && !isViewport) return;
+          this._startDrag(e.clientX, e.clientY, roomEl);
+          e.preventDefault();
+        },
+
+        handleMouseMove: function(e) {
+          this._moveDrag(e.clientX, e.clientY);
+        },
+
+        handleMouseUp: function(e) {
+          this._endDrag(e.clientX, e.clientY, 5);
         },
 
         handleWheel: function(e) {
@@ -8027,12 +7932,10 @@
           const delta = e.deltaY > 0 ? -0.15 : 0.15;
           const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta));
 
-          // Zoom no ponto do cursor
           const rect = viewport.getBoundingClientRect();
           const cursorX = e.clientX - rect.left;
           const cursorY = e.clientY - rect.top;
 
-          // Ajustar offset para zoom centrado no cursor
           const zoomRatio = newZoom / this.zoom;
           this.offsetX = cursorX - (cursorX - this.offsetX) * zoomRatio;
           this.offsetY = cursorY - (cursorY - this.offsetY) * zoomRatio;
@@ -8042,137 +7945,44 @@
           this.savePositions();
         },
 
+        // === Touch handlers (thin wrappers + pinch zoom) ===
         handleTouchStart: function(e) {
           if (e.touches.length === 2) {
-            // Pinch zoom - calcular distância inicial
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            this.lastPinchDistance = Math.hypot(
-              touch2.clientX - touch1.clientX,
-              touch2.clientY - touch1.clientY
-            );
+            var touch1 = e.touches[0], touch2 = e.touches[1];
+            this.lastPinchDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
             e.preventDefault();
           } else if (e.touches.length === 1) {
-            // Single touch - pan ou drag
-            const touch = e.touches[0];
-            const roomEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.map-room');
-            const viewport = document.getElementById('minimap-viewport');
-
-            if (roomEl) {
-              this.isDragging = true;
-              this.dragType = 'node';
-              this.dragTarget = roomEl.getAttribute('data-room-id');
-              roomEl.classList.add('dragging');
-              viewport.classList.add('dragging-node');
-            } else {
-              this.isDragging = true;
-              this.dragType = 'pan';
-              viewport.classList.add('dragging');
-            }
-
-            this.startX = touch.clientX;
-            this.startY = touch.clientY;
+            var touch = e.touches[0];
+            var roomEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.map-room');
+            this._startDrag(touch.clientX, touch.clientY, roomEl);
             e.preventDefault();
           }
         },
 
         handleTouchMove: function(e) {
           if (e.touches.length === 2) {
-            // Pinch zoom
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-
-            const currentDistance = Math.hypot(
-              touch2.clientX - touch1.clientX,
-              touch2.clientY - touch1.clientY
-            );
-
+            var touch1 = e.touches[0], touch2 = e.touches[1];
+            var currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
             if (this.lastPinchDistance) {
-              const delta = (currentDistance - this.lastPinchDistance) * 0.01;
+              var delta = (currentDistance - this.lastPinchDistance) * 0.01;
               this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta));
               this.applyTransform();
             }
-
             this.lastPinchDistance = currentDistance;
             e.preventDefault();
-          } else if (e.touches.length === 1 && this.isDragging) {
-            const touch = e.touches[0];
-            const viewport = document.getElementById('minimap-viewport');
-            if (!viewport) return;
-
-            if (this.dragType === 'pan') {
-              const deltaX = touch.clientX - this.startX;
-              const deltaY = touch.clientY - this.startY;
-
-              this.offsetX += deltaX;
-              this.offsetY += deltaY;
-
-              this.startX = touch.clientX;
-              this.startY = touch.clientY;
-
-              this.applyTransform();
-            } else if (this.dragType === 'node' && this.dragTarget) {
-              const viewportRect = viewport.getBoundingClientRect();
-              const width = viewportRect.width;
-              const height = viewportRect.height;
-
-              const x = (touch.clientX - viewportRect.left - this.offsetX) / this.zoom;
-              const y = (touch.clientY - viewportRect.top - this.offsetY) / this.zoom;
-
-              this.customPositions[this.dragTarget] = {
-                x: (x / width) * 100,
-                y: (y / height) * 100
-              };
-
-              Render.updateMinimap();
-            }
-
+          } else if (e.touches.length === 1) {
+            this._moveDrag(e.touches[0].clientX, e.touches[0].clientY);
             e.preventDefault();
           }
         },
 
         handleTouchEnd: function(e) {
           this.lastPinchDistance = null;
-
-          if (this.isDragging) {
-            const viewport = document.getElementById('minimap-viewport');
-
-            if (this.dragType === 'node') {
-              const roomEl = document.querySelector(`[data-room-id="${this.dragTarget}"]`);
-              if (roomEl) {
-                roomEl.classList.remove('dragging');
-
-                // Verificar se foi um tap (toque rápido sem arrastar) para navegar
-                if (e.changedTouches && e.changedTouches.length > 0) {
-                  const touch = e.changedTouches[0];
-                  const deltaX = Math.abs(touch.clientX - this.startX);
-                  const deltaY = Math.abs(touch.clientY - this.startY);
-
-                  // Se moveu menos de 10px, considerar como tap (navegar)
-                  if (deltaX < 10 && deltaY < 10) {
-                    if (roomEl.classList.contains('valid-exit')) {
-                      Game.move(this.dragTarget);
-                    } else if (roomEl.classList.contains('blocked-exit')) {
-                      const room = GameState.rooms[this.dragTarget];
-                      const msg = this.dragTarget === 'teto_masp' && !GameState.forceShieldDown
-                        ? '🛡️ Um escudo de força mágico bloqueia o acesso! Derrote o Feiticeiro para removê-lo.'
-                        : '✈️ Você precisa voar para acessar ' + (room ? room.name : 'este local') + '.';
-                      Log.add(msg, 'warning');
-                    }
-                  }
-                }
-              }
-              this.savePositions();
-            }
-
-            if (viewport) {
-              viewport.classList.remove('dragging');
-              viewport.classList.remove('dragging-node');
-            }
-
-            this.isDragging = false;
-            this.dragType = null;
-            this.dragTarget = null;
+          if (this.isDragging && e.changedTouches && e.changedTouches.length > 0) {
+            var touch = e.changedTouches[0];
+            this._endDrag(touch.clientX, touch.clientY, 10);
+          } else if (this.isDragging) {
+            this._endDrag(this.startX, this.startY, 10);
           }
         },
 
@@ -8430,11 +8240,7 @@
           Log.add('Você deve derrotá-la antes que ela complete o ritual!', 'info');
 
           // Descobrir itens na sala inicial
-          Object.values(GameState.items).forEach(function(item) {
-            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
-              GameState.discoveredItems.add(item.id);
-            }
-          });
+          Rules.discoverItemsInRoom();
 
           // Atualizar UI
           Render.update();
@@ -8548,19 +8354,10 @@
           if (result.combatModal) {
             // Still advance time
             if (result.success && result.advanceTime) {
-              if (GameState.skipNextTimeAdvance) {
-                GameState.skipNextTimeAdvance = false;
-                Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
-              } else {
-                Events.advanceTime();
-              }
+              Events.maybeAdvanceTime();
             }
             // Discover items
-            Object.values(GameState.items).forEach(function(item) {
-              if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
-                GameState.discoveredItems.add(item.id);
-              }
-            });
+            Rules.discoverItemsInRoom();
             Render.update();
             return;
           }
@@ -8571,12 +8368,7 @@
           }
 
           if (result.success && result.advanceTime) {
-            if (GameState.skipNextTimeAdvance) {
-              GameState.skipNextTimeAdvance = false;
-              Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
-            } else {
-              Events.advanceTime();
-            }
+            Events.maybeAdvanceTime();
           }
 
           // Verificar fim de jogo (não durante explosão - o modal de explosão controla o fluxo)
@@ -8588,11 +8380,7 @@
           }
 
           // Descobrir itens na sala atual
-          Object.values(GameState.items).forEach(function(item) {
-            if (item.location === GameState.playerLocation && !item.isDestroyed && !item.isAnimated) {
-              GameState.discoveredItems.add(item.id);
-            }
-          });
+          Rules.discoverItemsInRoom();
 
           Render.update();
         },
@@ -9414,7 +9202,7 @@
 
         // Scroll indicator listeners
         document.querySelectorAll('.scroll-indicator-container').forEach(el => {
-          el.addEventListener('scroll', () => GameUI.updateScrollIndicators());
+          el.addEventListener('scroll', () => Render.updateScrollIndicators());
         });
 
         // Fechar modal ao clicar fora (exceto mapa exclusivo)
