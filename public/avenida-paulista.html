@@ -7608,10 +7608,7 @@
           const drawnConnections = new Set();
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
             // Ocultar subsolo_masp até ser visitado ou revelado pela lanterna
-            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-              var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
-              if (!canReveal) return;
-            }
+            if (!Rules.isRoomVisible(roomId)) return;
             // Usar posição customizada se existir
             let pos = roomPositions[roomId];
             if (MinimapController.customPositions[roomId]) {
@@ -7631,10 +7628,7 @@
               if (!exitRoom) return;
 
               // Ocultar conexões para subsolo_masp até ser visitado ou revelado
-              if (exitId === 'subsolo_masp' && !GameState.visitedRooms.has(exitId)) {
-                var canRevealExit = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
-                if (!canRevealExit) return;
-              }
+              if (!Rules.isRoomVisible(exitId)) return;
 
               // Não desenhar conexão para local aéreo
               if (exitRoom.requiresFlight) return;
@@ -7683,10 +7677,7 @@
           // Desenhar salas
           Object.entries(GameState.rooms).forEach(([roomId, room]) => {
             // Ocultar subsolo_masp até ser visitado ou revelado
-            if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-              var canReveal2 = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
-              if (!canReveal2) return;
-            }
+            if (!Rules.isRoomVisible(roomId)) return;
             // Usar posição customizada se existir
             let pos = roomPositions[roomId];
             if (MinimapController.customPositions[roomId]) {
