@@ -5488,7 +5488,7 @@
                   };
                 }
 
-                if (GameState.armedBomb.location !== GameState.playerLocation) {
+                if (GameState.armedBomb.location !== GameState.playerLocation && !GameState.armedBomb.carriedByPlayer) {
                   return {
                     success: false,
                     message: `A bomba está armada em ${GameState.rooms[GameState.armedBomb.location].name}, não aqui!`,
@@ -6161,6 +6161,7 @@
                 // Sincronizar localização da bomba armada quando jogador pega
                 if (itemId === 'bomba' && GameState.armedBomb) {
                   GameState.armedBomb.carriedByPlayer = true;
+                  GameState.armedBomb.location = GameState.playerLocation;
                 }
 
                 // onPickup hook (ex: mochila recalcula peso)
