@@ -6041,11 +6041,7 @@
                       advanceTime: true
                     };
                   } else {
-                    GameState.playerLocation = roomId;
-                    GameState.characters.player.location = roomId;
-                    GameState.visitedRooms.add(roomId);
-                    Journal.recordRoom(roomId);
-                    var totalRoomsFlying = Object.keys(GameState.rooms).length;
+                    Actions._setPlayerLocation(roomId);
                     if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
                     SoundSystem.playMove();
                     return {
