@@ -9847,6 +9847,13 @@
             document.addEventListener('DOMContentLoaded', function() {
               IntroSystem.init();
 
+              // Fechar sliders de volume ao clicar fora
+              document.addEventListener('click', function(e) {
+                if (!e.target.closest('.volume-control')) {
+                  document.querySelectorAll('.vol-slider.active').forEach(function(s) { s.classList.remove('active'); });
+                }
+              });
+
               // Tooltip da bomba: position fixed com posicionamento via JS
               var bombBtn = document.getElementById('bomb-indicator-btn');
               var bombTooltip = document.getElementById('bomb-tooltip-content');
