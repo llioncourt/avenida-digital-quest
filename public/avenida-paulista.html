@@ -330,15 +330,7 @@
               50% { opacity: 0.6; }
               100% { opacity: 0; }
             }
-            @keyframes screen-shake {
-              0%, 100% { transform: translateX(0); }
-              15% { transform: translateX(-4px); }
-              30% { transform: translateX(4px); }
-              45% { transform: translateX(-3px); }
-              60% { transform: translateX(3px); }
-              75% { transform: translateX(-2px); }
-              90% { transform: translateX(2px); }
-            }
+            /* screen-shake: definido uma única vez em bloco posterior */
             .teto-masp-glow {
               animation: teto-masp-glow-anim 1s ease;
             }
@@ -646,7 +638,7 @@
               position: absolute;
               will-change: transform, opacity;
             }
-            @keyframes rain-fall {
+            @keyframes rain-fall-particle {
               0% { transform: translateY(-10px) translateX(0); opacity: 0.7; }
               100% { transform: translateY(100vh) translateX(-30px); opacity: 0.2; }
             }
@@ -1112,10 +1104,7 @@
               line-height: 1;
             }
 
-            @keyframes bomb-pulse {
-              0%, 100% { opacity: 1; transform: scale(1); }
-              50% { opacity: 0.5; transform: scale(1.3); }
-            }
+            /* bomb-pulse: definido uma única vez em bloco posterior */
 
             /* Conexões como RUAS da cidade */
             .map-connection {
@@ -1731,7 +1720,7 @@
                   rgba(170, 200, 255, 0.08) 5px
                 );
               background-size: 3px 100%;
-              animation: rain-fall 0.4s linear infinite;
+              animation: rain-fall-overlay 0.4s linear infinite;
             }
             #rain-overlay.active::after {
               content: '';
@@ -1745,11 +1734,11 @@
                   rgba(170, 200, 255, 0.05) 7px
                 );
               background-size: 5px 100%;
-              animation: rain-fall 0.6s linear infinite;
+              animation: rain-fall-overlay 0.6s linear infinite;
               animation-delay: 0.2s;
             }
 
-            @keyframes rain-fall {
+            @keyframes rain-fall-overlay {
               0% { transform: translateY(-100%); }
               100% { transform: translateY(100%); }
             }
@@ -4905,79 +4894,22 @@
             // MUSIC SYSTEM - Main background music (extends base player with loop/toggle)
             // ============================================================================
 
-            const MusicSystem = {
+            var _musicBase = createMidiPlayer({
+              base64: MIDI_BASE64, volume: 1.0, name: 'MusicSystem',
+              osc1Type: 'triangle', osc2Type: 'sine', freqMult: 2,
+              gain1: 0.7, gain2: 0.3, attack: 0.01, decay: 0.1, sustain: 0.6, release: 0.15
+            });
+
+            const MusicSystem = Object.assign({}, _musicBase, {
               isPlaying: false,
-              isLoaded: false,
-              volume: 1.0,
-              notes: [],
-              duration: 0,
-              scheduledOscs: [],
               loopTimeoutId: null,
               startTime: 0,
               playbackSpeed: 1.0,
+              musicGain: null,
 
               init: async function() {
-                await this.loadMIDI();
-              },
-
-              loadMIDI: async function() {
-                try {
-                  var result = parseMidiBase64(MIDI_BASE64);
-                  this.notes = result.notes;
-                  this.duration = result.duration;
-                  this.isLoaded = true;
-                  this.start();
-                } catch (err) {
-                  console.error('MusicSystem: Failed to load MIDI', err);
-                }
-              },
-
-              playNote: function(note, startTime, duration, velocity) {
-                var ctx = SoundSystem.audioCtx;
-                if (!ctx || !SoundSystem.enabled) return;
-
-                var freq = 440 * Math.pow(2, (note - 69) / 12);
-                var vol = (velocity / 127) * this.volume;
-
-                var osc1 = ctx.createOscillator();
-                osc1.type = 'triangle';
-                osc1.frequency.value = freq;
-
-                var osc2 = ctx.createOscillator();
-                osc2.type = 'sine';
-                osc2.frequency.value = freq * 2;
-
-                var g1 = ctx.createGain();
-                var g2 = ctx.createGain();
-                var masterGain = ctx.createGain();
-
-                g1.gain.value = 1.4;
-                g2.gain.value = 0.6;
-
-                osc1.connect(g1);
-                osc2.connect(g2);
-                g1.connect(masterGain);
-                g2.connect(masterGain);
-                masterGain.connect(this.musicGain || ctx.destination);
-
-                var now = startTime;
-                var attackTime = 0.01;
-                var decayTime = 0.1;
-                var sustainLevel = 0.6;
-                var releaseTime = 0.15;
-
-                masterGain.gain.setValueAtTime(0, now);
-                masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
-                masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
-                masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
-                masterGain.gain.linearRampToValueAtTime(0, now + duration);
-
-                osc1.start(now);
-                osc2.start(now);
-                osc1.stop(now + duration + 0.1);
-                osc2.stop(now + duration + 0.1);
-
-                this.scheduledOscs.push(osc1, osc2);
+                if (!this.isLoaded) _musicBase.init.call(this);
+                this.start();
               },
 
               scheduleNotes: function() {
@@ -4985,15 +4917,17 @@
                 var ctx = SoundSystem.audioCtx;
                 this.startTime = ctx.currentTime;
                 var speed = this.playbackSpeed || 1.0;
+                var self = this;
 
-                this.notes.forEach(note => {
-                  this.playNote(note.n, this.startTime + (note.t / speed), note.d / speed, note.v);
+                this.notes.forEach(function(note) {
+                  self.playNote(note.n, self.startTime + (note.t / speed), note.d / speed, note.v);
                 });
 
                 if (this.isPlaying) {
-                  this.loopTimeoutId = setTimeout(() => {
-                    if (this.isPlaying) this.scheduleNotes();
-                  }, ((this.duration / speed) + 0.5) * 1000);
+                  var dur = this.duration;
+                  this.loopTimeoutId = setTimeout(function() {
+                    if (self.isPlaying) self.scheduleNotes();
+                  }, ((dur / speed) + 0.5) * 1000);
                 }
               },
 
@@ -5016,7 +4950,7 @@
                   clearTimeout(this.loopTimeoutId);
                   this.loopTimeoutId = null;
                 }
-                this.scheduledOscs.forEach(osc => {
+                this.scheduledOscs.forEach(function(osc) {
                   try { osc.stop(); } catch(e) {}
                 });
                 this.scheduledOscs = [];
@@ -5068,7 +5002,7 @@
               setSpeed: function(speed) {
                 this.playbackSpeed = speed || 1.0;
               }
-            };
+            });
 
             // ============================================================================
             // GAME STATE
@@ -5125,7 +5059,29 @@
               hasReadMagicBook: false,
 
               // Itens descobertos pelo jogador (IDs)
-              discoveredItems: new Set()
+              discoveredItems: new Set(),
+
+              // ---- Propriedades inicializadas em Game.init() (declaradas aqui para documentação) ----
+              // Salas visitadas para minimapa
+              visitedRooms: new Set(['masp']),
+              // Energia do jogador
+              energy: 100,
+              // Modo noturno ativo
+              nightModeActive: false,
+              // Neblina ativa
+              fogActive: false,
+              // Pular próximo avanço de tempo (Café)
+              skipNextTimeAdvance: false,
+              // Armadilhas ambientais por sala
+              environmentTraps: {},
+              // Armadilhas de grafite por sala
+              roomTraps: {},
+              // Flag de explosão em progresso
+              _explosionInProgress: false,
+              // Modo craft ativo
+              craftMode: false,
+              // Seleção de craft atual
+              craftSelection: []
             };
 
             // ============================================================================
@@ -5408,6 +5364,15 @@
                   }
                 });
               },
+
+              // Ativar modo seguir para um aliado (centralizado)
+              activateFollow: function(charId) {
+                var c = GameState.characters[charId];
+                if (!c || !c.isAlly || !c.isAlive || c.followingPlayer || c.followCooldown) return;
+                c.followingPlayer = true;
+                c.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
+                Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
+              }
 
               // Verificar se uma sala é visível no minimapa
               isRoomVisible: function(roomId) {
@@ -5874,8 +5839,7 @@
                   return { success: false, message: 'Você precisa poder voar para ir a este local!', consumed: false };
                 }
 
-                GameState.playerLocation = targetRoomId;
-                GameState.characters.player.location = targetRoomId;
+                Actions._setPlayerLocation(targetRoomId);
                 SoundSystem.playUseItem();
                 ScreenEffects.flash('rgba(200, 150, 50, 0.5)');
 
@@ -5968,6 +5932,14 @@
             // ============================================================================
 
             const Actions = {
+              // Helper: setar localização do jogador (centralizado)
+              _setPlayerLocation: function(roomId) {
+                GameState.playerLocation = roomId;
+                GameState.characters.player.location = roomId;
+                GameState.visitedRooms.add(roomId);
+                Journal.recordRoom(roomId);
+              },
+
               // Mover para uma sala
               moveTo: function(roomId) {
                 if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
@@ -6005,10 +5977,7 @@
                     };
                   } else if (hasUmbrella && !Rules.canPlayerFly()) {
                     // Guarda-chuva funciona como paraquedas - aterrissa na sala abaixo em vez de voar
-                    GameState.playerLocation = 'avenida_paulista_leste';
-                    GameState.characters.player.location = 'avenida_paulista_leste';
-                    if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
-                    GameState.visitedRooms.add('avenida_paulista_leste');
+                    Actions._setPlayerLocation('avenida_paulista_leste');
                     SoundSystem.playMove();
                     return {
                       success: true,
@@ -6016,11 +5985,7 @@
                       advanceTime: true
                     };
                   } else {
-                    GameState.playerLocation = roomId;
-                    GameState.characters.player.location = roomId;
-                    if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
-                    GameState.visitedRooms.add(roomId);
-                    Journal.recordRoom(roomId);
+                    Actions._setPlayerLocation(roomId);
                     var totalRoomsFlying = Object.keys(GameState.rooms).length;
                     if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
                     SoundSystem.playMove();
@@ -6066,18 +6031,13 @@
                   }
                 }
 
-                GameState.playerLocation = roomId;
-                GameState.characters.player.location = roomId;
+                Actions._setPlayerLocation(roomId);
 
                 // Sincronizar localização da bomba armada quando jogador se move carregando
                 if (GameState.armedBomb && GameState.armedBomb.carriedByPlayer) {
                   GameState.armedBomb.location = roomId;
                 }
                 SoundSystem.playMove();
-
-                // Rastrear salas visitadas (para Mapa Antigo)
-                if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
-                GameState.visitedRooms.add(roomId);
 
                 // Achievement: Explorador
                 var totalRoomsCount = Object.keys(GameState.rooms).length;
@@ -6126,10 +6086,8 @@
 
                 // Verificar aliados na nova sala para ativar follow
                 Object.values(GameState.characters).forEach(function(c) {
-                  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer && !c.followCooldown) {
-                    c.followingPlayer = true;
-                    c.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
-                    Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
+                  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId) {
+                    Rules.activateFollow(c.id);
                   }
                 });
 
@@ -6205,6 +6163,8 @@
                   const player = GameState.characters.player;
                   player.hp = 0;
                   player.isAlive = false;
+                  GameState.gameOver = true;
+                  Karma.change(-10, 'Largou a asa delta no ar');
                   GameState.deathReason = '🪂 Largou a asa delta. No ar. Voando. Brilhante decisão estratégica. A lei da gravidade, que não aceita suborno, entrou em vigor imediatamente.';
 
                   return {
@@ -6793,6 +6753,7 @@
                 }
 
                 // extraMessage vai para o card do atacante quando NPC ataca, ou do defensor quando jogador ataca
+                var extraDelay = 0;
                 if (result.extraMessage) {
                   var extraTarget = result.playerIsAttacker ? defCard : document.getElementById('combat-card-attacker');
                   var extraDiv = document.createElement('div');
@@ -6803,8 +6764,8 @@
                     self.typeTimers.push(setTimeout(function() {
                       el.classList.add('visible');
                     }, d));
-                  })(extraDiv, delay);
-                  delay += 300;
+                  })(extraDiv, extraDelay);
+                  extraDelay += 300;
                 }
 
                 // Calculate dynamic delay based on active music duration
@@ -7225,11 +7186,7 @@
                       delete char.pandeiroTarget;
                       Log.add('🪘 ' + char.name + ' chegou ao seu chamado!', 'success');
                       // Ativar follow
-                      if (!char.followingPlayer && !char.followCooldown) {
-                        char.followingPlayer = true;
-                        char.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
-                        Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
-                      }
+                      Rules.activateFollow(char.id);
                       return;
                     }
                     // Tentar mover em direção ao alvo (BFS simples)
@@ -7300,11 +7257,7 @@
                           Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.encounter)}"`, 'info');
                         }
                         // Aliado ativa modo seguir ao encontrar o jogador
-                        if (char.isAlly && !char.followingPlayer && !char.followCooldown) {
-                          char.followingPlayer = true;
-                          char.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
-                          Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
-                        }
+                        Rules.activateFollow(char.id);
                       }
                     }
                   }
@@ -7705,7 +7658,7 @@
                 switch (preset) {
                   case 'rain':
                     dur = 0.6 + Math.random() * 0.4;
-                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:-5px;width:1px;height:' + (8+Math.random()*12) + 'px;background:rgba(180,200,255,0.5);animation:rain-fall ' + dur + 's linear forwards;';
+                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:-5px;width:1px;height:' + (8+Math.random()*12) + 'px;background:rgba(180,200,255,0.5);animation:rain-fall-particle ' + dur + 's linear forwards;';
                     break;
                   case 'fog':
                     dur = 8 + Math.random() * 6;
