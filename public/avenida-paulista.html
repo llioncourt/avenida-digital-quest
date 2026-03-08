@@ -3768,6 +3768,20 @@
                 }
               },
 
+              setVolume: function(val) {
+                this.masterVolume = val;
+                this.enabled = val > 0;
+                var btn = document.getElementById('sound-toggle');
+                if (btn) btn.textContent = val > 0 ? '🔊' : '🔇';
+              },
+
+              toggleSlider: function() {
+                var slider = document.getElementById('sound-slider');
+                var musicSlider = document.getElementById('music-slider');
+                if (musicSlider) musicSlider.classList.remove('active');
+                if (slider) slider.classList.toggle('active');
+              },
+
               // Criar oscilador básico
               createOsc: function(type, freq, duration, volume = 0.3) {
                 if (!this.enabled || !this.audioCtx) return null;
