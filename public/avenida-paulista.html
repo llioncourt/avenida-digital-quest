@@ -7798,7 +7798,12 @@
                 var dist = getBombDistance(GameState.playerLocation, bomb.location);
                 var distText = dist < 0 ? 'inacessível' : dist + ' sala' + (dist !== 1 ? 's' : '');
 
-                if (bomb.location === GameState.playerLocation) {
+                if (bomb.carriedByPlayer) {
+                  tooltip.innerHTML =
+                    '💣 Bomba com VOCÊ!<br>' +
+                    '⏱️ ' + bomb.turnsLeft + ' turno' + (bomb.turnsLeft !== 1 ? 's' : '') + ' restante' + (bomb.turnsLeft !== 1 ? 's' : '') + '<br>' +
+                    '🤡 Boa sorte, herói. Você está carregando a bomba.';
+                } else if (bomb.location === GameState.playerLocation) {
                   tooltip.innerHTML =
                     '💣 Bomba AQUI com você!<br>' +
                     '⏱️ ' + bomb.turnsLeft + ' turno' + (bomb.turnsLeft !== 1 ? 's' : '') + ' restante' + (bomb.turnsLeft !== 1 ? 's' : '') + '<br>' +
