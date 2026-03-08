@@ -6960,12 +6960,12 @@
                 }
 
                 // ===== SISTEMA DE ENERGIA (FOME) =====
-                GameState.energy = Math.max(0, GameState.energy - 2);
+                GameState.energy = Math.max(0, GameState.energy - GAME_CONSTANTS.ENERGY_DRAIN_PER_TURN);
                 if (GameState.energy <= 0) {
-                  Rules.damagePlayer(3);
-                  Log.add('😰 Você está exausto e perdendo forças! -3 HP. Coma algo para recuperar energia!', 'danger');
-                } else if (GameState.energy <= 20) {
-                  Log.add('⚡ Energia baixa (' + GameState.energy + '/100)! Procure comida: Coxinha, Açaí ou Pastel.', 'warning');
+                  Rules.damagePlayer(GAME_CONSTANTS.EXHAUSTION_DAMAGE);
+                  Log.add('😰 Você está exausto e perdendo forças! -' + GAME_CONSTANTS.EXHAUSTION_DAMAGE + ' HP. Coma algo para recuperar energia!', 'danger');
+                } else if (GameState.energy <= GAME_CONSTANTS.ENERGY_LOW_THRESHOLD) {
+                  Log.add('⚡ Energia baixa (' + GameState.energy + '/' + GAME_CONSTANTS.MAX_ENERGY + ')! Procure comida: Coxinha, Açaí ou Pastel.', 'warning');
                 }
 
                 // ===== MODO NOTURNO PROGRESSIVO =====
