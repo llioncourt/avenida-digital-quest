@@ -4911,7 +4911,7 @@
                 if (!ctx || !SoundSystem.enabled) return;
 
                 var freq = 440 * Math.pow(2, (note - 69) / 12);
-                var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
+                var vol = (velocity / 127) * this.volume;
 
                 var osc1 = ctx.createOscillator();
                 osc1.type = 'triangle';
@@ -4932,7 +4932,7 @@
                 osc2.connect(g2);
                 g1.connect(masterGain);
                 g2.connect(masterGain);
-                masterGain.connect(ctx.destination);
+                masterGain.connect(this.musicGain || ctx.destination);
 
                 var now = startTime;
                 var attackTime = 0.01;
