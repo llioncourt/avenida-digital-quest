@@ -6418,6 +6418,7 @@
                 if (demon.location === GameState.playerLocation && demon.isAlive && demon.isSummoned) {
                   if (word === GameState.demonMagicWord) {
                     demon.isAlly = true;
+                    Karma.change(15, 'Converteu o Demônio');
                     SoundSystem.playDemonConvert();
                     ScreenEffects.flash('rgba(255, 215, 0, 0.5)'); // Flash dourado
                     // Achievement: Diplomata
