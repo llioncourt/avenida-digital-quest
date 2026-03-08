@@ -7242,11 +7242,7 @@
                       delete char.pandeiroTarget;
                       Log.add('🪘 ' + char.name + ' chegou ao seu chamado!', 'success');
                       // Ativar follow
-                      if (!char.followingPlayer && !char.followCooldown) {
-                        char.followingPlayer = true;
-                        char.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
-                        Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
-                      }
+                      Rules.activateFollow(char.id);
                       return;
                     }
                     // Tentar mover em direção ao alvo (BFS simples)
