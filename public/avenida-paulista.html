@@ -8901,7 +8901,7 @@
                 const witch = GameState.characters.bruxa;
 
                 // Construir resumo
-                const timeElapsed = GameState.time - (17 * 60);
+                const timeElapsed = GameState.time - GAME_CONSTANTS.START_TIME;
                 const hoursPlayed = Math.floor(timeElapsed / 60);
                 const minutesPlayed = timeElapsed % 60;
 
