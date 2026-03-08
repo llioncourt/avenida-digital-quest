@@ -6286,6 +6286,7 @@
                 GameState.playerInventory.push(recipe.result);
                 // Achievement
                 Achievements.tryUnlock('alquimista');
+                Karma.change(2, 'Craftou um item');
                 SoundSystem.playPickup();
                 ScreenEffects.flash('rgba(212, 168, 70, 0.5)');
                 Log.add('⚗️ Você combinou ' + GameState.items[itemId1 === recipe.ingredients[0] ? itemId1 : itemId2]?.name + ' + ' + GameState.items[itemId1 === recipe.ingredients[0] ? itemId2 : itemId1]?.name + ' = ' + ITEMS_DATA[recipe.result].name + '!', 'success');
