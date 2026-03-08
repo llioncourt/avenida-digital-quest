@@ -1965,10 +1965,12 @@
               cursor: pointer;
               font-size: 1rem;
               position: relative;
-              display: none;
+              visibility: hidden;
+              opacity: 0;
+              pointer-events: none;
               animation: bomb-pulse 1.5s ease-in-out infinite;
             }
-            .bomb-indicator.active { display: inline-block; }
+            .bomb-indicator.active { visibility: visible; opacity: 1; pointer-events: auto; }
             .bomb-indicator:hover {
               filter: drop-shadow(0 0 6px rgba(255, 100, 0, 0.6));
               transform: scale(1.3);
