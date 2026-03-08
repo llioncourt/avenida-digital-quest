@@ -1377,11 +1377,19 @@
               #game-container {
                 padding: 0.4rem;
                 gap: 0.5rem;
+                height: auto;
+                min-height: 100vh;
+                overflow-y: auto;
               }
 
               #main-content {
                 flex-direction: column;
                 gap: 0.5rem;
+                flex: 0 0 auto;
+              }
+
+              #right-sidebar {
+                order: -1;
               }
 
               #log-panel {
