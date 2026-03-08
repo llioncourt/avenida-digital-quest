@@ -6006,7 +6006,6 @@
                   } else {
                     GameState.playerLocation = roomId;
                     GameState.characters.player.location = roomId;
-                    if (!GameState.visitedRooms) GameState.visitedRooms = new Set();
                     GameState.visitedRooms.add(roomId);
                     Journal.recordRoom(roomId);
                     var totalRoomsFlying = Object.keys(GameState.rooms).length;
