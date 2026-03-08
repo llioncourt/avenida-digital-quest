@@ -7291,7 +7291,7 @@
 
                       // Grafite: inimigo entra em sala com armadilha
                       if (!char.isAlly && GameState.roomTraps && GameState.roomTraps[char.location]) {
-                        char.paralyzedTurns = 2;
+                        char.paralyzedTurns = GAME_CONSTANTS.GRAFFITI_PARALYZE_TURNS;
                         delete GameState.roomTraps[char.location];
                         if (char.location === GameState.playerLocation) {
                           Log.add('🎨 ' + char.name + ' pisou no GRAFITE MÁGICO e ficou paralisado por 2 turnos!', 'success');
