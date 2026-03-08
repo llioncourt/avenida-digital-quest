@@ -5074,9 +5074,12 @@
               }
             });
 
-            // ============================================================================
-            // GAME STATE
-            // ============================================================================
+            /**
+             * @namespace GameState
+             * @description Estado mutável global do jogo. Todas as propriedades são
+             * reinicializadas em Game.init(). Declarar aqui serve como documentação
+             * e previne propriedades ad-hoc.
+             */
 
             const GameState = {
               // Karma (-100 a +100)
