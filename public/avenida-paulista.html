@@ -5436,7 +5436,7 @@
               // Verificar se uma sala é visível no minimapa
               isRoomVisible: function(roomId) {
                 if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-                  var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
+                  var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= GAME_CONSTANTS.NIGHT_SECRET_HOUR;
                   return canReveal;
                 }
                 return true;
