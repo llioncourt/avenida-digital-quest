@@ -7313,11 +7313,7 @@
                           Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.encounter)}"`, 'info');
                         }
                         // Aliado ativa modo seguir ao encontrar o jogador
-                        if (char.isAlly && !char.followingPlayer && !char.followCooldown) {
-                          char.followingPlayer = true;
-                          char.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
-                          Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
-                        }
+                        Rules.activateFollow(char.id);
                       }
                     }
                   }
