@@ -384,7 +384,14 @@
               z-index: 999;
               white-space: nowrap;
             }
-            .vol-slider.active { display: block; }
+            .vol-slider.active { display: flex; align-items: center; gap: 6px; }
+            .vol-pct {
+              color: #b8860b;
+              font-size: 0.7rem;
+              min-width: 28px;
+              text-align: right;
+              font-family: monospace;
+            }
             .vol-slider input[type=range] {
               -webkit-appearance: none;
               width: 90px;
