@@ -2335,6 +2335,65 @@
             // 2) inclusão do @keyframes glitch-offset, usado pelo efeito de glitch.
             // Nenhuma funcionalidade foi removida e a organização original foi preservada.
             // ============================================================================
+            // ============================================================================
+            // GAME CONSTANTS - Valores numéricos centralizados
+            // ============================================================================
+
+            /**
+             * @constant {Object} GAME_CONSTANTS
+             * @description Constantes globais do jogo. Centraliza magic numbers para
+             * facilitar balanceamento e manutenção. Qualquer valor numérico usado em
+             * mais de um local deve ser adicionado aqui.
+             */
+            const GAME_CONSTANTS = {
+              // ---- Tempo (em minutos desde 00:00) ----
+              START_TIME: 17 * 60,           // 17:00 — início do jogo
+              NIGHT_SECRET_HOUR: 20 * 60,    // 20:00 — subsolo do MASP visível
+              NIGHT_MODE_HOUR: 21 * 60,      // 21:00 — modo noturno, tropeços, bruxa mais forte
+
+              // ---- Energia ----
+              MAX_ENERGY: 100,
+              ENERGY_DRAIN_PER_TURN: 2,
+              ENERGY_LOW_THRESHOLD: 20,
+              EXHAUSTION_DAMAGE: 3,
+
+              // ---- Dano ----
+              TRIP_DAMAGE: 5,                // tropeço noturno sem lanterna
+              RAIN_DAMAGE: 5,                // chuva sem guarda-chuva
+              TRAP_FLOOR_DAMAGE: 10,         // piso quebrado
+              TRAP_GAS_DAMAGE: 5,            // gás residual
+              ANTENNA_KARMA_PENALTY: -10,    // karma ao pular da Antena
+
+              // ---- Cura ----
+              ENERGETICO_HEAL: 50,           // energético paulista
+
+              // ---- Bruxa ----
+              WITCH_WORD_COOLDOWN: 80,       // minutos entre palavras
+              WITCH_BASE_ATTACK: 25,         // ataque base da bruxa
+              WITCH_NIGHT_BONUS_PER_HOUR: 2, // +ataque por hora após 21:00
+
+              // ---- Probabilidades ----
+              NPC_MOVE_CHANCE: 0.3,
+              NPC_SPEAK_CHANCE: 0.3,
+              NIGHT_TRIP_CHANCE: 0.15,
+              RAIN_DAMAGE_CHANCE: 0.15,
+              TRAP_FLOOR_TRIGGER_CHANCE: 0.25,
+
+              // ---- Combate de NPCs ----
+              WITCH_WORD_INTERVAL: 3,        // turnos entre palavras (base)
+
+              // ---- Paralisia (grafite) ----
+              GRAFFITI_PARALYZE_TURNS: 2,
+
+              // ---- Follow (aliados) ----
+              FOLLOW_TURNS_HIGH_KARMA: 5,    // karma >= 30
+              FOLLOW_TURNS_NORMAL: 3,
+              FOLLOW_TURNS_LOW_KARMA: 1,     // karma <= -30
+              FOLLOW_KARMA_HIGH: 30,
+              FOLLOW_KARMA_LOW: -30,
+            };
+
+            // ============================================================================
             // DATA - Definições de salas, itens e personagens
             // ============================================================================
 
