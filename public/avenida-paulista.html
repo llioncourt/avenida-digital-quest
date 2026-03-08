@@ -6130,9 +6130,8 @@
                     }
                   } else if (trap.type === 'gasResidual') {
                     if (!Rules.hasEffect('gasImmunity')) {
-                      var gasDmg = 5;
-                      Rules.damagePlayer(gasDmg);
-                      Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + gasDmg + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
+                      Rules.damagePlayer(GAME_CONSTANTS.TRAP_GAS_DAMAGE);
+                      Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + GAME_CONSTANTS.TRAP_GAS_DAMAGE + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
                     } else {
                       Log.add('😷 Gás residual detectado, mas sua MÁSCARA GÁS te protege!', 'success');
                     }
