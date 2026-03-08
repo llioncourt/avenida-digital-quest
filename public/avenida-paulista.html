@@ -4774,8 +4774,8 @@
                   var ctx = SoundSystem.audioCtx;
                   if (!ctx || !SoundSystem.enabled) return;
 
-                  var freq = 440 * Math.pow(2, (note - 69) / 12);
-                  var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
+                var freq = 440 * Math.pow(2, (note - 69) / 12);
+                  var vol = (velocity / 127) * this.volume;
 
                   var osc1 = ctx.createOscillator();
                   osc1.type = config.osc1Type;
@@ -4796,7 +4796,7 @@
                   osc2.connect(g2);
                   g1.connect(masterGain);
                   g2.connect(masterGain);
-                  masterGain.connect(ctx.destination);
+                  masterGain.connect(MusicSystem.musicGain || ctx.destination);
 
                   var now = startTime;
                   masterGain.gain.setValueAtTime(0, now);
