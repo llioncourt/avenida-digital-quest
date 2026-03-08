@@ -6379,6 +6379,7 @@
                     t.hp = 0;
                     t.isAlive = false;
                     SoundSystem.playEnemyDefeat();
+                    Karma.change(-5, 'Derrotou ' + t.name);
                     if (t.onDeath === 'glitchEffect') {
                       GlitchEffect.trigger(3000);
                     }
