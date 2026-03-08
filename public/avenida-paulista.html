@@ -5001,6 +5001,25 @@
                 }
               },
 
+              setVolume: function(val) {
+                this.volume = val;
+                var btn = document.getElementById('music-toggle');
+                if (val === 0) {
+                  if (this.isPlaying) this.stop();
+                  if (btn) btn.textContent = '🔕';
+                } else {
+                  if (!this.isPlaying) { SoundSystem.resume(); this.start(); }
+                  if (btn) btn.textContent = '🎵';
+                }
+              },
+
+              toggleSlider: function() {
+                var slider = document.getElementById('music-slider');
+                var soundSlider = document.getElementById('sound-slider');
+                if (soundSlider) soundSlider.classList.remove('active');
+                if (slider) slider.classList.toggle('active');
+              },
+
               setSpeed: function(speed) {
                 this.playbackSpeed = speed || 1.0;
               }
