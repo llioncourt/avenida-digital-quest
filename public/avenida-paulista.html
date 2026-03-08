@@ -7350,6 +7350,118 @@
             };
 
             // ============================================================================
+            // AMBIENT PARTICLES - Efeitos visuais ambientais
+            // ============================================================================
+            const AmbientParticles = {
+              enabled: true,
+              _overlay: null,
+              _interval: null,
+              _currentPreset: null,
+              _particleCount: 0,
+              MAX_PARTICLES: 30,
+
+              _ensureOverlay: function() {
+                if (!this._overlay) {
+                  this._overlay = document.getElementById('particles-overlay');
+                  if (!this._overlay) {
+                    this._overlay = document.createElement('div');
+                    this._overlay.id = 'particles-overlay';
+                    document.body.appendChild(this._overlay);
+                  }
+                }
+                return this._overlay;
+              },
+
+              toggle: function() {
+                this.enabled = !this.enabled;
+                var btn = document.getElementById('particles-toggle');
+                if (btn) btn.style.opacity = this.enabled ? '1' : '0.4';
+                if (!this.enabled) this._clear();
+              },
+
+              _clear: function() {
+                if (this._interval) { clearInterval(this._interval); this._interval = null; }
+                var overlay = this._ensureOverlay();
+                overlay.innerHTML = '';
+                this._particleCount = 0;
+                this._currentPreset = null;
+              },
+
+              _detectPreset: function() {
+                var container = document.getElementById('game-container');
+                if (!container) return null;
+                if (container.classList.contains('theme-bomb')) return 'spark';
+                if (container.classList.contains('theme-ruins')) return 'dust';
+                if (container.classList.contains('theme-night')) return 'firefly';
+                if (RandomEvents.isActive('rain')) return 'rain';
+                if (RandomEvents.isActive('fog')) return 'fog';
+                if (RandomEvents.isActive('wind_howl')) return 'wind';
+                return null;
+              },
+
+              _spawnParticle: function(preset) {
+                if (this._particleCount >= this.MAX_PARTICLES) return;
+                var overlay = this._ensureOverlay();
+                var p = document.createElement('div');
+                p.className = 'particle';
+                var dur, style;
+
+                switch (preset) {
+                  case 'rain':
+                    dur = 0.6 + Math.random() * 0.4;
+                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:-5px;width:1px;height:' + (8+Math.random()*12) + 'px;background:rgba(180,200,255,0.5);animation:rain-fall ' + dur + 's linear forwards;';
+                    break;
+                  case 'fog':
+                    dur = 8 + Math.random() * 6;
+                    var size = 80 + Math.random() * 120;
+                    p.style.cssText = 'top:' + Math.random()*80 + '%;width:' + size + 'px;height:' + size*0.5 + 'px;background:radial-gradient(ellipse,rgba(200,200,220,0.15),transparent);border-radius:50%;animation:fog-drift ' + dur + 's linear forwards;';
+                    break;
+                  case 'wind':
+                    dur = 0.5 + Math.random() * 0.5;
+                    p.style.cssText = 'top:' + Math.random()*100 + '%;left:-50px;width:' + (30+Math.random()*40) + 'px;height:1px;background:rgba(200,220,255,0.3);animation:wind-streak ' + dur + 's linear forwards;';
+                    break;
+                  case 'firefly':
+                    dur = 3 + Math.random() * 4;
+                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:' + Math.random()*100 + '%;width:3px;height:3px;background:#ffe080;border-radius:50%;box-shadow:0 0 6px #ffe080;animation:firefly ' + dur + 's ease-in-out forwards;';
+                    break;
+                  case 'spark':
+                    dur = 0.4 + Math.random() * 0.4;
+                    var sx = (Math.random()-0.5)*60, sy = -(20+Math.random()*40);
+                    p.style.cssText = 'left:' + (30+Math.random()*40) + '%;bottom:' + Math.random()*30 + '%;width:2px;height:2px;background:#ffa030;border-radius:50%;box-shadow:0 0 4px #ff6000;--sx:' + sx + 'px;--sy:' + sy + 'px;animation:spark ' + dur + 's ease-out forwards;';
+                    break;
+                  case 'dust':
+                    dur = 3 + Math.random() * 4;
+                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:-5px;width:' + (2+Math.random()*3) + 'px;height:' + (2+Math.random()*3) + 'px;background:rgba(180,140,120,0.4);border-radius:50%;animation:dust-fall ' + dur + 's linear forwards;';
+                    break;
+                }
+
+                this._particleCount++;
+                p.addEventListener('animationend', function() {
+                  p.remove();
+                  AmbientParticles._particleCount--;
+                });
+                overlay.appendChild(p);
+              },
+
+              update: function() {
+                if (!this.enabled) return;
+                var preset = this._detectPreset();
+
+                if (preset !== this._currentPreset) {
+                  this._clear();
+                  this._currentPreset = preset;
+                  if (!preset) return;
+
+                  var rate = preset === 'rain' ? 60 : preset === 'wind' ? 100 : preset === 'fog' ? 1500 : preset === 'firefly' ? 800 : preset === 'spark' ? 150 : 500;
+                  var self = this;
+                  this._interval = setInterval(function() {
+                    if (self.enabled && self._currentPreset === preset) self._spawnParticle(preset);
+                  }, rate);
+                }
+              }
+            };
+
+            // ============================================================================
             // RENDER - Atualização da interface
             // ============================================================================
 
