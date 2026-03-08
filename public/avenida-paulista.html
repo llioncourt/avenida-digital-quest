@@ -2249,6 +2249,10 @@
                 <span class="stat-label">⚖️</span>
                 <span class="stat-value" id="weight-display">0/50</span>
               </div>
+              <div class="stat stat-karma">
+                <span class="stat-label" id="karma-emoji">😐</span>
+                <span class="stat-value" id="karma-display">0</span>
+              </div>
               <div class="stat stat-time">
                 <span class="stat-label">🕐</span>
                 <span class="stat-value" id="time-display">17:00</span>
@@ -5049,6 +5053,8 @@
             // ============================================================================
 
             const GameState = {
+              // Karma (-100 a +100)
+              karma: 0,
               // Tempo (minutos desde 00:00)
               time: 17 * 60, // 17:00
 
@@ -5392,6 +5398,41 @@
             };
 
             // ============================================================================
+            // KARMA - Sistema de karma/moralidade
+            // ============================================================================
+
+            const Karma = {
+              change: function(amount, reason) {
+                GameState.karma = Math.max(-100, Math.min(100, GameState.karma + amount));
+                var icon = amount > 0 ? '😇' : '😈';
+                Log.add(icon + ' Karma ' + (amount > 0 ? '+' : '') + amount + ': ' + reason, 'info');
+                Karma.updateUI();
+              },
+              getTitle: function() {
+                var k = GameState.karma;
+                if (k >= 50) return '🕊️ Santo da Paulista';
+                if (k >= 20) return '😇 Herói Benevolente';
+                if (k >= -20) return '😐 Aventureiro Pragmático';
+                if (k >= -50) return '😈 Mercenário';
+                return '💀 Vilão da Paulista';
+              },
+              getEmoji: function() {
+                var k = GameState.karma;
+                if (k >= 50) return '🕊️';
+                if (k >= 20) return '😇';
+                if (k >= -20) return '😐';
+                if (k >= -50) return '😈';
+                return '💀';
+              },
+              updateUI: function() {
+                var el = document.getElementById('karma-display');
+                var emoji = document.getElementById('karma-emoji');
+                if (el) el.textContent = GameState.karma;
+                if (emoji) emoji.textContent = Karma.getEmoji();
+              }
+            };
+
+            // ============================================================================
             // ITEM USE HANDLERS - Efeitos de uso de itens
             // ============================================================================
 
@@ -5657,6 +5698,7 @@
                   }
                   consumeHipnodisco();
                   enemy.isAlly = true;
+                  Karma.change(10, 'Hipnotizou ' + enemy.name);
                   SoundSystem.playHypnoEnemy();
                   // Achievement: Diplomata (check if demon also ally)
                   if (enemy.id === 'feiticeiro') {
@@ -5767,6 +5809,7 @@
                     consumed: false
                   };
                 }
+                Karma.change(5 * pacifiedCount, 'Pacificou ' + pacifiedCount + ' com Violão');
                 SoundSystem.playUseItem();
                 ScreenEffects.flash('rgba(100, 200, 255, 0.4)');
                 return {
@@ -5871,6 +5914,7 @@
                   }
                 });
 
+                if (pacified > 0) Karma.change(5 * pacified, 'Pacificou ' + pacified + ' com Conjunto Musical');
                 SoundSystem.playUseItem();
                 ScreenEffects.flash('rgba(255, 200, 0, 0.4)');
                 var msg = '🎵 Você toca o CONJUNTO MUSICAL!';
@@ -6054,7 +6098,7 @@
                 Object.values(GameState.characters).forEach(function(c) {
                   if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer && !c.followCooldown) {
                     c.followingPlayer = true;
-                    c.followTurnsLeft = 3;
+                    c.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
                     Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
                   }
                 });
@@ -6242,6 +6286,7 @@
                 GameState.playerInventory.push(recipe.result);
                 // Achievement
                 Achievements.tryUnlock('alquimista');
+                Karma.change(2, 'Craftou um item');
                 SoundSystem.playPickup();
                 ScreenEffects.flash('rgba(212, 168, 70, 0.5)');
                 Log.add('⚗️ Você combinou ' + GameState.items[itemId1 === recipe.ingredients[0] ? itemId1 : itemId2]?.name + ' + ' + GameState.items[itemId1 === recipe.ingredients[0] ? itemId2 : itemId1]?.name + ' = ' + ITEMS_DATA[recipe.result].name + '!', 'success');
@@ -6266,12 +6311,22 @@
                   return { success: false, message: `${target.name} já está morto!` };
                 }
 
+                // Atacar aliado: transforma em inimigo
                 if (target.isAlly) {
-                  return { success: false, message: `${target.name} é seu aliado! Você não pode atacá-lo.` };
+                  target.isAlly = false;
+                  target.followingPlayer = false;
+                  target.followTurnsLeft = 0;
+                  target.followCooldown = false;
+                  Log.add('😡 ' + target.name + ' se voltou contra você!', 'danger');
+                  Karma.change(-15, 'Atacou aliado ' + target.name);
                 }
 
+                // Atacar neutro: transforma em inimigo
                 if (target.isNeutral) {
-                  return { success: false, message: `${target.name} é neutro! Ele não quer briga, quer trocar itens.` };
+                  target.isNeutral = false;
+                  target.aggression = 0.8;
+                  Log.add('😡 ' + target.name + ' agora é seu inimigo!', 'danger');
+                  Karma.change(-20, 'Atacou neutro ' + target.name);
                 }
 
                 // Calcular dano - defensor usa golpe aleatório
@@ -6328,6 +6383,7 @@
                     t.hp = 0;
                     t.isAlive = false;
                     SoundSystem.playEnemyDefeat();
+                    Karma.change(-5, 'Derrotou ' + t.name);
                     if (t.onDeath === 'glitchEffect') {
                       GlitchEffect.trigger(3000);
                     }
@@ -6365,6 +6421,7 @@
                 if (demon.location === GameState.playerLocation && demon.isAlive && demon.isSummoned) {
                   if (word === GameState.demonMagicWord) {
                     demon.isAlly = true;
+                    Karma.change(15, 'Converteu o Demônio');
                     SoundSystem.playDemonConvert();
                     ScreenEffects.flash('rgba(255, 215, 0, 0.5)'); // Flash dourado
                     // Achievement: Diplomata
@@ -7126,7 +7183,7 @@
                       // Ativar follow
                       if (!char.followingPlayer && !char.followCooldown) {
                         char.followingPlayer = true;
-                        char.followTurnsLeft = 3;
+                        char.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
                         Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
                       }
                       return;
@@ -7201,7 +7258,7 @@
                         // Aliado ativa modo seguir ao encontrar o jogador
                         if (char.isAlly && !char.followingPlayer && !char.followCooldown) {
                           char.followingPlayer = true;
-                          char.followTurnsLeft = 3;
+                          char.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
                           Log.add('🤝 ' + char.name + ' decide te acompanhar por um tempo!', 'info');
                         }
                       }
@@ -7789,6 +7846,8 @@
                   energyDisplay.textContent = energyVal + '/100';
                   energyDisplay.className = energyVal <= 20 ? 'stat-value danger' : 'stat-value';
                 }
+                // Karma
+                Karma.updateUI();
               },
 
               updateLocation: function() {
@@ -8806,6 +8865,7 @@
                       <div>🎒 Itens no inventário:</div><div>${itemsCollected}</div>
                       <div>🔮 Palavras da Bruxa:</div><div>${GameState.witchWords}/4</div>
                       <div>🗺️ Salas visitadas:</div><div>${GameState.visitedRooms ? GameState.visitedRooms.size : 0}/${Object.keys(GameState.rooms).length}</div>
+                      <div>${Karma.getEmoji()} Karma:</div><div>${GameState.karma} (${Karma.getTitle()})</div>
                     </div>
                   </div>
                 `;
@@ -8846,7 +8906,7 @@
                       <div>Status: ${allyText}</div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
-                      ${!char.isAlly ? `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>` : ''}
+                      ${char.isAlly ? `<button class="btn" style="background:var(--accent-red);color:var(--bg-primary);opacity:0.7;" onclick="if(confirm('⚠️ Atacar um aliado? Ele se tornará seu inimigo!')) Game.attackAndClose('${char.id}')">⚠️ Atacar</button>` : (char.isNeutral ? `<button class="btn" style="background:var(--accent-red);color:var(--bg-primary);opacity:0.7;" onclick="if(confirm('⚠️ Atacar um neutro? Ele se tornará seu inimigo!')) Game.attackAndClose('${char.id}')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
                       ${convertButton}
                       <button class="btn" onclick="Modals.hide()">Fechar</button>
                     </div>
@@ -8914,6 +8974,7 @@
                 GameState.fogActive = false;
                 GameState.environmentTraps = {};
                 GameState.nightModeActive = false;
+                GameState.karma = 0;
 
                 // Reset journal (keep persistent data)
                 Journal.load();
@@ -9423,7 +9484,9 @@
                 diplomata: { icon: '🤝', name: 'Diplomata', desc: 'Converter o Demônio e hipnotizar o Feiticeiro' },
                 sobrevivente: { icon: '💪', name: 'Sobrevivente', desc: 'Vencer com menos de 10 HP' },
                 explorador: { icon: '🗺️', name: 'Explorador', desc: 'Visitar todas as salas' },
-                alquimista: { icon: '⚗️', name: 'Alquimista', desc: 'Criar seu primeiro item craftado' }
+                alquimista: { icon: '⚗️', name: 'Alquimista', desc: 'Criar seu primeiro item craftado' },
+                karma_positivo: { icon: '😇', name: 'Karma+', desc: 'Terminar com karma >= 50' },
+                vilao: { icon: '💀', name: 'Vilão', desc: 'Terminar com karma <= -50' }
               },
               unlockedThisSession: new Set(),
               tryUnlock: function(key) {
@@ -9473,6 +9536,8 @@
                 if (GameState.victory && GameState.characters.player.hp < 10) { earned.push('sobrevivente'); saved.sobrevivente = true; }
                 var totalRooms = Object.keys(GameState.rooms).length;
                 if (GameState.visitedRooms && GameState.visitedRooms.size >= totalRooms) { earned.push('explorador'); saved.explorador = true; }
+                if (GameState.karma >= 50) { earned.push('karma_positivo'); saved.karma_positivo = true; }
+                if (GameState.karma <= -50) { earned.push('vilao'); saved.vilao = true; }
                 this.save(saved);
                 return { earned: earned, all: saved };
               },
@@ -9611,7 +9676,15 @@
                   return '<button class="btn btn-item" onclick="VendorTrade.selectVendorItem(\'' + id + '\')" style="width:100%;margin:0.2rem 0;border-color:var(--accent-gold);color:var(--accent-gold);">' +
                     (ITEM_ICONS[id] || '📦') + ' ' + item.name + ' <small>(' + item.weight + 'kg)</small></button>';
                 }).join('');
-                var content = '<p style="font-style:italic;color:var(--text-secondary);">"E aí, chefe! Vamo trocar?"</p>' +
+                var content = '';
+                if (GameState.karma <= -20) {
+                  content = '<p style="font-style:italic;color:var(--accent-red);">"Não negocio com gente como você! Sai fora!"</p>' +
+                    '<button class="btn" onclick="Modals.hide()" style="margin-top:0.75rem;">Fechar</button>';
+                  Modals.show('🛒 VENDEDOR AMBULANTE', content);
+                  return;
+                }
+                content = '<p style="font-style:italic;color:var(--text-secondary);">"E aí, chefe! Vamo trocar?"</p>' +
+                  (GameState.karma >= 20 ? '<p style="color:var(--accent-gold);">😇 "Você é gente boa! Tenho um desconto especial pra você!"</p>' : '') +
                   '<h4 style="margin:0.5rem 0 0.3rem;color:var(--accent-gold);">Escolha o que você quer:</h4>' +
                   '<div style="max-height:40vh;overflow-y:auto;">' + vendorItemsHtml + '</div>' +
                   '<button class="btn" onclick="Modals.hide()" style="margin-top:0.75rem;">Cancelar</button>';
@@ -9671,6 +9744,7 @@
                 var givenItem = GameState.items[vendorItemId];
                 var takenItem = GameState.items[playerItemId];
                 SoundSystem.playUseItem();
+                Karma.change(3, 'Trocou com o Vendedor');
                 Log.add('🛒 Você trocou ' + takenItem.name + ' por ' + givenItem.name + ' com o Vendedor!', 'success');
                 Modals.hide();
                 Render.update();
