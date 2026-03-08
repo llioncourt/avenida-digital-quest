@@ -411,6 +411,27 @@
               border: none;
             }
 
+            @keyframes danger-pulse {
+              0%, 100% { box-shadow: 0 0 8px rgba(255,60,60,0.4), inset 0 0 6px rgba(255,60,60,0.1); }
+              50% { box-shadow: 0 0 18px rgba(255,60,60,0.7), inset 0 0 10px rgba(255,60,60,0.2); }
+            }
+
+            .btn-danger-warn {
+              background: linear-gradient(135deg, #3a0a0a, #1a0505);
+              border-color: var(--accent-red);
+              color: #ff6b6b;
+              text-shadow: 0 0 6px rgba(255,60,60,0.5);
+              animation: danger-pulse 2s ease-in-out infinite;
+              opacity: 1;
+            }
+
+            .btn-danger-warn:hover {
+              background: linear-gradient(135deg, #5a1010, #2a0808);
+              color: #fff;
+              text-shadow: 0 0 10px rgba(255,60,60,0.8);
+              box-shadow: 0 0 22px rgba(255,60,60,0.8), inset 0 0 12px rgba(255,60,60,0.3);
+            }
+
 
             .lanterna-indicator {
               position: absolute;
