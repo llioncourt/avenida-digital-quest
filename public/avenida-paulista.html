@@ -9969,7 +9969,7 @@
 
               // Fechar modal ao clicar fora (exceto mapa exclusivo)
               document.getElementById('modal-overlay').addEventListener('click', function(e) {
-                if (e.target === this && !this.classList.contains('mapa-exclusive')) {
+                if (e.target === this && !this.classList.contains('mapa-exclusive') && !GameState.gameOver) {
                   Modals.hide();
                 }
               });
