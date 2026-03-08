@@ -6083,10 +6083,10 @@
                 }
 
                 // MODO NOTURNO: Tropeço sem lanterna após 21:00
-                if (GameState.time >= 21 * 60 && !Rules.hasEffect('nightVision')) {
-                  if (Utils.random() < 0.15) {
-                    Rules.damagePlayer(5);
-                    Log.add('🌑 Você tropeça no escuro e se machuca! -5 HP. Uma LANTERNA evitaria isso.', 'danger');
+                if (GameState.time >= GAME_CONSTANTS.NIGHT_MODE_HOUR && !Rules.hasEffect('nightVision')) {
+                  if (Utils.random() < GAME_CONSTANTS.NIGHT_TRIP_CHANCE) {
+                    Rules.damagePlayer(GAME_CONSTANTS.TRIP_DAMAGE);
+                    Log.add('🌑 Você tropeça no escuro e se machuca! -' + GAME_CONSTANTS.TRIP_DAMAGE + ' HP. Uma LANTERNA evitaria isso.', 'danger');
                   }
                 }
 
