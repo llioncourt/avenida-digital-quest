@@ -4789,8 +4789,8 @@
                   var g2 = ctx.createGain();
                   var masterGain = ctx.createGain();
 
-                  g1.gain.value = config.gain1;
-                  g2.gain.value = config.gain2;
+                  g1.gain.value = config.gain1 * 2;
+                  g2.gain.value = config.gain2 * 2;
 
                   osc1.connect(g1);
                   osc2.connect(g2);
