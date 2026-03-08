@@ -5114,7 +5114,29 @@
               hasReadMagicBook: false,
 
               // Itens descobertos pelo jogador (IDs)
-              discoveredItems: new Set()
+              discoveredItems: new Set(),
+
+              // ---- Propriedades inicializadas em Game.init() (declaradas aqui para documentação) ----
+              // Salas visitadas para minimapa
+              visitedRooms: new Set(['masp']),
+              // Energia do jogador
+              energy: 100,
+              // Modo noturno ativo
+              nightModeActive: false,
+              // Neblina ativa
+              fogActive: false,
+              // Pular próximo avanço de tempo (Café)
+              skipNextTimeAdvance: false,
+              // Armadilhas ambientais por sala
+              environmentTraps: {},
+              // Armadilhas de grafite por sala
+              roomTraps: {},
+              // Flag de explosão em progresso
+              _explosionInProgress: false,
+              // Modo craft ativo
+              craftMode: false,
+              // Seleção de craft atual
+              craftSelection: []
             };
 
             // ============================================================================
