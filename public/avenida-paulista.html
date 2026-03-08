@@ -2153,22 +2153,18 @@
                   <div class="bomb-tooltip" id="bomb-tooltip-content"></div>
                 </button>
                 <button class="journal-btn" onclick="Journal.showModal()" title="Diário">📓</button>
-                <button
-                  id="sound-toggle"
-                  onclick="SoundSystem.toggle()"
-                  title="Ligar/Desligar som"
-                  style="background: none; border: none; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;"
-                >
-                  🔊
-                </button>
-                <button
-                  id="music-toggle"
-                  onclick="MusicSystem.toggle()"
-                  title="Desligar música de fundo"
-                  style="background: none; border: none; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;"
-                >
-                  🎵
-                </button>
+                <div class="volume-control">
+                  <button id="sound-toggle" class="vol-btn" onclick="SoundSystem.toggleSlider()" title="Volume dos efeitos sonoros">🔊</button>
+                  <div class="vol-slider" id="sound-slider">
+                    <input type="range" min="0" max="100" value="30" oninput="SoundSystem.setVolume(this.value/100)">
+                  </div>
+                </div>
+                <div class="volume-control">
+                  <button id="music-toggle" class="vol-btn" onclick="MusicSystem.toggleSlider()" title="Volume da música">🎵</button>
+                  <div class="vol-slider" id="music-slider">
+                    <input type="range" min="0" max="100" value="10" oninput="MusicSystem.setVolume(this.value/100)">
+                  </div>
+                </div>
                 <button
                   id="particles-toggle"
                   onclick="AmbientParticles.toggle()"
