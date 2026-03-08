@@ -6784,6 +6784,7 @@
                 }
 
                 // extraMessage vai para o card do atacante quando NPC ataca, ou do defensor quando jogador ataca
+                var extraDelay = 0;
                 if (result.extraMessage) {
                   var extraTarget = result.playerIsAttacker ? defCard : document.getElementById('combat-card-attacker');
                   var extraDiv = document.createElement('div');
@@ -6794,8 +6795,8 @@
                     self.typeTimers.push(setTimeout(function() {
                       el.classList.add('visible');
                     }, d));
-                  })(extraDiv, delay);
-                  delay += 300;
+                  })(extraDiv, extraDelay);
+                  extraDelay += 300;
                 }
 
                 // Calculate dynamic delay based on active music duration
