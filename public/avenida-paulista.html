@@ -5988,6 +5988,14 @@
             // ============================================================================
 
             const Actions = {
+              // Helper: setar localização do jogador (centralizado)
+              _setPlayerLocation: function(roomId) {
+                GameState.playerLocation = roomId;
+                GameState.characters.player.location = roomId;
+                GameState.visitedRooms.add(roomId);
+                Journal.recordRoom(roomId);
+              },
+
               // Mover para uma sala
               moveTo: function(roomId) {
                 if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
