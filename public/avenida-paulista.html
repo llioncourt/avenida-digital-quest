@@ -6072,7 +6072,7 @@
                 // SALA SECRETA: Subsolo do MASP - requer lanterna + noite
                 if (roomId === 'subsolo_masp') {
                   var hasLanternaForSecret = Rules.hasEffect('nightVision');
-                  if (!hasLanternaForSecret || GameState.time < 20 * 60) {
+                  if (!hasLanternaForSecret || GameState.time < GAME_CONSTANTS.NIGHT_SECRET_HOUR) {
                     if (!hasLanternaForSecret) {
                       return { success: false, message: '🔦 Está escuro demais para ver a entrada secreta. Uma LANTERNA ajudaria...' };
                     } else {
