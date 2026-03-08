@@ -2155,11 +2155,6 @@
                 <span id="weather-fog" class="weather-indicator" data-tooltip="Neblina densa">🌫️</span>
               </div>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
-                <button id="bomb-indicator-btn" class="bomb-indicator" title="Bomba ativa">
-                  💣
-                  <div class="bomb-tooltip" id="bomb-tooltip-content"></div>
-                </button>
-                <button class="journal-btn" onclick="Journal.showModal()" title="Diário">📓</button>
                 <div class="volume-control">
                   <button id="sound-toggle" class="vol-btn" onclick="SoundSystem.toggleSlider()" title="Volume dos efeitos sonoros">🔊</button>
                   <div class="vol-slider" id="sound-slider">
@@ -2253,6 +2248,17 @@
                 <span class="stat-label" id="karma-emoji">😐</span>
                 <span class="stat-value" id="karma-display">0</span>
               </div>
+              <div class="stat stat-witch" title="Palavras mágicas da Bruxa">
+                <span class="stat-label">🔮</span>
+                <span class="stat-value" style="display:flex; gap:2px;">
+                  <div id="witch-indicator" style="display:flex; gap:2px;">
+                    <div class="witch-orb"></div>
+                    <div class="witch-orb"></div>
+                    <div class="witch-orb"></div>
+                    <div class="witch-orb"></div>
+                  </div>
+                </span>
+              </div>
               <div class="stat stat-time">
                 <span class="stat-label">🕐</span>
                 <span class="stat-value" id="time-display">17:00</span>
@@ -2261,19 +2267,12 @@
           </header>
           <aside id="minimap-container">
             <div id="minimap-header">
-              <div
-                style="position:absolute; left:0; display:flex; align-items:center; gap:0.3rem;"
-                title="Palavras mágicas da Bruxa"
-              >
-                <span style="font-size:0.9rem;">🔮</span>
-                <div id="witch-indicator">
-                  <div class="witch-orb"></div>
-                  <div class="witch-orb"></div>
-                  <div class="witch-orb"></div>
-                  <div class="witch-orb"></div>
-                </div>
-              </div>
+              <button id="bomb-indicator-btn" class="bomb-indicator" title="Bomba ativa" style="position:absolute; left:4px; top:50%; transform:translateY(-50%);">
+                💣
+                <div class="bomb-tooltip" id="bomb-tooltip-content"></div>
+              </button>
               <div id="minimap-title">🗺️ MAPA</div>
+              <button class="journal-btn" onclick="Journal.showModal()" title="Diário" style="position:absolute; right:4px; top:50%; transform:translateY(-50%);">📓</button>
             </div>
             <div id="minimap-viewport">
               <div id="minimap"></div>
