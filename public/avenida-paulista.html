@@ -5986,9 +5986,11 @@
               }
             };
 
-            // ============================================================================
-            // ACTIONS - Ações do jogo
-            // ============================================================================
+            /**
+             * @namespace Actions
+             * @description Ações do jogador: mover, pegar/largar itens, usar itens, atacar.
+             * Cada ação retorna {success, message, advanceTime?}.
+             */
 
             const Actions = {
               // Helper: setar localização do jogador (centralizado)
