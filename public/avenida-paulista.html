@@ -7261,7 +7261,7 @@
                   }
 
                   // 30% de chance de mover
-                  if (Utils.random() < 0.3) {
+                  if (Utils.random() < GAME_CONSTANTS.NPC_MOVE_CHANCE) {
                     const currentRoom = GameState.rooms[char.location];
                     if (!currentRoom) return;
 
