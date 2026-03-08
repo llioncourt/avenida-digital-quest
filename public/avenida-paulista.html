@@ -5698,6 +5698,7 @@
                   }
                   consumeHipnodisco();
                   enemy.isAlly = true;
+                  Karma.change(10, 'Hipnotizou ' + enemy.name);
                   SoundSystem.playHypnoEnemy();
                   // Achievement: Diplomata (check if demon also ally)
                   if (enemy.id === 'feiticeiro') {
