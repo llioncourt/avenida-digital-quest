@@ -7537,6 +7537,7 @@
                 if (this._twTimer) { clearInterval(this._twTimer); this._twTimer = null; }
                 if (this._twElement) {
                   this._twElement.innerHTML = this._twFullHTML;
+                  var c = this._ensureContainer(); c.scrollTop = c.scrollHeight;
                 }
                 this._twActive = false;
                 this._twElement = null;
