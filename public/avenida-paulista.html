@@ -3829,10 +3829,10 @@
                 const noise = this.audioCtx.createBufferSource();
                 const gain = this.audioCtx.createGain();
                 noise.buffer = buffer;
-                gain.gain.value = volume * this.masterVolume;
+                gain.gain.value = volume;
 
                 noise.connect(gain);
-                gain.connect(this.audioCtx.destination);
+                gain.connect(this.masterGain || this.audioCtx.destination);
 
                 return { noise, gain, ctx: this.audioCtx };
               },
