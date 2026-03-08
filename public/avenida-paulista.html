@@ -7846,6 +7846,8 @@
                   energyDisplay.textContent = energyVal + '/100';
                   energyDisplay.className = energyVal <= 20 ? 'stat-value danger' : 'stat-value';
                 }
+                // Karma
+                Karma.updateUI();
               },
 
               updateLocation: function() {
