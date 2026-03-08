@@ -6042,6 +6042,7 @@
                     };
                   } else {
                     Actions._setPlayerLocation(roomId);
+                    var totalRoomsFlying = Object.keys(GameState.rooms).length;
                     if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
                     SoundSystem.playMove();
                     return {
