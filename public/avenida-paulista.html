@@ -3805,10 +3805,10 @@
 
                 osc.type = type;
                 osc.frequency.value = freq;
-                gain.gain.value = volume * this.masterVolume;
+                gain.gain.value = volume;
 
                 osc.connect(gain);
-                gain.connect(this.audioCtx.destination);
+                gain.connect(this.masterGain || this.audioCtx.destination);
 
                 return { osc, gain, ctx: this.audioCtx };
               },
