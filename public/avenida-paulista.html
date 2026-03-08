@@ -6087,17 +6087,13 @@
                   }
                 }
 
-                GameState.playerLocation = roomId;
-                GameState.characters.player.location = roomId;
+                Actions._setPlayerLocation(roomId);
 
                 // Sincronizar localização da bomba armada quando jogador se move carregando
                 if (GameState.armedBomb && GameState.armedBomb.carriedByPlayer) {
                   GameState.armedBomb.location = roomId;
                 }
                 SoundSystem.playMove();
-
-                // Rastrear salas visitadas (para Mapa Antigo)
-                GameState.visitedRooms.add(roomId);
 
                 // Achievement: Explorador
                 var totalRoomsCount = Object.keys(GameState.rooms).length;
