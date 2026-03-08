@@ -8865,6 +8865,7 @@
                       <div>🎒 Itens no inventário:</div><div>${itemsCollected}</div>
                       <div>🔮 Palavras da Bruxa:</div><div>${GameState.witchWords}/4</div>
                       <div>🗺️ Salas visitadas:</div><div>${GameState.visitedRooms ? GameState.visitedRooms.size : 0}/${Object.keys(GameState.rooms).length}</div>
+                      <div>${Karma.getEmoji()} Karma:</div><div>${GameState.karma} (${Karma.getTitle()})</div>
                     </div>
                   </div>
                 `;
