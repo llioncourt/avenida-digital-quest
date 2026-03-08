@@ -6969,15 +6969,15 @@
                 }
 
                 // ===== MODO NOTURNO PROGRESSIVO =====
-                if (GameState.time >= 21 * 60) {
+                if (GameState.time >= GAME_CONSTANTS.NIGHT_MODE_HOUR) {
                   if (!GameState.nightModeActive) {
                     GameState.nightModeActive = true;
                     Log.add('🌑 A noite cai sobre a Avenida Paulista... as sombras se adensam e o perigo aumenta.', 'warning');
                   }
-                  // Bruxa fica mais forte (+2 ataque por hora após 21:00)
-                  var hoursPastNine = (GameState.time - 21 * 60) / 60;
+                  // Bruxa fica mais forte após 21:00
+                  var hoursPastNine = (GameState.time - GAME_CONSTANTS.NIGHT_MODE_HOUR) / 60;
                   if (GameState.characters.bruxa && GameState.characters.bruxa.isAlive) {
-                    GameState.characters.bruxa.attackPower = 25 + Math.floor(hoursPastNine * 2);
+                    GameState.characters.bruxa.attackPower = GAME_CONSTANTS.WITCH_BASE_ATTACK + Math.floor(hoursPastNine * GAME_CONSTANTS.WITCH_NIGHT_BONUS_PER_HOUR);
                   }
                   // Inimigos ficam mais agressivos
                   Object.values(GameState.characters).forEach(function(c) {
