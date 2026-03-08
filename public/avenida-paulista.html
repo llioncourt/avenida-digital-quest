@@ -359,6 +359,58 @@
             }
 
 
+            /* ========== VOLUME CONTROLS ========== */
+            .volume-control {
+              position: relative;
+              display: inline-block;
+            }
+            .vol-btn {
+              background: none;
+              border: none;
+              padding: 0.3rem 0.5rem;
+              cursor: pointer;
+              font-size: 1rem;
+            }
+            .vol-slider {
+              display: none;
+              position: absolute;
+              top: 100%;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #1a1a2e;
+              border: 1px solid #b8860b;
+              border-radius: 6px;
+              padding: 6px 10px;
+              z-index: 999;
+              white-space: nowrap;
+            }
+            .vol-slider.active { display: block; }
+            .vol-slider input[type=range] {
+              -webkit-appearance: none;
+              width: 90px;
+              height: 6px;
+              background: #333;
+              border-radius: 3px;
+              outline: none;
+            }
+            .vol-slider input[type=range]::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              width: 14px;
+              height: 14px;
+              background: #b8860b;
+              border-radius: 50%;
+              cursor: pointer;
+            }
+            .vol-slider input[type=range]::-moz-range-thumb {
+              width: 14px;
+              height: 14px;
+              background: #b8860b;
+              border-radius: 50%;
+              cursor: pointer;
+              border: none;
+            }
+
+
             .lanterna-indicator {
               position: absolute;
               top: 0.6rem;
@@ -2101,22 +2153,18 @@
                   <div class="bomb-tooltip" id="bomb-tooltip-content"></div>
                 </button>
                 <button class="journal-btn" onclick="Journal.showModal()" title="Diário">📓</button>
-                <button
-                  id="sound-toggle"
-                  onclick="SoundSystem.toggle()"
-                  title="Ligar/Desligar som"
-                  style="background: none; border: none; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;"
-                >
-                  🔊
-                </button>
-                <button
-                  id="music-toggle"
-                  onclick="MusicSystem.toggle()"
-                  title="Desligar música de fundo"
-                  style="background: none; border: none; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;"
-                >
-                  🎵
-                </button>
+                <div class="volume-control">
+                  <button id="sound-toggle" class="vol-btn" onclick="SoundSystem.toggleSlider()" title="Volume dos efeitos sonoros">🔊</button>
+                  <div class="vol-slider" id="sound-slider">
+                    <input type="range" min="0" max="100" value="30" oninput="SoundSystem.setVolume(this.value/100)">
+                  </div>
+                </div>
+                <div class="volume-control">
+                  <button id="music-toggle" class="vol-btn" onclick="MusicSystem.toggleSlider()" title="Volume da música">🎵</button>
+                  <div class="vol-slider" id="music-slider">
+                    <input type="range" min="0" max="100" value="10" oninput="MusicSystem.setVolume(this.value/100)">
+                  </div>
+                </div>
                 <button
                   id="particles-toggle"
                   onclick="AmbientParticles.toggle()"
@@ -3720,6 +3768,20 @@
                 }
               },
 
+              setVolume: function(val) {
+                this.masterVolume = val;
+                this.enabled = val > 0;
+                var btn = document.getElementById('sound-toggle');
+                if (btn) btn.textContent = val > 0 ? '🔊' : '🔇';
+              },
+
+              toggleSlider: function() {
+                var slider = document.getElementById('sound-slider');
+                var musicSlider = document.getElementById('music-slider');
+                if (musicSlider) musicSlider.classList.remove('active');
+                if (slider) slider.classList.toggle('active');
+              },
+
               // Criar oscilador básico
               createOsc: function(type, freq, duration, volume = 0.3) {
                 if (!this.enabled || !this.audioCtx) return null;
@@ -4937,6 +4999,25 @@
                   btn.textContent = this.isPlaying ? '🎵' : '🔕';
                   btn.title = this.isPlaying ? 'Desligar música' : 'Ligar música';
                 }
+              },
+
+              setVolume: function(val) {
+                this.volume = val;
+                var btn = document.getElementById('music-toggle');
+                if (val === 0) {
+                  if (this.isPlaying) this.stop();
+                  if (btn) btn.textContent = '🔕';
+                } else {
+                  if (!this.isPlaying) { SoundSystem.resume(); this.start(); }
+                  if (btn) btn.textContent = '🎵';
+                }
+              },
+
+              toggleSlider: function() {
+                var slider = document.getElementById('music-slider');
+                var soundSlider = document.getElementById('sound-slider');
+                if (soundSlider) soundSlider.classList.remove('active');
+                if (slider) slider.classList.toggle('active');
               },
 
               setSpeed: function(speed) {
@@ -9765,6 +9846,13 @@
 
             document.addEventListener('DOMContentLoaded', function() {
               IntroSystem.init();
+
+              // Fechar sliders de volume ao clicar fora
+              document.addEventListener('click', function(e) {
+                if (!e.target.closest('.volume-control')) {
+                  document.querySelectorAll('.vol-slider.active').forEach(function(s) { s.classList.remove('active'); });
+                }
+              });
 
               // Tooltip da bomba: position fixed com posicionamento via JS
               var bombBtn = document.getElementById('bomb-indicator-btn');
