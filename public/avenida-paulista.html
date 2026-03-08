@@ -8906,7 +8906,7 @@
                       <div>Status: ${allyText}</div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
-                      ${!char.isAlly ? `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>` : ''}
+                      ${char.isAlly ? `<button class="btn" style="background:var(--accent-red);color:var(--bg-primary);opacity:0.7;" onclick="if(confirm('⚠️ Atacar um aliado? Ele se tornará seu inimigo!')) Game.attackAndClose('${char.id}')">⚠️ Atacar</button>` : (char.isNeutral ? `<button class="btn" style="background:var(--accent-red);color:var(--bg-primary);opacity:0.7;" onclick="if(confirm('⚠️ Atacar um neutro? Ele se tornará seu inimigo!')) Game.attackAndClose('${char.id}')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
                       ${convertButton}
                       <button class="btn" onclick="Modals.hide()">Fechar</button>
                     </div>
