@@ -5993,7 +5993,7 @@
              */
 
             const Actions = {
-              // Helper: setar localização do jogador (centralizado)
+              /** Centraliza a atualização de localização do jogador. */
               _setPlayerLocation: function(roomId) {
                 GameState.playerLocation = roomId;
                 GameState.characters.player.location = roomId;
@@ -6001,118 +6001,67 @@
                 Journal.recordRoom(roomId);
               },
 
-              // Mover para uma sala
-              moveTo: function(roomId) {
-                if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
-
-                const currentRoom = GameState.rooms[GameState.playerLocation];
-                const targetRoom = GameState.rooms[roomId];
-
-                if (!targetRoom) {
-                  return { success: false, message: 'Sala não encontrada!' };
+              /** Trata o pulo mortal da Antena (morte, guarda-chuva ou asa delta). */
+              _handleDeadlyJump: function(roomId) {
+                const hasUmbrella = Rules.hasEffect('safeJump');
+                if (!Rules.canPlayerFly() && !hasUmbrella) {
+                  const player = GameState.characters.player;
+                  player.hp = 0;
+                  player.isAlive = false;
+                  GameState.gameOver = true;
+                  GameState.playerLocation = roomId;
+                  GameState.characters.player.location = roomId;
+                  GameState.deathReason = 'Você tentou voar. A gravidade não aprovou a ideia. Talvez tente outra coisa.';
+                  Karma.change(GAME_CONSTANTS.ANTENNA_KARMA_PENALTY, 'Pulou da Antena');
+                  return { success: true, message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!', advanceTime: true };
+                } else if (hasUmbrella && !Rules.canPlayerFly()) {
+                  Actions._setPlayerLocation('avenida_paulista_leste');
+                  SoundSystem.playMove();
+                  return { success: true, message: '☂️ Você abre o GUARDA-CHUVA e pula! Ele funciona como um paraquedas improvisado — você plana suavemente até a Avenida Paulista Leste!', advanceTime: true };
+                } else {
+                  Actions._setPlayerLocation(roomId);
+                  var totalRoomsFlying = Object.keys(GameState.rooms).length;
+                  if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
+                  SoundSystem.playMove();
+                  return { success: true, message: 'Você salta da Antena e a ASA DELTA te carrega pelos céus de São Paulo!', advanceTime: true };
                 }
+              },
 
-                // Verificar se é uma saída válida
-                const exits = Object.values(currentRoom.exits);
-                if (!exits.includes(roomId)) {
-                  return { success: false, message: 'Você não pode ir para lá daqui!' };
-                }
-
-                // PULO MORTAL: Pular da Antena sem Asa Delta = morte (a menos que tenha guarda-chuva!)
-                if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
-                  const hasUmbrella = Rules.hasEffect('safeJump');
-                  if (!Rules.canPlayerFly() && !hasUmbrella) {
-                    // MORTE!
-                    const player = GameState.characters.player;
-                    player.hp = 0;
-                    player.isAlive = false;
-                    GameState.gameOver = true;
-                    GameState.playerLocation = roomId;
-                    GameState.characters.player.location = roomId;
-                    GameState.deathReason = 'Você tentou voar. A gravidade não aprovou a ideia. Talvez tente outra coisa.';
-                    Karma.change(-10, 'Pulou da Antena');
-                    return {
-                      success: true,
-                      message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
-                      advanceTime: true
-                    };
-                  } else if (hasUmbrella && !Rules.canPlayerFly()) {
-                    // Guarda-chuva funciona como paraquedas - aterrissa na sala abaixo em vez de voar
-                    Actions._setPlayerLocation('avenida_paulista_leste');
-                    SoundSystem.playMove();
-                    return {
-                      success: true,
-                      message: '☂️ Você abre o GUARDA-CHUVA e pula! Ele funciona como um paraquedas improvisado — você plana suavemente até a Avenida Paulista Leste!',
-                      advanceTime: true
-                    };
-                  } else {
-                    Actions._setPlayerLocation(roomId);
-                    var totalRoomsFlying = Object.keys(GameState.rooms).length;
-                    if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
-                    SoundSystem.playMove();
-                    return {
-                      success: true,
-                      message: 'Você salta da Antena e a ASA DELTA te carrega pelos céus de São Paulo!',
-                      advanceTime: true
-                    };
-                  }
-                }
-
-                // ESCUDO DE FORÇA: Teto do MASP bloqueado quando vindo do MASP (à pé)
+              /** Verifica restrições de acesso (escudo, voo, subsolo). Retorna erro ou null. */
+              _checkMoveRestrictions: function(roomId, targetRoom) {
                 if (roomId === 'teto_masp' && GameState.playerLocation === 'masp' && !GameState.forceShieldDown) {
-                  return {
-                    success: false,
-                    message: 'Um ESCUDO DE FORÇA mágico bloqueia a subida! O Feiticeiro poderia ajudar a removê-lo...'
-                  };
+                  return { success: false, message: 'Um ESCUDO DE FORÇA mágico bloqueia a subida! O Feiticeiro poderia ajudar a removê-lo...' };
                 }
-
-                // Verificar requisito de voo (para outras salas)
                 if (targetRoom.requiresFlight && !Rules.canPlayerFly()) {
                   return { success: false, message: 'Você precisa poder voar para acessar este local! Encontre a ASA DELTA.' };
                 }
-
-                // SALA SECRETA: Subsolo do MASP - requer lanterna + noite
                 if (roomId === 'subsolo_masp') {
-                  var hasLanternaForSecret = Rules.hasEffect('nightVision');
-                  if (!hasLanternaForSecret || GameState.time < GAME_CONSTANTS.NIGHT_SECRET_HOUR) {
-                    if (!hasLanternaForSecret) {
-                      return { success: false, message: '🔦 Está escuro demais para ver a entrada secreta. Uma LANTERNA ajudaria...' };
-                    } else {
-                      return { success: false, message: '🌙 A entrada do subsolo só se revela à noite (após as 20:00)...' };
-                    }
+                  var hasLanterna = Rules.hasEffect('nightVision');
+                  if (!hasLanterna || GameState.time < GAME_CONSTANTS.NIGHT_SECRET_HOUR) {
+                    if (!hasLanterna) return { success: false, message: '🔦 Está escuro demais para ver a entrada secreta. Uma LANTERNA ajudaria...' };
+                    else return { success: false, message: '🌙 A entrada do subsolo só se revela à noite (após as 20:00)...' };
                   }
                   Log.add('🔦 Sua lanterna revela uma passagem secreta sob o MASP!', 'magic');
                 }
+                return null;
+              },
 
-                // MODO NOTURNO: Tropeço sem lanterna após 21:00
+              /** Processa efeitos ao entrar numa sala (tropeço, armadilhas, aliados). */
+              _processRoomEntry: function(roomId) {
                 if (GameState.time >= GAME_CONSTANTS.NIGHT_MODE_HOUR && !Rules.hasEffect('nightVision')) {
                   if (Utils.random() < GAME_CONSTANTS.NIGHT_TRIP_CHANCE) {
                     Rules.damagePlayer(GAME_CONSTANTS.TRIP_DAMAGE);
                     Log.add('🌑 Você tropeça no escuro e se machuca! -' + GAME_CONSTANTS.TRIP_DAMAGE + ' HP. Uma LANTERNA evitaria isso.', 'danger');
                   }
                 }
-
-                Actions._setPlayerLocation(roomId);
-
-                // Sincronizar localização da bomba armada quando jogador se move carregando
                 if (GameState.armedBomb && GameState.armedBomb.carriedByPlayer) {
                   GameState.armedBomb.location = roomId;
                 }
-                SoundSystem.playMove();
-
-                // Achievement: Explorador
                 var totalRoomsCount = Object.keys(GameState.rooms).length;
                 if (GameState.visitedRooms.size >= totalRoomsCount) Achievements.tryUnlock('explorador');
-
-                // JOURNAL: Registrar sala e NPCs
-                Journal.recordRoom(roomId);
                 Object.values(GameState.characters).forEach(function(c) {
-                  if (c.id !== 'player' && c.isAlive && c.location === roomId) {
-                    Journal.recordNPC(c.id);
-                  }
+                  if (c.id !== 'player' && c.isAlive && c.location === roomId) Journal.recordNPC(c.id);
                 });
-
-                // ARMADILHAS AMBIENTAIS: Verificar ao entrar na sala
                 if (GameState.environmentTraps[roomId] && !GameState.environmentTraps[roomId].triggered) {
                   var trap = GameState.environmentTraps[roomId];
                   trap.triggered = true;
@@ -6139,22 +6088,33 @@
                     }
                   }
                 }
-
-                // Mover aliados que estão seguindo o jogador
                 Rules.moveFollowingAllies(roomId);
-
-                // Verificar aliados na nova sala para ativar follow
                 Object.values(GameState.characters).forEach(function(c) {
-                  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId) {
-                    Rules.activateFollow(c.id);
-                  }
+                  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId) Rules.activateFollow(c.id);
                 });
+              },
 
-                return {
-                  success: true,
-                  message: `Você foi para ${targetRoom.name}.`,
-                  advanceTime: true
-                };
+              /** Move o jogador para uma sala adjacente. */
+              moveTo: function(roomId) {
+                if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+                const currentRoom = GameState.rooms[GameState.playerLocation];
+                const targetRoom = GameState.rooms[roomId];
+                if (!targetRoom) return { success: false, message: 'Sala não encontrada!' };
+                const exits = Object.values(currentRoom.exits);
+                if (!exits.includes(roomId)) return { success: false, message: 'Você não pode ir para lá daqui!' };
+
+                if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
+                  return this._handleDeadlyJump(roomId);
+                }
+
+                var restriction = this._checkMoveRestrictions(roomId, targetRoom);
+                if (restriction) return restriction;
+
+                Actions._setPlayerLocation(roomId);
+                SoundSystem.playMove();
+                this._processRoomEntry(roomId);
+
+                return { success: true, message: `Você foi para ${targetRoom.name}.`, advanceTime: true };
               },
 
               // Pegar item
