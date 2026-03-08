@@ -359,6 +359,58 @@
             }
 
 
+            /* ========== VOLUME CONTROLS ========== */
+            .volume-control {
+              position: relative;
+              display: inline-block;
+            }
+            .vol-btn {
+              background: none;
+              border: none;
+              padding: 0.3rem 0.5rem;
+              cursor: pointer;
+              font-size: 1rem;
+            }
+            .vol-slider {
+              display: none;
+              position: absolute;
+              top: 100%;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #1a1a2e;
+              border: 1px solid #b8860b;
+              border-radius: 6px;
+              padding: 6px 10px;
+              z-index: 999;
+              white-space: nowrap;
+            }
+            .vol-slider.active { display: block; }
+            .vol-slider input[type=range] {
+              -webkit-appearance: none;
+              width: 90px;
+              height: 6px;
+              background: #333;
+              border-radius: 3px;
+              outline: none;
+            }
+            .vol-slider input[type=range]::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              width: 14px;
+              height: 14px;
+              background: #b8860b;
+              border-radius: 50%;
+              cursor: pointer;
+            }
+            .vol-slider input[type=range]::-moz-range-thumb {
+              width: 14px;
+              height: 14px;
+              background: #b8860b;
+              border-radius: 50%;
+              cursor: pointer;
+              border: none;
+            }
+
+
             .lanterna-indicator {
               position: absolute;
               top: 0.6rem;
