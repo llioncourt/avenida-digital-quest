@@ -5398,6 +5398,41 @@
             };
 
             // ============================================================================
+            // KARMA - Sistema de karma/moralidade
+            // ============================================================================
+
+            const Karma = {
+              change: function(amount, reason) {
+                GameState.karma = Math.max(-100, Math.min(100, GameState.karma + amount));
+                var icon = amount > 0 ? '😇' : '😈';
+                Log.add(icon + ' Karma ' + (amount > 0 ? '+' : '') + amount + ': ' + reason, 'info');
+                Karma.updateUI();
+              },
+              getTitle: function() {
+                var k = GameState.karma;
+                if (k >= 50) return '🕊️ Santo da Paulista';
+                if (k >= 20) return '😇 Herói Benevolente';
+                if (k >= -20) return '😐 Aventureiro Pragmático';
+                if (k >= -50) return '😈 Mercenário';
+                return '💀 Vilão da Paulista';
+              },
+              getEmoji: function() {
+                var k = GameState.karma;
+                if (k >= 50) return '🕊️';
+                if (k >= 20) return '😇';
+                if (k >= -20) return '😐';
+                if (k >= -50) return '😈';
+                return '💀';
+              },
+              updateUI: function() {
+                var el = document.getElementById('karma-display');
+                var emoji = document.getElementById('karma-emoji');
+                if (el) el.textContent = GameState.karma;
+                if (emoji) emoji.textContent = Karma.getEmoji();
+              }
+            };
+
+            // ============================================================================
             // ITEM USE HANDLERS - Efeitos de uso de itens
             // ============================================================================
 
