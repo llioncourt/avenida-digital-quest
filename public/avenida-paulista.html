@@ -7526,6 +7526,7 @@
                   if (charIdx < chars.length) {
                     span.insertBefore(document.createTextNode(chars[charIdx]), cursor);
                     charIdx++;
+                    var c = self._ensureContainer(); c.scrollTop = c.scrollHeight;
                   } else {
                     self._finishTypewriter();
                   }
