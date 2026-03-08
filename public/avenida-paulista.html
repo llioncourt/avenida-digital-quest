@@ -7300,21 +7300,22 @@
 
               // Typewriter state
               _twActive: false,
-              _twElement: null,
+              _twEnabled: true,
+              _twElement: null,  // this now points to the message <span>, not the <div>
               _twFullHTML: '',
               _twTimer: null,
               _twQueue: [],
 
               _typewrite: function(element, fullHTML) {
-                // Strip tags for character reveal, then re-apply HTML at end
+                // element = div.log-entry; find the message span inside it
+                var span = element.querySelector('span:last-child');
+                if (!span) return;
                 this._twActive = true;
-                this._twElement = element;
-                this._twFullHTML = fullHTML;
-                var plainText = fullHTML.replace(/<[^>]+>/g, '');
+                this._twElement = span;
+                this._twFullHTML = span.innerHTML; // store only the span's HTML
+                var plainText = span.textContent || '';
                 var charIdx = 0;
                 var self = this;
-                var span = element.querySelector('span:last-child');
-                if (!span) span = element;
                 var cursor = document.createElement('span');
                 cursor.className = 'typewriter-cursor';
                 cursor.textContent = '▌';
@@ -7351,7 +7352,8 @@
                 // Also finish everything in queue instantly
                 while (this._twQueue.length > 0) {
                   var next = this._twQueue.shift();
-                  next.element.innerHTML = next.html;
+                  var s = next.element.querySelector('span:last-child');
+                  if (s) s.innerHTML = next.html;
                 }
               },
 
@@ -7377,7 +7379,6 @@
 
                   const frag = document.createDocumentFragment();
                   var lastDiv = null;
-                  var lastHTML = '';
                   for (let i = this._renderedCount; i < this.entries.length; i++) {
                     const wrapper = document.createElement('div');
                     var html = this._entryToHTML(this.entries[i]);
@@ -7385,14 +7386,13 @@
                     var div = wrapper.firstChild;
                     frag.appendChild(div);
                     lastDiv = div;
-                    lastHTML = html;
                   }
                   container.appendChild(frag);
                   this._renderedCount = this.entries.length;
 
-                  // Typewriter on the last entry only (if just 1-3 new messages)
-                  if (newCount <= 3 && lastDiv && lastHTML) {
-                    this._typewrite(lastDiv, lastHTML);
+                  // Typewriter on the last entry only (if enabled and just 1-3 new messages)
+                  if (this._twEnabled && newCount <= 3 && lastDiv) {
+                    this._typewrite(lastDiv);
                   }
                 }
 
