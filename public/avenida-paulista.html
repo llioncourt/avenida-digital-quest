@@ -6033,9 +6033,7 @@
                     };
                   } else if (hasUmbrella && !Rules.canPlayerFly()) {
                     // Guarda-chuva funciona como paraquedas - aterrissa na sala abaixo em vez de voar
-                    GameState.playerLocation = 'avenida_paulista_leste';
-                    GameState.characters.player.location = 'avenida_paulista_leste';
-                    GameState.visitedRooms.add('avenida_paulista_leste');
+                    Actions._setPlayerLocation('avenida_paulista_leste');
                     SoundSystem.playMove();
                     return {
                       success: true,
