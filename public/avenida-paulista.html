@@ -4974,6 +4974,11 @@
               start: function() {
                 if (!this.isLoaded) return;
                 SoundSystem.resume();
+                if (!this.musicGain && SoundSystem.audioCtx) {
+                  this.musicGain = SoundSystem.audioCtx.createGain();
+                  this.musicGain.gain.value = this.volume;
+                  this.musicGain.connect(SoundSystem.audioCtx.destination);
+                }
                 this.isPlaying = true;
                 this.scheduleNotes();
                 this.updateButton();
