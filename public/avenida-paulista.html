@@ -3761,6 +3761,9 @@
 
               init: function() {
                 this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.audioCtx.createGain();
+                this.masterGain.gain.value = this.masterVolume;
+                this.masterGain.connect(this.audioCtx.destination);
               },
 
               resume: function() {
