@@ -537,6 +537,97 @@
               background: linear-gradient(135deg, #2a1a1a, #1a0a0a);
             }
 
+            /* ========== BUTTON MINI-ANIMATIONS ========== */
+            @keyframes item-bob {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-2px); }
+            }
+            @keyframes enemy-shake {
+              0%, 100% { transform: translateX(0); }
+              25% { transform: translateX(-1px); }
+              75% { transform: translateX(1px); }
+            }
+            @keyframes ally-pulse {
+              0%, 100% { box-shadow: 0 0 4px rgba(64, 160, 96, 0.3); }
+              50% { box-shadow: 0 0 12px rgba(64, 160, 96, 0.7); }
+            }
+            @keyframes vendor-shimmer {
+              0%, 100% { box-shadow: 0 0 4px rgba(212, 168, 70, 0.2); }
+              50% { box-shadow: 0 0 14px rgba(212, 168, 70, 0.6); }
+            }
+
+            #items-list .btn-item {
+              animation: item-bob 3s ease-in-out infinite;
+            }
+            #items-list .btn-item:nth-child(2) { animation-delay: 0.5s; }
+            #items-list .btn-item:nth-child(3) { animation-delay: 1s; }
+            #items-list .btn-item:nth-child(4) { animation-delay: 1.5s; }
+
+            #characters-list .btn-character.hostile {
+              animation: enemy-shake 0.5s ease-in-out infinite;
+            }
+            #characters-list .btn-character.ally {
+              animation: ally-pulse 2s ease-in-out infinite;
+            }
+            #characters-list .btn-character[style*="accent-gold"] {
+              animation: vendor-shimmer 3s ease-in-out infinite;
+            }
+
+            /* ========== AMBIENT PARTICLES ========== */
+            #particles-overlay {
+              position: fixed;
+              top: 0; left: 0; right: 0; bottom: 0;
+              pointer-events: none;
+              z-index: 999;
+              overflow: hidden;
+            }
+            .particle {
+              position: absolute;
+              will-change: transform, opacity;
+            }
+            @keyframes rain-fall {
+              0% { transform: translateY(-10px) translateX(0); opacity: 0.7; }
+              100% { transform: translateY(100vh) translateX(-30px); opacity: 0.2; }
+            }
+            @keyframes fog-drift {
+              0% { transform: translateX(-100px); opacity: 0; }
+              20% { opacity: 0.15; }
+              80% { opacity: 0.15; }
+              100% { transform: translateX(calc(100vw + 100px)); opacity: 0; }
+            }
+            @keyframes wind-streak {
+              0% { transform: translateX(-50px) scaleX(1); opacity: 0; }
+              10% { opacity: 0.5; }
+              100% { transform: translateX(100vw) scaleX(2); opacity: 0; }
+            }
+            @keyframes firefly {
+              0%, 100% { opacity: 0; transform: translate(0, 0); }
+              20% { opacity: 0.8; }
+              50% { opacity: 1; transform: translate(15px, -10px); }
+              80% { opacity: 0.6; transform: translate(-10px, 5px); }
+            }
+            @keyframes spark {
+              0% { opacity: 1; transform: translate(0, 0) scale(1); }
+              100% { opacity: 0; transform: translate(var(--sx, 20px), var(--sy, -30px)) scale(0); }
+            }
+            @keyframes dust-fall {
+              0% { opacity: 0; transform: translateY(-10px); }
+              20% { opacity: 0.4; }
+              100% { opacity: 0; transform: translateY(100vh); }
+            }
+
+            /* ========== TYPEWRITER CURSOR ========== */
+            @keyframes blink-cursor {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0; }
+            }
+            .typewriter-cursor {
+              display: inline;
+              animation: blink-cursor 0.7s step-end infinite;
+              color: var(--accent-gold);
+              font-weight: bold;
+            }
+
             .btn-danger {
               background: linear-gradient(135deg, #2a1a1a, #1a0a0a);
               border-color: var(--accent-red);
@@ -2025,6 +2116,14 @@
                   style="background: none; border: none; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;"
                 >
                   🎵
+                </button>
+                <button
+                  id="particles-toggle"
+                  onclick="AmbientParticles.toggle()"
+                  title="Ligar/Desligar partículas"
+                  style="background: none; border: none; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;"
+                >
+                  ✨
                 </button>
               </div>
             </div>
@@ -7191,6 +7290,63 @@
                 );
               },
 
+              // Typewriter state
+              _twActive: false,
+              _twElement: null,
+              _twFullHTML: '',
+              _twTimer: null,
+              _twQueue: [],
+
+              _typewrite: function(element, fullHTML) {
+                // Strip tags for character reveal, then re-apply HTML at end
+                this._twActive = true;
+                this._twElement = element;
+                this._twFullHTML = fullHTML;
+                var plainText = fullHTML.replace(/<[^>]+>/g, '');
+                var charIdx = 0;
+                var self = this;
+                var span = element.querySelector('span:last-child');
+                if (!span) span = element;
+                var cursor = document.createElement('span');
+                cursor.className = 'typewriter-cursor';
+                cursor.textContent = '▌';
+                span.textContent = '';
+                span.appendChild(cursor);
+
+                this._twTimer = setInterval(function() {
+                  if (charIdx < plainText.length) {
+                    span.insertBefore(document.createTextNode(plainText[charIdx]), cursor);
+                    charIdx++;
+                  } else {
+                    self._finishTypewriter();
+                  }
+                }, 15);
+              },
+
+              _finishTypewriter: function() {
+                if (this._twTimer) { clearInterval(this._twTimer); this._twTimer = null; }
+                if (this._twElement) {
+                  this._twElement.innerHTML = this._twFullHTML;
+                }
+                this._twActive = false;
+                this._twElement = null;
+                // Process next in queue
+                if (this._twQueue.length > 0) {
+                  var next = this._twQueue.shift();
+                  this._typewrite(next.element, next.html);
+                }
+              },
+
+              _skipTypewriter: function() {
+                if (!this._twActive) return;
+                this._finishTypewriter();
+                // Also finish everything in queue instantly
+                while (this._twQueue.length > 0) {
+                  var next = this._twQueue.shift();
+                  next.element.innerHTML = next.html;
+                }
+              },
+
               _flush: function() {
                 this._flushScheduled = false;
                 const container = this._ensureContainer();
@@ -7204,15 +7360,32 @@
                   container.innerHTML = '';
                 }
 
-                if (this._renderedCount < this.entries.length) {
+                var newCount = this.entries.length - this._renderedCount;
+                if (newCount > 0) {
+                  // If typewriter is active and new messages arrive, finish current instantly
+                  if (this._twActive) {
+                    this._skipTypewriter();
+                  }
+
                   const frag = document.createDocumentFragment();
+                  var lastDiv = null;
+                  var lastHTML = '';
                   for (let i = this._renderedCount; i < this.entries.length; i++) {
                     const wrapper = document.createElement('div');
-                    wrapper.innerHTML = this._entryToHTML(this.entries[i]);
-                    frag.appendChild(wrapper.firstChild);
+                    var html = this._entryToHTML(this.entries[i]);
+                    wrapper.innerHTML = html;
+                    var div = wrapper.firstChild;
+                    frag.appendChild(div);
+                    lastDiv = div;
+                    lastHTML = html;
                   }
                   container.appendChild(frag);
                   this._renderedCount = this.entries.length;
+
+                  // Typewriter on the last entry only (if just 1-3 new messages)
+                  if (newCount <= 3 && lastDiv && lastHTML) {
+                    this._typewrite(lastDiv, lastHTML);
+                  }
                 }
 
                 // Mantém comportamento original: scroll sempre no final após render
@@ -7236,6 +7409,7 @@
               },
 
               clear: function() {
+                this._skipTypewriter();
                 this.entries = [];
                 this._renderedCount = 0;
                 const container = this._ensureContainer();
@@ -7247,6 +7421,126 @@
               render: function() {
                 this._renderedCount = 0;
                 this._scheduleFlush();
+              }
+            };
+
+            // Click to skip typewriter
+            document.addEventListener('DOMContentLoaded', function() {
+              var logContainer = document.getElementById('log-container');
+              if (logContainer) {
+                logContainer.addEventListener('click', function() { Log._skipTypewriter(); });
+              }
+            });
+
+            // ============================================================================
+            // AMBIENT PARTICLES - Efeitos visuais ambientais
+            // ============================================================================
+            const AmbientParticles = {
+              enabled: true,
+              _overlay: null,
+              _interval: null,
+              _currentPreset: null,
+              _particleCount: 0,
+              MAX_PARTICLES: 30,
+
+              _ensureOverlay: function() {
+                if (!this._overlay) {
+                  this._overlay = document.getElementById('particles-overlay');
+                  if (!this._overlay) {
+                    this._overlay = document.createElement('div');
+                    this._overlay.id = 'particles-overlay';
+                    document.body.appendChild(this._overlay);
+                  }
+                }
+                return this._overlay;
+              },
+
+              toggle: function() {
+                this.enabled = !this.enabled;
+                var btn = document.getElementById('particles-toggle');
+                if (btn) btn.style.opacity = this.enabled ? '1' : '0.4';
+                if (!this.enabled) this._clear();
+              },
+
+              _clear: function() {
+                if (this._interval) { clearInterval(this._interval); this._interval = null; }
+                var overlay = this._ensureOverlay();
+                overlay.innerHTML = '';
+                this._particleCount = 0;
+                this._currentPreset = null;
+              },
+
+              _detectPreset: function() {
+                var container = document.getElementById('game-container');
+                if (!container) return null;
+                if (container.classList.contains('theme-bomb')) return 'spark';
+                if (container.classList.contains('theme-ruins')) return 'dust';
+                if (container.classList.contains('theme-night')) return 'firefly';
+                if (RandomEvents.isActive('rain')) return 'rain';
+                if (RandomEvents.isActive('fog')) return 'fog';
+                if (RandomEvents.isActive('wind_howl')) return 'wind';
+                return null;
+              },
+
+              _spawnParticle: function(preset) {
+                if (this._particleCount >= this.MAX_PARTICLES) return;
+                var overlay = this._ensureOverlay();
+                var p = document.createElement('div');
+                p.className = 'particle';
+                var dur, style;
+
+                switch (preset) {
+                  case 'rain':
+                    dur = 0.6 + Math.random() * 0.4;
+                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:-5px;width:1px;height:' + (8+Math.random()*12) + 'px;background:rgba(180,200,255,0.5);animation:rain-fall ' + dur + 's linear forwards;';
+                    break;
+                  case 'fog':
+                    dur = 8 + Math.random() * 6;
+                    var size = 80 + Math.random() * 120;
+                    p.style.cssText = 'top:' + Math.random()*80 + '%;width:' + size + 'px;height:' + size*0.5 + 'px;background:radial-gradient(ellipse,rgba(200,200,220,0.15),transparent);border-radius:50%;animation:fog-drift ' + dur + 's linear forwards;';
+                    break;
+                  case 'wind':
+                    dur = 0.5 + Math.random() * 0.5;
+                    p.style.cssText = 'top:' + Math.random()*100 + '%;left:-50px;width:' + (30+Math.random()*40) + 'px;height:1px;background:rgba(200,220,255,0.3);animation:wind-streak ' + dur + 's linear forwards;';
+                    break;
+                  case 'firefly':
+                    dur = 3 + Math.random() * 4;
+                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:' + Math.random()*100 + '%;width:3px;height:3px;background:#ffe080;border-radius:50%;box-shadow:0 0 6px #ffe080;animation:firefly ' + dur + 's ease-in-out forwards;';
+                    break;
+                  case 'spark':
+                    dur = 0.4 + Math.random() * 0.4;
+                    var sx = (Math.random()-0.5)*60, sy = -(20+Math.random()*40);
+                    p.style.cssText = 'left:' + (30+Math.random()*40) + '%;bottom:' + Math.random()*30 + '%;width:2px;height:2px;background:#ffa030;border-radius:50%;box-shadow:0 0 4px #ff6000;--sx:' + sx + 'px;--sy:' + sy + 'px;animation:spark ' + dur + 's ease-out forwards;';
+                    break;
+                  case 'dust':
+                    dur = 3 + Math.random() * 4;
+                    p.style.cssText = 'left:' + Math.random()*100 + '%;top:-5px;width:' + (2+Math.random()*3) + 'px;height:' + (2+Math.random()*3) + 'px;background:rgba(180,140,120,0.4);border-radius:50%;animation:dust-fall ' + dur + 's linear forwards;';
+                    break;
+                }
+
+                this._particleCount++;
+                p.addEventListener('animationend', function() {
+                  p.remove();
+                  AmbientParticles._particleCount--;
+                });
+                overlay.appendChild(p);
+              },
+
+              update: function() {
+                if (!this.enabled) return;
+                var preset = this._detectPreset();
+
+                if (preset !== this._currentPreset) {
+                  this._clear();
+                  this._currentPreset = preset;
+                  if (!preset) return;
+
+                  var rate = preset === 'rain' ? 60 : preset === 'wind' ? 100 : preset === 'fog' ? 1500 : preset === 'firefly' ? 800 : preset === 'spark' ? 150 : 500;
+                  var self = this;
+                  this._interval = setInterval(function() {
+                    if (self.enabled && self._currentPreset === preset) self._spawnParticle(preset);
+                  }, rate);
+                }
               }
             };
 
@@ -7345,6 +7639,7 @@
                 this.updateWitchIndicator();
                 this.updateMinimap();
                 BombIndicator.update();
+                AmbientParticles.update();
               },
 
               updateTheme: function() {
