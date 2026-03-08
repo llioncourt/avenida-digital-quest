@@ -5914,6 +5914,7 @@
                   }
                 });
 
+                if (pacified > 0) Karma.change(5 * pacified, 'Pacificou ' + pacified + ' com Conjunto Musical');
                 SoundSystem.playUseItem();
                 ScreenEffects.flash('rgba(255, 200, 0, 0.4)');
                 var msg = '🎵 Você toca o CONJUNTO MUSICAL!';
