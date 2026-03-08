@@ -5894,8 +5894,7 @@
                   return { success: false, message: 'Você precisa poder voar para ir a este local!', consumed: false };
                 }
 
-                GameState.playerLocation = targetRoomId;
-                GameState.characters.player.location = targetRoomId;
+                Actions._setPlayerLocation(targetRoomId);
                 SoundSystem.playUseItem();
                 ScreenEffects.flash('rgba(200, 150, 50, 0.5)');
 
