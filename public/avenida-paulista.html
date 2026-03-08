@@ -2163,7 +2163,8 @@
                 <div class="volume-control">
                   <button id="sound-toggle" class="vol-btn" onclick="SoundSystem.toggleSlider()" title="Volume dos efeitos sonoros">🔊</button>
                   <div class="vol-slider" id="sound-slider">
-                    <input type="range" min="0" max="100" value="30" oninput="SoundSystem.setVolume(this.value/100)">
+                    <input type="range" min="0" max="100" value="30" oninput="SoundSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
+                    <span class="vol-pct">30%</span>
                   </div>
                 </div>
                 <div class="volume-control">
