@@ -3761,6 +3761,9 @@
 
               init: function() {
                 this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.audioCtx.createGain();
+                this.masterGain.gain.value = this.masterVolume;
+                this.masterGain.connect(this.audioCtx.destination);
               },
 
               resume: function() {
@@ -3780,6 +3783,7 @@
               setVolume: function(val) {
                 this.masterVolume = val;
                 this.enabled = val > 0;
+                if (this.masterGain) this.masterGain.gain.value = val;
                 var btn = document.getElementById('sound-toggle');
                 if (btn) btn.textContent = val > 0 ? '🔊' : '🔇';
               },
@@ -3801,10 +3805,10 @@
 
                 osc.type = type;
                 osc.frequency.value = freq;
-                gain.gain.value = volume * this.masterVolume;
+                gain.gain.value = volume;
 
                 osc.connect(gain);
-                gain.connect(this.audioCtx.destination);
+                gain.connect(this.masterGain || this.audioCtx.destination);
 
                 return { osc, gain, ctx: this.audioCtx };
               },
@@ -3825,10 +3829,10 @@
                 const noise = this.audioCtx.createBufferSource();
                 const gain = this.audioCtx.createGain();
                 noise.buffer = buffer;
-                gain.gain.value = volume * this.masterVolume;
+                gain.gain.value = volume;
 
                 noise.connect(gain);
-                gain.connect(this.audioCtx.destination);
+                gain.connect(this.masterGain || this.audioCtx.destination);
 
                 return { noise, gain, ctx: this.audioCtx };
               },
@@ -4770,8 +4774,8 @@
                   var ctx = SoundSystem.audioCtx;
                   if (!ctx || !SoundSystem.enabled) return;
 
-                  var freq = 440 * Math.pow(2, (note - 69) / 12);
-                  var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
+                var freq = 440 * Math.pow(2, (note - 69) / 12);
+                  var vol = (velocity / 127) * this.volume;
 
                   var osc1 = ctx.createOscillator();
                   osc1.type = config.osc1Type;
@@ -4792,7 +4796,7 @@
                   osc2.connect(g2);
                   g1.connect(masterGain);
                   g2.connect(masterGain);
-                  masterGain.connect(ctx.destination);
+                  masterGain.connect(MusicSystem.musicGain || ctx.destination);
 
                   var now = startTime;
                   masterGain.gain.setValueAtTime(0, now);
@@ -4907,7 +4911,7 @@
                 if (!ctx || !SoundSystem.enabled) return;
 
                 var freq = 440 * Math.pow(2, (note - 69) / 12);
-                var vol = (velocity / 127) * this.volume * SoundSystem.masterVolume;
+                var vol = (velocity / 127) * this.volume;
 
                 var osc1 = ctx.createOscillator();
                 osc1.type = 'triangle';
@@ -4928,7 +4932,7 @@
                 osc2.connect(g2);
                 g1.connect(masterGain);
                 g2.connect(masterGain);
-                masterGain.connect(ctx.destination);
+                masterGain.connect(this.musicGain || ctx.destination);
 
                 var now = startTime;
                 var attackTime = 0.01;
@@ -4970,6 +4974,11 @@
               start: function() {
                 if (!this.isLoaded) return;
                 SoundSystem.resume();
+                if (!this.musicGain && SoundSystem.audioCtx) {
+                  this.musicGain = SoundSystem.audioCtx.createGain();
+                  this.musicGain.gain.value = this.volume;
+                  this.musicGain.connect(SoundSystem.audioCtx.destination);
+                }
                 this.isPlaying = true;
                 this.scheduleNotes();
                 this.updateButton();
@@ -5012,6 +5021,7 @@
 
               setVolume: function(val) {
                 this.volume = val;
+                if (this.musicGain) this.musicGain.gain.value = val;
                 var btn = document.getElementById('music-toggle');
                 if (val === 0) {
                   if (this.isPlaying) this.stop();
@@ -7403,7 +7413,7 @@
                 this._twActive = true;
                 this._twElement = span;
                 this._twFullHTML = span.innerHTML; // store only the span's HTML
-                var plainText = span.textContent || '';
+                var chars = Array.from(span.textContent || '');
                 var charIdx = 0;
                 var self = this;
                 var cursor = document.createElement('span');
@@ -7413,8 +7423,8 @@
                 span.appendChild(cursor);
 
                 this._twTimer = setInterval(function() {
-                  if (charIdx < plainText.length) {
-                    span.insertBefore(document.createTextNode(plainText[charIdx]), cursor);
+                  if (charIdx < chars.length) {
+                    span.insertBefore(document.createTextNode(chars[charIdx]), cursor);
                     charIdx++;
                   } else {
                     self._finishTypewriter();
