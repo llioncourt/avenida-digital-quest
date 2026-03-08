@@ -6952,10 +6952,9 @@
                 if (RandomEvents.isActive('rain') && !Rules.hasEffect('rainProtection')) {
                   var indoorRooms = ['shopping', 'cinema', 'tunel', 'livraria', 'colegio', 'subsolo_masp'];
                   if (!indoorRooms.includes(GameState.playerLocation)) {
-                    if (Utils.random() < 0.15) {
-                      var rainDmg = 5;
-                      Rules.damagePlayer(rainDmg);
-                      Log.add('🌧️ A chuva forte te encharca e você perde ' + rainDmg + ' HP! Um GUARDA-CHUVA ajudaria...', 'danger');
+                    if (Utils.random() < GAME_CONSTANTS.RAIN_DAMAGE_CHANCE) {
+                      Rules.damagePlayer(GAME_CONSTANTS.RAIN_DAMAGE);
+                      Log.add('🌧️ A chuva forte te encharca e você perde ' + GAME_CONSTANTS.RAIN_DAMAGE + ' HP! Um GUARDA-CHUVA ajudaria...', 'danger');
                     }
                   }
                 }
