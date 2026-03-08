@@ -1224,7 +1224,7 @@
               border: 2px solid var(--accent-gold);
               border-radius: var(--radius);
               padding: 2rem;
-              max-width: 500px;
+              max-width: 650px;
               width: 90%;
               max-height: 85vh;
               overflow-y: auto;
@@ -2062,8 +2062,8 @@
 
             /* ========== ACHIEVEMENTS ========== */
             .achievement-grid {
-              display: flex;
-              flex-wrap: wrap;
+              display: grid;
+              grid-template-columns: repeat(5, auto);
               gap: 0.35rem;
               margin: 0.5rem 0;
               justify-content: center;
@@ -5993,9 +5993,11 @@
                     const player = GameState.characters.player;
                     player.hp = 0;
                     player.isAlive = false;
+                    GameState.gameOver = true;
                     GameState.playerLocation = roomId;
                     GameState.characters.player.location = roomId;
                     GameState.deathReason = 'Você tentou voar. A gravidade não aprovou a ideia. Talvez tente outra coisa.';
+                    Karma.change(-10, 'Pulou da Antena');
                     return {
                       success: true,
                       message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
@@ -6913,7 +6915,7 @@
                 WorldSanity.enforce();
 
                 // Regeneração passiva da Relíquia Paulistana
-                if (Rules.hasEffect('regen')) {
+                if (GameState.characters.player.isAlive && Rules.hasEffect('regen')) {
                   var player = GameState.characters.player;
                   if (player.hp < player.maxHp) {
                     player.hp = Math.min(player.hp + 1, player.maxHp);
@@ -7352,6 +7354,7 @@
               processAutoCombat: function() {
                 var playerRoom = GameState.playerLocation;
                 var player = GameState.characters.player;
+                if (!player.isAlive || GameState.gameOver) return;
 
                 Object.values(GameState.characters).forEach(function(char) {
                   if (char.id === 'player' || !char.isAlive || char.isNeutral || !char.location) return;
