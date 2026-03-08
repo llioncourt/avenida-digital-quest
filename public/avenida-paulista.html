@@ -6915,7 +6915,7 @@
                 WorldSanity.enforce();
 
                 // Regeneração passiva da Relíquia Paulistana
-                if (Rules.hasEffect('regen')) {
+                if (GameState.characters.player.isAlive && Rules.hasEffect('regen')) {
                   var player = GameState.characters.player;
                   if (player.hp < player.maxHp) {
                     player.hp = Math.min(player.hp + 1, player.maxHp);
