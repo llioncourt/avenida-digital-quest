@@ -5993,9 +5993,11 @@
                     const player = GameState.characters.player;
                     player.hp = 0;
                     player.isAlive = false;
+                    GameState.gameOver = true;
                     GameState.playerLocation = roomId;
                     GameState.characters.player.location = roomId;
                     GameState.deathReason = 'Você tentou voar. A gravidade não aprovou a ideia. Talvez tente outra coisa.';
+                    Karma.change(-10, 'Pulou da Antena');
                     return {
                       success: true,
                       message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
