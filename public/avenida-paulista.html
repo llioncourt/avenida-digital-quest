@@ -5016,6 +5016,7 @@
 
               setVolume: function(val) {
                 this.volume = val;
+                if (this.musicGain) this.musicGain.gain.value = val;
                 var btn = document.getElementById('music-toggle');
                 if (val === 0) {
                   if (this.isPlaying) this.stop();
