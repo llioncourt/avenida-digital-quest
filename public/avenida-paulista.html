@@ -9727,6 +9727,7 @@
                 var givenItem = GameState.items[vendorItemId];
                 var takenItem = GameState.items[playerItemId];
                 SoundSystem.playUseItem();
+                Karma.change(3, 'Trocou com o Vendedor');
                 Log.add('🛒 Você trocou ' + takenItem.name + ' por ' + givenItem.name + ' com o Vendedor!', 'success');
                 Modals.hide();
                 Render.update();
