@@ -6220,6 +6220,12 @@
                 GameState.playerInventory.splice(idx, 1);
                 item.location = GameState.playerLocation;
 
+                // Sincronizar localização da bomba armada quando jogador larga
+                if (itemId === 'bomba' && GameState.armedBomb) {
+                  GameState.armedBomb.location = GameState.playerLocation;
+                  GameState.armedBomb.carriedByPlayer = false;
+                }
+
                 // onDrop hook (ex: mochila recalcula peso)
                 if (item.onDrop === 'recalcWeight') {
                   Rules.recalcMaxWeight();
