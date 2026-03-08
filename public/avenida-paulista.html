@@ -9536,6 +9536,8 @@
                 if (GameState.victory && GameState.characters.player.hp < 10) { earned.push('sobrevivente'); saved.sobrevivente = true; }
                 var totalRooms = Object.keys(GameState.rooms).length;
                 if (GameState.visitedRooms && GameState.visitedRooms.size >= totalRooms) { earned.push('explorador'); saved.explorador = true; }
+                if (GameState.karma >= 50) { earned.push('karma_positivo'); saved.karma_positivo = true; }
+                if (GameState.karma <= -50) { earned.push('vilao'); saved.vilao = true; }
                 this.save(saved);
                 return { earned: earned, all: saved };
               },
