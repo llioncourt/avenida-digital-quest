@@ -7354,6 +7354,7 @@
               processAutoCombat: function() {
                 var playerRoom = GameState.playerLocation;
                 var player = GameState.characters.player;
+                if (!player.isAlive || GameState.gameOver) return;
 
                 Object.values(GameState.characters).forEach(function(char) {
                   if (char.id === 'player' || !char.isAlive || char.isNeutral || !char.location) return;
