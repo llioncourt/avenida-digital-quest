@@ -3783,6 +3783,7 @@
               setVolume: function(val) {
                 this.masterVolume = val;
                 this.enabled = val > 0;
+                if (this.masterGain) this.masterGain.gain.value = val;
                 var btn = document.getElementById('sound-toggle');
                 if (btn) btn.textContent = val > 0 ? '🔊' : '🔇';
               },
