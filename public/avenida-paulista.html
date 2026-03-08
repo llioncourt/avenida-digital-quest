@@ -7290,6 +7290,63 @@
                 );
               },
 
+              // Typewriter state
+              _twActive: false,
+              _twElement: null,
+              _twFullHTML: '',
+              _twTimer: null,
+              _twQueue: [],
+
+              _typewrite: function(element, fullHTML) {
+                // Strip tags for character reveal, then re-apply HTML at end
+                this._twActive = true;
+                this._twElement = element;
+                this._twFullHTML = fullHTML;
+                var plainText = fullHTML.replace(/<[^>]+>/g, '');
+                var charIdx = 0;
+                var self = this;
+                var span = element.querySelector('span:last-child');
+                if (!span) span = element;
+                var cursor = document.createElement('span');
+                cursor.className = 'typewriter-cursor';
+                cursor.textContent = '▌';
+                span.textContent = '';
+                span.appendChild(cursor);
+
+                this._twTimer = setInterval(function() {
+                  if (charIdx < plainText.length) {
+                    span.insertBefore(document.createTextNode(plainText[charIdx]), cursor);
+                    charIdx++;
+                  } else {
+                    self._finishTypewriter();
+                  }
+                }, 15);
+              },
+
+              _finishTypewriter: function() {
+                if (this._twTimer) { clearInterval(this._twTimer); this._twTimer = null; }
+                if (this._twElement) {
+                  this._twElement.innerHTML = this._twFullHTML;
+                }
+                this._twActive = false;
+                this._twElement = null;
+                // Process next in queue
+                if (this._twQueue.length > 0) {
+                  var next = this._twQueue.shift();
+                  this._typewrite(next.element, next.html);
+                }
+              },
+
+              _skipTypewriter: function() {
+                if (!this._twActive) return;
+                this._finishTypewriter();
+                // Also finish everything in queue instantly
+                while (this._twQueue.length > 0) {
+                  var next = this._twQueue.shift();
+                  next.element.innerHTML = next.html;
+                }
+              },
+
               _flush: function() {
                 this._flushScheduled = false;
                 const container = this._ensureContainer();
@@ -7303,15 +7360,32 @@
                   container.innerHTML = '';
                 }
 
-                if (this._renderedCount < this.entries.length) {
+                var newCount = this.entries.length - this._renderedCount;
+                if (newCount > 0) {
+                  // If typewriter is active and new messages arrive, finish current instantly
+                  if (this._twActive) {
+                    this._skipTypewriter();
+                  }
+
                   const frag = document.createDocumentFragment();
+                  var lastDiv = null;
+                  var lastHTML = '';
                   for (let i = this._renderedCount; i < this.entries.length; i++) {
                     const wrapper = document.createElement('div');
-                    wrapper.innerHTML = this._entryToHTML(this.entries[i]);
-                    frag.appendChild(wrapper.firstChild);
+                    var html = this._entryToHTML(this.entries[i]);
+                    wrapper.innerHTML = html;
+                    var div = wrapper.firstChild;
+                    frag.appendChild(div);
+                    lastDiv = div;
+                    lastHTML = html;
                   }
                   container.appendChild(frag);
                   this._renderedCount = this.entries.length;
+
+                  // Typewriter on the last entry only (if just 1-3 new messages)
+                  if (newCount <= 3 && lastDiv && lastHTML) {
+                    this._typewrite(lastDiv, lastHTML);
+                  }
                 }
 
                 // Mantém comportamento original: scroll sempre no final após render
@@ -7335,6 +7409,7 @@
               },
 
               clear: function() {
+                this._skipTypewriter();
                 this.entries = [];
                 this._renderedCount = 0;
                 const container = this._ensureContainer();
@@ -7348,6 +7423,14 @@
                 this._scheduleFlush();
               }
             };
+
+            // Click to skip typewriter
+            document.addEventListener('DOMContentLoaded', function() {
+              var logContainer = document.getElementById('log-container');
+              if (logContainer) {
+                logContainer.addEventListener('click', function() { Log._skipTypewriter(); });
+              }
+            });
 
             // ============================================================================
             // AMBIENT PARTICLES - Efeitos visuais ambientais
