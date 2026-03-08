@@ -7021,13 +7021,7 @@
                 if (GameState.armedBomb.turnsLeft > 0) {
                   SoundSystem.playBombTick();
                   var bombRoom = GameState.rooms[GameState.armedBomb.location].name;
-                  if (GameState.armedBomb.location === GameState.playerLocation) {
-                    Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s) para explodir AQUI! ⚠️ CORRA!`, 'warning');
-                  } else {
-                    var bombDist = getBombDistance(GameState.playerLocation, GameState.armedBomb.location);
-                    var bombDistText = bombDist < 0 ? 'inacessível' : bombDist + ' sala' + (bombDist !== 1 ? 's' : '') + ' de distância';
-                    Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s) para explodir em ${bombRoom}! (🚶 ${bombDistText})`, 'warning');
-                  }
+                  Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s) para explodir em ${bombRoom}!`, 'warning');
                   return;
                 }
 
