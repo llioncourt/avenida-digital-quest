@@ -7413,7 +7413,7 @@
                 this._twActive = true;
                 this._twElement = span;
                 this._twFullHTML = span.innerHTML; // store only the span's HTML
-                var plainText = span.textContent || '';
+                var chars = Array.from(span.textContent || '');
                 var charIdx = 0;
                 var self = this;
                 var cursor = document.createElement('span');
@@ -7423,8 +7423,8 @@
                 span.appendChild(cursor);
 
                 this._twTimer = setInterval(function() {
-                  if (charIdx < plainText.length) {
-                    span.insertBefore(document.createTextNode(plainText[charIdx]), cursor);
+                  if (charIdx < chars.length) {
+                    span.insertBefore(document.createTextNode(chars[charIdx]), cursor);
                     charIdx++;
                   } else {
                     self._finishTypewriter();
