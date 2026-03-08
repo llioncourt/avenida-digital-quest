@@ -5450,7 +5450,7 @@
                 c.followingPlayer = true;
                 c.followTurnsLeft = GameState.karma >= GAME_CONSTANTS.FOLLOW_KARMA_HIGH ? GAME_CONSTANTS.FOLLOW_TURNS_HIGH_KARMA : (GameState.karma <= GAME_CONSTANTS.FOLLOW_KARMA_LOW ? GAME_CONSTANTS.FOLLOW_TURNS_LOW_KARMA : GAME_CONSTANTS.FOLLOW_TURNS_NORMAL);
                 Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
-              }
+              },
 
               // Verificar se uma sala é visível no minimapa
               isRoomVisible: function(roomId) {
