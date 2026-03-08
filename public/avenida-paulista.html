@@ -537,6 +537,97 @@
               background: linear-gradient(135deg, #2a1a1a, #1a0a0a);
             }
 
+            /* ========== BUTTON MINI-ANIMATIONS ========== */
+            @keyframes item-bob {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-2px); }
+            }
+            @keyframes enemy-shake {
+              0%, 100% { transform: translateX(0); }
+              25% { transform: translateX(-1px); }
+              75% { transform: translateX(1px); }
+            }
+            @keyframes ally-pulse {
+              0%, 100% { box-shadow: 0 0 4px rgba(64, 160, 96, 0.3); }
+              50% { box-shadow: 0 0 12px rgba(64, 160, 96, 0.7); }
+            }
+            @keyframes vendor-shimmer {
+              0%, 100% { box-shadow: 0 0 4px rgba(212, 168, 70, 0.2); }
+              50% { box-shadow: 0 0 14px rgba(212, 168, 70, 0.6); }
+            }
+
+            #items-list .btn-item {
+              animation: item-bob 3s ease-in-out infinite;
+            }
+            #items-list .btn-item:nth-child(2) { animation-delay: 0.5s; }
+            #items-list .btn-item:nth-child(3) { animation-delay: 1s; }
+            #items-list .btn-item:nth-child(4) { animation-delay: 1.5s; }
+
+            #characters-list .btn-character.hostile {
+              animation: enemy-shake 0.5s ease-in-out infinite;
+            }
+            #characters-list .btn-character.ally {
+              animation: ally-pulse 2s ease-in-out infinite;
+            }
+            #characters-list .btn-character[style*="accent-gold"] {
+              animation: vendor-shimmer 3s ease-in-out infinite;
+            }
+
+            /* ========== AMBIENT PARTICLES ========== */
+            #particles-overlay {
+              position: fixed;
+              top: 0; left: 0; right: 0; bottom: 0;
+              pointer-events: none;
+              z-index: 999;
+              overflow: hidden;
+            }
+            .particle {
+              position: absolute;
+              will-change: transform, opacity;
+            }
+            @keyframes rain-fall {
+              0% { transform: translateY(-10px) translateX(0); opacity: 0.7; }
+              100% { transform: translateY(100vh) translateX(-30px); opacity: 0.2; }
+            }
+            @keyframes fog-drift {
+              0% { transform: translateX(-100px); opacity: 0; }
+              20% { opacity: 0.15; }
+              80% { opacity: 0.15; }
+              100% { transform: translateX(calc(100vw + 100px)); opacity: 0; }
+            }
+            @keyframes wind-streak {
+              0% { transform: translateX(-50px) scaleX(1); opacity: 0; }
+              10% { opacity: 0.5; }
+              100% { transform: translateX(100vw) scaleX(2); opacity: 0; }
+            }
+            @keyframes firefly {
+              0%, 100% { opacity: 0; transform: translate(0, 0); }
+              20% { opacity: 0.8; }
+              50% { opacity: 1; transform: translate(15px, -10px); }
+              80% { opacity: 0.6; transform: translate(-10px, 5px); }
+            }
+            @keyframes spark {
+              0% { opacity: 1; transform: translate(0, 0) scale(1); }
+              100% { opacity: 0; transform: translate(var(--sx, 20px), var(--sy, -30px)) scale(0); }
+            }
+            @keyframes dust-fall {
+              0% { opacity: 0; transform: translateY(-10px); }
+              20% { opacity: 0.4; }
+              100% { opacity: 0; transform: translateY(100vh); }
+            }
+
+            /* ========== TYPEWRITER CURSOR ========== */
+            @keyframes blink-cursor {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0; }
+            }
+            .typewriter-cursor {
+              display: inline;
+              animation: blink-cursor 0.7s step-end infinite;
+              color: var(--accent-gold);
+              font-weight: bold;
+            }
+
             .btn-danger {
               background: linear-gradient(135deg, #2a1a1a, #1a0a0a);
               border-color: var(--accent-red);
