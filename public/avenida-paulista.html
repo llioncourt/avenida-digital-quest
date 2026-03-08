@@ -6307,12 +6307,22 @@
                   return { success: false, message: `${target.name} já está morto!` };
                 }
 
+                // Atacar aliado: transforma em inimigo
                 if (target.isAlly) {
-                  return { success: false, message: `${target.name} é seu aliado! Você não pode atacá-lo.` };
+                  target.isAlly = false;
+                  target.followingPlayer = false;
+                  target.followTurnsLeft = 0;
+                  target.followCooldown = false;
+                  Log.add('😡 ' + target.name + ' se voltou contra você!', 'danger');
+                  Karma.change(-15, 'Atacou aliado ' + target.name);
                 }
 
+                // Atacar neutro: transforma em inimigo
                 if (target.isNeutral) {
-                  return { success: false, message: `${target.name} é neutro! Ele não quer briga, quer trocar itens.` };
+                  target.isNeutral = false;
+                  target.aggression = 0.8;
+                  Log.add('😡 ' + target.name + ' agora é seu inimigo!', 'danger');
+                  Karma.change(-20, 'Atacou neutro ' + target.name);
                 }
 
                 // Calcular dano - defensor usa golpe aleatório
