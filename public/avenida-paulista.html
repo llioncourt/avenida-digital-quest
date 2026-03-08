@@ -4739,8 +4739,13 @@
               }
             };
 
-            // ============================================================================
-            // MIDI PLAYER FACTORY - Shared logic for all music systems
+            /**
+             * @function createMidiPlayer
+             * @description Factory que cria instâncias de players MIDI com sintetizador
+             * configurável (tipos de oscilador, envelope ADSR, volume). Usado por
+             * CombatMusicSystem, DefeatMusicSystem, VictoryMusicSystem, ClickMusicSystem,
+             * GameOverMusicSystem e MusicSystem.
+             */
             // ============================================================================
 
             // MIDI data embedded as Base64 for offline/standalone playback
