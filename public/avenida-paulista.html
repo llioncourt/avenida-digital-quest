@@ -2335,6 +2335,65 @@
             // 2) inclusão do @keyframes glitch-offset, usado pelo efeito de glitch.
             // Nenhuma funcionalidade foi removida e a organização original foi preservada.
             // ============================================================================
+            // ============================================================================
+            // GAME CONSTANTS - Valores numéricos centralizados
+            // ============================================================================
+
+            /**
+             * @constant {Object} GAME_CONSTANTS
+             * @description Constantes globais do jogo. Centraliza magic numbers para
+             * facilitar balanceamento e manutenção. Qualquer valor numérico usado em
+             * mais de um local deve ser adicionado aqui.
+             */
+            const GAME_CONSTANTS = {
+              // ---- Tempo (em minutos desde 00:00) ----
+              START_TIME: 17 * 60,           // 17:00 — início do jogo
+              NIGHT_SECRET_HOUR: 20 * 60,    // 20:00 — subsolo do MASP visível
+              NIGHT_MODE_HOUR: 21 * 60,      // 21:00 — modo noturno, tropeços, bruxa mais forte
+
+              // ---- Energia ----
+              MAX_ENERGY: 100,
+              ENERGY_DRAIN_PER_TURN: 2,
+              ENERGY_LOW_THRESHOLD: 20,
+              EXHAUSTION_DAMAGE: 3,
+
+              // ---- Dano ----
+              TRIP_DAMAGE: 5,                // tropeço noturno sem lanterna
+              RAIN_DAMAGE: 5,                // chuva sem guarda-chuva
+              TRAP_FLOOR_DAMAGE: 10,         // piso quebrado
+              TRAP_GAS_DAMAGE: 5,            // gás residual
+              ANTENNA_KARMA_PENALTY: -10,    // karma ao pular da Antena
+
+              // ---- Cura ----
+              ENERGETICO_HEAL: 50,           // energético paulista
+
+              // ---- Bruxa ----
+              WITCH_WORD_COOLDOWN: 80,       // minutos entre palavras
+              WITCH_BASE_ATTACK: 25,         // ataque base da bruxa
+              WITCH_NIGHT_BONUS_PER_HOUR: 2, // +ataque por hora após 21:00
+
+              // ---- Probabilidades ----
+              NPC_MOVE_CHANCE: 0.3,
+              NPC_SPEAK_CHANCE: 0.3,
+              NIGHT_TRIP_CHANCE: 0.15,
+              RAIN_DAMAGE_CHANCE: 0.15,
+              TRAP_FLOOR_TRIGGER_CHANCE: 0.25,
+
+              // ---- Combate de NPCs ----
+              WITCH_WORD_INTERVAL: 3,        // turnos entre palavras (base)
+
+              // ---- Paralisia (grafite) ----
+              GRAFFITI_PARALYZE_TURNS: 2,
+
+              // ---- Follow (aliados) ----
+              FOLLOW_TURNS_HIGH_KARMA: 5,    // karma >= 30
+              FOLLOW_TURNS_NORMAL: 3,
+              FOLLOW_TURNS_LOW_KARMA: 1,     // karma <= -30
+              FOLLOW_KARMA_HIGH: 30,
+              FOLLOW_KARMA_LOW: -30,
+            };
+
+            // ============================================================================
             // DATA - Definições de salas, itens e personagens
             // ============================================================================
 
@@ -3132,9 +3191,10 @@
               reliquia: '✨', coxinha: '🍗', acai: '🫐', pastel: '🥟'
             };
 
-            // ============================================================================
-            // SCREEN EFFECTS - Efeitos visuais na tela
-            // ============================================================================
+            /**
+             * @namespace ScreenEffects
+             * @description Efeitos visuais temporários na tela (flash de cor).
+             */
 
             const ScreenEffects = {
               flash: function(color = 'rgba(128, 64, 160, 0.5)') {
@@ -3153,9 +3213,10 @@
               }
             };
 
-            // ============================================================================
-            // GLITCH EFFECT SYSTEM
-            // ============================================================================
+            /**
+             * @namespace GlitchEffect
+             * @description Efeito visual de glitch/distorção aplicado ao container do jogo.
+             */
 
             const GlitchEffect = {
               isActive: false,
@@ -3220,9 +3281,11 @@
               }
             };
 
-            // ============================================================================
-            // RANDOM EVENTS SYSTEM
-            // ============================================================================
+            /**
+             * @namespace RandomEvents
+             * @description Sistema de eventos aleatórios (chuva, neblina, sussurros, etc.).
+             * Gerencia ativação, desativação e efeitos visuais/sonoros por turno.
+             */
 
             const RANDOM_EVENTS = {
               rain: {
@@ -3765,9 +3828,11 @@
               }
             };
 
-            // ============================================================================
-            // SOUND SYSTEM - Web Audio API
-            // ============================================================================
+            /**
+             * @namespace SoundSystem
+             * @description Motor de áudio baseado em Web Audio API. Gera sons
+             * procedurais (sem arquivos de áudio) para todas as ações do jogo.
+             */
 
             const SoundSystem = {
               audioCtx: null,
@@ -4674,8 +4739,13 @@
               }
             };
 
-            // ============================================================================
-            // MIDI PLAYER FACTORY - Shared logic for all music systems
+            /**
+             * @function createMidiPlayer
+             * @description Factory que cria instâncias de players MIDI com sintetizador
+             * configurável (tipos de oscilador, envelope ADSR, volume). Usado por
+             * CombatMusicSystem, DefeatMusicSystem, VictoryMusicSystem, ClickMusicSystem,
+             * GameOverMusicSystem e MusicSystem.
+             */
             // ============================================================================
 
             // MIDI data embedded as Base64 for offline/standalone playback
@@ -5004,20 +5074,23 @@
               }
             });
 
-            // ============================================================================
-            // GAME STATE
-            // ============================================================================
+            /**
+             * @namespace GameState
+             * @description Estado mutável global do jogo. Todas as propriedades são
+             * reinicializadas em Game.init(). Declarar aqui serve como documentação
+             * e previne propriedades ad-hoc.
+             */
 
             const GameState = {
               // Karma (-100 a +100)
               karma: 0,
               // Tempo (minutos desde 00:00)
-              time: 17 * 60, // 17:00
+              time: GAME_CONSTANTS.START_TIME,
 
               // Contador de palavras da bruxa (0-4)
               witchWords: 0,
               lastWitchWordTime: 0,
-              witchWordCooldown: 80, // minutos mínimos entre palavras
+              witchWordCooldown: GAME_CONSTANTS.WITCH_WORD_COOLDOWN,
 
               // Palavra mágica do demônio
               demonMagicWord: '',
@@ -5084,9 +5157,11 @@
               craftSelection: []
             };
 
-            // ============================================================================
-            // UTILS - Funções utilitárias
-            // ============================================================================
+            /**
+             * @namespace Utils
+             * @description Funções utilitárias puras: RNG com seed, pathfinding BFS,
+             * deep clone, e helpers de randomização.
+             */
 
             const Utils = {
               // Gerador de números pseudo-aleatórios com seed
@@ -5199,9 +5274,12 @@
               }
             };
 
-            // ============================================================================
-            // RULES - Regras e validações do jogo
-            // ============================================================================
+            /**
+             * @namespace Rules
+             * @description Regras e validações do jogo: efeitos de itens, voo,
+             * dano ao jogador, movimento de aliados, ativação de follow, e
+             * verificação de game over. Funções centralizadas para consistência.
+             */
 
             const Rules = {
               // Verificar se jogador pode voar
@@ -5370,23 +5448,25 @@
                 var c = GameState.characters[charId];
                 if (!c || !c.isAlly || !c.isAlive || c.followingPlayer || c.followCooldown) return;
                 c.followingPlayer = true;
-                c.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
+                c.followTurnsLeft = GameState.karma >= GAME_CONSTANTS.FOLLOW_KARMA_HIGH ? GAME_CONSTANTS.FOLLOW_TURNS_HIGH_KARMA : (GameState.karma <= GAME_CONSTANTS.FOLLOW_KARMA_LOW ? GAME_CONSTANTS.FOLLOW_TURNS_LOW_KARMA : GAME_CONSTANTS.FOLLOW_TURNS_NORMAL);
                 Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
               }
 
               // Verificar se uma sala é visível no minimapa
               isRoomVisible: function(roomId) {
                 if (roomId === 'subsolo_masp' && !GameState.visitedRooms.has(roomId)) {
-                  var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= 20 * 60;
+                  var canReveal = GameState.playerLocation === 'masp' && Rules.hasEffect('nightVision') && GameState.time >= GAME_CONSTANTS.NIGHT_SECRET_HOUR;
                   return canReveal;
                 }
                 return true;
               }
             };
 
-            // ============================================================================
-            // KARMA - Sistema de karma/moralidade
-            // ============================================================================
+            /**
+             * @namespace Karma
+             * @description Sistema de karma/moralidade (-100 a +100). Afeta
+             * comportamento de aliados, duração de follow e títulos do jogador.
+             */
 
             const Karma = {
               change: function(amount, reason) {
@@ -5914,7 +5994,7 @@
               energetico: function() {
                 var player = GameState.characters.player;
                 var oldHp = player.hp;
-                player.hp = Math.min(player.maxHp, player.hp + 50);
+                player.hp = Math.min(player.maxHp, player.hp + GAME_CONSTANTS.ENERGETICO_HEAL);
                 var healed = player.hp - oldHp;
                 GameState.skipNextTimeAdvance = true;
                 SoundSystem.playHeal();
@@ -5927,12 +6007,14 @@
               }
             };
 
-            // ============================================================================
-            // ACTIONS - Ações do jogo
-            // ============================================================================
+            /**
+             * @namespace Actions
+             * @description Ações do jogador: mover, pegar/largar itens, usar itens, atacar.
+             * Cada ação retorna {success, message, advanceTime?}.
+             */
 
             const Actions = {
-              // Helper: setar localização do jogador (centralizado)
+              /** Centraliza a atualização de localização do jogador. */
               _setPlayerLocation: function(roomId) {
                 GameState.playerLocation = roomId;
                 GameState.characters.player.location = roomId;
@@ -5940,126 +6022,74 @@
                 Journal.recordRoom(roomId);
               },
 
-              // Mover para uma sala
-              moveTo: function(roomId) {
-                if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
-
-                const currentRoom = GameState.rooms[GameState.playerLocation];
-                const targetRoom = GameState.rooms[roomId];
-
-                if (!targetRoom) {
-                  return { success: false, message: 'Sala não encontrada!' };
+              /** Trata o pulo mortal da Antena (morte, guarda-chuva ou asa delta). */
+              _handleDeadlyJump: function(roomId) {
+                const hasUmbrella = Rules.hasEffect('safeJump');
+                if (!Rules.canPlayerFly() && !hasUmbrella) {
+                  const player = GameState.characters.player;
+                  player.hp = 0;
+                  player.isAlive = false;
+                  GameState.gameOver = true;
+                  GameState.playerLocation = roomId;
+                  GameState.characters.player.location = roomId;
+                  GameState.deathReason = 'Você tentou voar. A gravidade não aprovou a ideia. Talvez tente outra coisa.';
+                  Karma.change(GAME_CONSTANTS.ANTENNA_KARMA_PENALTY, 'Pulou da Antena');
+                  return { success: true, message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!', advanceTime: true };
+                } else if (hasUmbrella && !Rules.canPlayerFly()) {
+                  Actions._setPlayerLocation('avenida_paulista_leste');
+                  SoundSystem.playMove();
+                  return { success: true, message: '☂️ Você abre o GUARDA-CHUVA e pula! Ele funciona como um paraquedas improvisado — você plana suavemente até a Avenida Paulista Leste!', advanceTime: true };
+                } else {
+                  Actions._setPlayerLocation(roomId);
+                  var totalRoomsFlying = Object.keys(GameState.rooms).length;
+                  if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
+                  SoundSystem.playMove();
+                  return { success: true, message: 'Você salta da Antena e a ASA DELTA te carrega pelos céus de São Paulo!', advanceTime: true };
                 }
+              },
 
-                // Verificar se é uma saída válida
-                const exits = Object.values(currentRoom.exits);
-                if (!exits.includes(roomId)) {
-                  return { success: false, message: 'Você não pode ir para lá daqui!' };
-                }
-
-                // PULO MORTAL: Pular da Antena sem Asa Delta = morte (a menos que tenha guarda-chuva!)
-                if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
-                  const hasUmbrella = Rules.hasEffect('safeJump');
-                  if (!Rules.canPlayerFly() && !hasUmbrella) {
-                    // MORTE!
-                    const player = GameState.characters.player;
-                    player.hp = 0;
-                    player.isAlive = false;
-                    GameState.gameOver = true;
-                    GameState.playerLocation = roomId;
-                    GameState.characters.player.location = roomId;
-                    GameState.deathReason = 'Você tentou voar. A gravidade não aprovou a ideia. Talvez tente outra coisa.';
-                    Karma.change(-10, 'Pulou da Antena');
-                    return {
-                      success: true,
-                      message: 'Você pula da Antena sem nada para te sustentar... VOCÊ DESPENCA E MORRE!',
-                      advanceTime: true
-                    };
-                  } else if (hasUmbrella && !Rules.canPlayerFly()) {
-                    // Guarda-chuva funciona como paraquedas - aterrissa na sala abaixo em vez de voar
-                    Actions._setPlayerLocation('avenida_paulista_leste');
-                    SoundSystem.playMove();
-                    return {
-                      success: true,
-                      message: '☂️ Você abre o GUARDA-CHUVA e pula! Ele funciona como um paraquedas improvisado — você plana suavemente até a Avenida Paulista Leste!',
-                      advanceTime: true
-                    };
-                  } else {
-                    Actions._setPlayerLocation(roomId);
-                    var totalRoomsFlying = Object.keys(GameState.rooms).length;
-                    if (GameState.visitedRooms.size >= totalRoomsFlying) Achievements.tryUnlock('explorador');
-                    SoundSystem.playMove();
-                    return {
-                      success: true,
-                      message: 'Você salta da Antena e a ASA DELTA te carrega pelos céus de São Paulo!',
-                      advanceTime: true
-                    };
-                  }
-                }
-
-                // ESCUDO DE FORÇA: Teto do MASP bloqueado quando vindo do MASP (à pé)
+              /** Verifica restrições de acesso (escudo, voo, subsolo). Retorna erro ou null. */
+              _checkMoveRestrictions: function(roomId, targetRoom) {
                 if (roomId === 'teto_masp' && GameState.playerLocation === 'masp' && !GameState.forceShieldDown) {
-                  return {
-                    success: false,
-                    message: 'Um ESCUDO DE FORÇA mágico bloqueia a subida! O Feiticeiro poderia ajudar a removê-lo...'
-                  };
+                  return { success: false, message: 'Um ESCUDO DE FORÇA mágico bloqueia a subida! O Feiticeiro poderia ajudar a removê-lo...' };
                 }
-
-                // Verificar requisito de voo (para outras salas)
                 if (targetRoom.requiresFlight && !Rules.canPlayerFly()) {
                   return { success: false, message: 'Você precisa poder voar para acessar este local! Encontre a ASA DELTA.' };
                 }
-
-                // SALA SECRETA: Subsolo do MASP - requer lanterna + noite
                 if (roomId === 'subsolo_masp') {
-                  var hasLanternaForSecret = Rules.hasEffect('nightVision');
-                  if (!hasLanternaForSecret || GameState.time < 20 * 60) {
-                    if (!hasLanternaForSecret) {
-                      return { success: false, message: '🔦 Está escuro demais para ver a entrada secreta. Uma LANTERNA ajudaria...' };
-                    } else {
-                      return { success: false, message: '🌙 A entrada do subsolo só se revela à noite (após as 20:00)...' };
-                    }
+                  var hasLanterna = Rules.hasEffect('nightVision');
+                  if (!hasLanterna || GameState.time < GAME_CONSTANTS.NIGHT_SECRET_HOUR) {
+                    if (!hasLanterna) return { success: false, message: '🔦 Está escuro demais para ver a entrada secreta. Uma LANTERNA ajudaria...' };
+                    else return { success: false, message: '🌙 A entrada do subsolo só se revela à noite (após as 20:00)...' };
                   }
                   Log.add('🔦 Sua lanterna revela uma passagem secreta sob o MASP!', 'magic');
                 }
+                return null;
+              },
 
-                // MODO NOTURNO: Tropeço sem lanterna após 21:00
-                if (GameState.time >= 21 * 60 && !Rules.hasEffect('nightVision')) {
-                  if (Utils.random() < 0.15) {
-                    Rules.damagePlayer(5);
-                    Log.add('🌑 Você tropeça no escuro e se machuca! -5 HP. Uma LANTERNA evitaria isso.', 'danger');
+              /** Processa efeitos ao entrar numa sala (tropeço, armadilhas, aliados). */
+              _processRoomEntry: function(roomId) {
+                if (GameState.time >= GAME_CONSTANTS.NIGHT_MODE_HOUR && !Rules.hasEffect('nightVision')) {
+                  if (Utils.random() < GAME_CONSTANTS.NIGHT_TRIP_CHANCE) {
+                    Rules.damagePlayer(GAME_CONSTANTS.TRIP_DAMAGE);
+                    Log.add('🌑 Você tropeça no escuro e se machuca! -' + GAME_CONSTANTS.TRIP_DAMAGE + ' HP. Uma LANTERNA evitaria isso.', 'danger');
                   }
                 }
-
-                Actions._setPlayerLocation(roomId);
-
-                // Sincronizar localização da bomba armada quando jogador se move carregando
                 if (GameState.armedBomb && GameState.armedBomb.carriedByPlayer) {
                   GameState.armedBomb.location = roomId;
                 }
-                SoundSystem.playMove();
-
-                // Achievement: Explorador
                 var totalRoomsCount = Object.keys(GameState.rooms).length;
                 if (GameState.visitedRooms.size >= totalRoomsCount) Achievements.tryUnlock('explorador');
-
-                // JOURNAL: Registrar sala e NPCs
-                Journal.recordRoom(roomId);
                 Object.values(GameState.characters).forEach(function(c) {
-                  if (c.id !== 'player' && c.isAlive && c.location === roomId) {
-                    Journal.recordNPC(c.id);
-                  }
+                  if (c.id !== 'player' && c.isAlive && c.location === roomId) Journal.recordNPC(c.id);
                 });
-
-                // ARMADILHAS AMBIENTAIS: Verificar ao entrar na sala
                 if (GameState.environmentTraps[roomId] && !GameState.environmentTraps[roomId].triggered) {
                   var trap = GameState.environmentTraps[roomId];
                   trap.triggered = true;
                   if (trap.type === 'pisoQuebrado') {
-                    if (Utils.random() < 0.25) {
-                      var trapDmg = 10;
-                      Rules.damagePlayer(trapDmg);
-                      Log.add('⚠️ ARMADILHA! O piso cede sob seus pés! -' + trapDmg + ' HP!', 'danger');
+                    if (Utils.random() < GAME_CONSTANTS.TRAP_FLOOR_TRIGGER_CHANCE) {
+                      Rules.damagePlayer(GAME_CONSTANTS.TRAP_FLOOR_DAMAGE);
+                      Log.add('⚠️ ARMADILHA! O piso cede sob seus pés! -' + GAME_CONSTANTS.TRAP_FLOOR_DAMAGE + ' HP!', 'danger');
                     } else {
                       Log.add('⚠️ O piso range perigosamente, mas você passa com cuidado.', 'warning');
                     }
@@ -6072,30 +6102,40 @@
                     }
                   } else if (trap.type === 'gasResidual') {
                     if (!Rules.hasEffect('gasImmunity')) {
-                      var gasDmg = 5;
-                      Rules.damagePlayer(gasDmg);
-                      Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + gasDmg + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
+                      Rules.damagePlayer(GAME_CONSTANTS.TRAP_GAS_DAMAGE);
+                      Log.add('⚠️ ARMADILHA! Gás residual queima suas vias aéreas! -' + GAME_CONSTANTS.TRAP_GAS_DAMAGE + ' HP! Uma MÁSCARA GÁS ajudaria.', 'danger');
                     } else {
                       Log.add('😷 Gás residual detectado, mas sua MÁSCARA GÁS te protege!', 'success');
                     }
                   }
                 }
-
-                // Mover aliados que estão seguindo o jogador
                 Rules.moveFollowingAllies(roomId);
-
-                // Verificar aliados na nova sala para ativar follow
                 Object.values(GameState.characters).forEach(function(c) {
-                  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId) {
-                    Rules.activateFollow(c.id);
-                  }
+                  if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId) Rules.activateFollow(c.id);
                 });
+              },
 
-                return {
-                  success: true,
-                  message: `Você foi para ${targetRoom.name}.`,
-                  advanceTime: true
-                };
+              /** Move o jogador para uma sala adjacente. */
+              moveTo: function(roomId) {
+                if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+                const currentRoom = GameState.rooms[GameState.playerLocation];
+                const targetRoom = GameState.rooms[roomId];
+                if (!targetRoom) return { success: false, message: 'Sala não encontrada!' };
+                const exits = Object.values(currentRoom.exits);
+                if (!exits.includes(roomId)) return { success: false, message: 'Você não pode ir para lá daqui!' };
+
+                if (currentRoom.hasDeadlyJump && roomId === 'ceu_cidade') {
+                  return this._handleDeadlyJump(roomId);
+                }
+
+                var restriction = this._checkMoveRestrictions(roomId, targetRoom);
+                if (restriction) return restriction;
+
+                Actions._setPlayerLocation(roomId);
+                SoundSystem.playMove();
+                this._processRoomEntry(roomId);
+
+                return { success: true, message: `Você foi para ${targetRoom.name}.`, advanceTime: true };
               },
 
               // Pegar item
@@ -6895,33 +6935,32 @@
                 if (RandomEvents.isActive('rain') && !Rules.hasEffect('rainProtection')) {
                   var indoorRooms = ['shopping', 'cinema', 'tunel', 'livraria', 'colegio', 'subsolo_masp'];
                   if (!indoorRooms.includes(GameState.playerLocation)) {
-                    if (Utils.random() < 0.15) {
-                      var rainDmg = 5;
-                      Rules.damagePlayer(rainDmg);
-                      Log.add('🌧️ A chuva forte te encharca e você perde ' + rainDmg + ' HP! Um GUARDA-CHUVA ajudaria...', 'danger');
+                    if (Utils.random() < GAME_CONSTANTS.RAIN_DAMAGE_CHANCE) {
+                      Rules.damagePlayer(GAME_CONSTANTS.RAIN_DAMAGE);
+                      Log.add('🌧️ A chuva forte te encharca e você perde ' + GAME_CONSTANTS.RAIN_DAMAGE + ' HP! Um GUARDA-CHUVA ajudaria...', 'danger');
                     }
                   }
                 }
 
                 // ===== SISTEMA DE ENERGIA (FOME) =====
-                GameState.energy = Math.max(0, GameState.energy - 2);
+                GameState.energy = Math.max(0, GameState.energy - GAME_CONSTANTS.ENERGY_DRAIN_PER_TURN);
                 if (GameState.energy <= 0) {
-                  Rules.damagePlayer(3);
-                  Log.add('😰 Você está exausto e perdendo forças! -3 HP. Coma algo para recuperar energia!', 'danger');
-                } else if (GameState.energy <= 20) {
-                  Log.add('⚡ Energia baixa (' + GameState.energy + '/100)! Procure comida: Coxinha, Açaí ou Pastel.', 'warning');
+                  Rules.damagePlayer(GAME_CONSTANTS.EXHAUSTION_DAMAGE);
+                  Log.add('😰 Você está exausto e perdendo forças! -' + GAME_CONSTANTS.EXHAUSTION_DAMAGE + ' HP. Coma algo para recuperar energia!', 'danger');
+                } else if (GameState.energy <= GAME_CONSTANTS.ENERGY_LOW_THRESHOLD) {
+                  Log.add('⚡ Energia baixa (' + GameState.energy + '/' + GAME_CONSTANTS.MAX_ENERGY + ')! Procure comida: Coxinha, Açaí ou Pastel.', 'warning');
                 }
 
                 // ===== MODO NOTURNO PROGRESSIVO =====
-                if (GameState.time >= 21 * 60) {
+                if (GameState.time >= GAME_CONSTANTS.NIGHT_MODE_HOUR) {
                   if (!GameState.nightModeActive) {
                     GameState.nightModeActive = true;
                     Log.add('🌑 A noite cai sobre a Avenida Paulista... as sombras se adensam e o perigo aumenta.', 'warning');
                   }
-                  // Bruxa fica mais forte (+2 ataque por hora após 21:00)
-                  var hoursPastNine = (GameState.time - 21 * 60) / 60;
+                  // Bruxa fica mais forte após 21:00
+                  var hoursPastNine = (GameState.time - GAME_CONSTANTS.NIGHT_MODE_HOUR) / 60;
                   if (GameState.characters.bruxa && GameState.characters.bruxa.isAlive) {
-                    GameState.characters.bruxa.attackPower = 25 + Math.floor(hoursPastNine * 2);
+                    GameState.characters.bruxa.attackPower = GAME_CONSTANTS.WITCH_BASE_ATTACK + Math.floor(hoursPastNine * GAME_CONSTANTS.WITCH_NIGHT_BONUS_PER_HOUR);
                   }
                   // Inimigos ficam mais agressivos
                   Object.values(GameState.characters).forEach(function(c) {
@@ -7111,7 +7150,7 @@
 
                 // Chance de falar (muito baixa, aumenta devagar)
                 const baseChance = 0.04;
-                const timeBonus = (GameState.time - 17 * 60) / 500; // Aumenta bem devagar
+                const timeBonus = (GameState.time - GAME_CONSTANTS.START_TIME) / 500;
                 const chance = Math.min(0.15, baseChance + timeBonus);
 
                 if (Utils.random() < chance) {
@@ -7205,7 +7244,7 @@
                   }
 
                   // 30% de chance de mover
-                  if (Utils.random() < 0.3) {
+                  if (Utils.random() < GAME_CONSTANTS.NPC_MOVE_CHANCE) {
                     const currentRoom = GameState.rooms[char.location];
                     if (!currentRoom) return;
 
@@ -7235,7 +7274,7 @@
 
                       // Grafite: inimigo entra em sala com armadilha
                       if (!char.isAlly && GameState.roomTraps && GameState.roomTraps[char.location]) {
-                        char.paralyzedTurns = 2;
+                        char.paralyzedTurns = GAME_CONSTANTS.GRAFFITI_PARALYZE_TURNS;
                         delete GameState.roomTraps[char.location];
                         if (char.location === GameState.playerLocation) {
                           Log.add('🎨 ' + char.name + ' pisou no GRAFITE MÁGICO e ficou paralisado por 2 turnos!', 'success');
@@ -7243,7 +7282,7 @@
                       }
 
                       // NPC fala ao se mover (30% de chance)
-                      if (Utils.random() < 0.3) {
+                      if (Utils.random() < GAME_CONSTANTS.NPC_SPEAK_CHANCE) {
                         const phrases = NPC_PHRASES[char.id];
                         if (phrases && phrases.move) {
                           Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.move)}"`, 'info');
@@ -8845,7 +8884,7 @@
                 const witch = GameState.characters.bruxa;
 
                 // Construir resumo
-                const timeElapsed = GameState.time - (17 * 60);
+                const timeElapsed = GameState.time - GAME_CONSTANTS.START_TIME;
                 const hoursPlayed = Math.floor(timeElapsed / 60);
                 const minutesPlayed = timeElapsed % 60;
 
@@ -8964,7 +9003,7 @@
                 GameState.items = Utils.deepClone(ITEMS_DATA);
 
                 // Reset do estado
-                GameState.time = 17 * 60;
+                GameState.time = GAME_CONSTANTS.START_TIME;
                 GameState.witchWords = 0;
                 GameState.lastWitchWordTime = 0;
                 GameState.demonMagicWord = '';
@@ -8983,7 +9022,7 @@
                 GameState.skipNextTimeAdvance = false;
                 GameState.roomTraps = {};
                 GameState.visitedRooms = new Set(['masp']);
-                GameState.energy = 100;
+                GameState.energy = GAME_CONSTANTS.MAX_ENERGY;
                 GameState.fogActive = false;
                 GameState.environmentTraps = {};
                 GameState.nightModeActive = false;
