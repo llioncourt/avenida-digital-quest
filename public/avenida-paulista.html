@@ -7391,7 +7391,7 @@
                     }
 
                     CombatModal.enqueue(
-                      { name: '🗡️ ' + char.name.toUpperCase(), hp: char.hp, maxHp: char.maxHp, attackPower: attackMove.power, moveName: attackMove.name, items: [], totalAttack: attackMove.power },
+                      { name: '🗡️ ' + char.name.toUpperCase(), hp: char.hp, maxHp: char.maxHp, attackPower: attackMove.power, moveName: attackMove.name, items: (char.usesGas && !Rules.hasGasMask()) ? [{ name: 'Gás Tóxico ☠️', bonus: 10 }] : [], totalAttack: (char.usesGas && !Rules.hasGasMask()) ? attackMove.power + 10 : attackMove.power },
                       { name: '🛡️ JOGADOR', hp: player.hp, maxHp: player.maxHp, defensePower: player.defensePower, items: CombatModal.getPlayerDefenseItems(), totalDefense: playerDefense },
                       { damage: damage, killed: killed, remainingHp: Math.max(0, player.hp - damage), targetId: 'player', attackerId: char.id, extraMessage: attackPhrase ? ('💬 "' + attackPhrase + '"') : null, playerIsAttacker: false },
                       function(result) {
