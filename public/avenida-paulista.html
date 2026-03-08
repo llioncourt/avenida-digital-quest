@@ -6115,10 +6115,9 @@
                   var trap = GameState.environmentTraps[roomId];
                   trap.triggered = true;
                   if (trap.type === 'pisoQuebrado') {
-                    if (Utils.random() < 0.25) {
-                      var trapDmg = 10;
-                      Rules.damagePlayer(trapDmg);
-                      Log.add('⚠️ ARMADILHA! O piso cede sob seus pés! -' + trapDmg + ' HP!', 'danger');
+                    if (Utils.random() < GAME_CONSTANTS.TRAP_FLOOR_TRIGGER_CHANCE) {
+                      Rules.damagePlayer(GAME_CONSTANTS.TRAP_FLOOR_DAMAGE);
+                      Log.add('⚠️ ARMADILHA! O piso cede sob seus pés! -' + GAME_CONSTANTS.TRAP_FLOOR_DAMAGE + ' HP!', 'danger');
                     } else {
                       Log.add('⚠️ O piso range perigosamente, mas você passa com cuidado.', 'warning');
                     }
