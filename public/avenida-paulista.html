@@ -7299,7 +7299,7 @@
                       }
 
                       // NPC fala ao se mover (30% de chance)
-                      if (Utils.random() < 0.3) {
+                      if (Utils.random() < GAME_CONSTANTS.NPC_SPEAK_CHANCE) {
                         const phrases = NPC_PHRASES[char.id];
                         if (phrases && phrases.move) {
                           Log.add(`💬 ${char.name}: "${Utils.randomChoice(phrases.move)}"`, 'info');
