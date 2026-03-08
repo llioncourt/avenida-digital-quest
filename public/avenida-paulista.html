@@ -6098,7 +6098,7 @@
                 Object.values(GameState.characters).forEach(function(c) {
                   if (c.id !== 'player' && c.isAlly && c.isAlive && c.location === roomId && !c.followingPlayer && !c.followCooldown) {
                     c.followingPlayer = true;
-                    c.followTurnsLeft = 3;
+                    c.followTurnsLeft = GameState.karma >= 30 ? 5 : (GameState.karma <= -30 ? 1 : 3);
                     Log.add('🤝 ' + c.name + ' decide te acompanhar por um tempo!', 'info');
                   }
                 });
