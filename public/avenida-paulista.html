@@ -6194,6 +6194,8 @@
                   const player = GameState.characters.player;
                   player.hp = 0;
                   player.isAlive = false;
+                  GameState.gameOver = true;
+                  Karma.change(-10, 'Largou a asa delta no ar');
                   GameState.deathReason = '🪂 Largou a asa delta. No ar. Voando. Brilhante decisão estratégica. A lei da gravidade, que não aceita suborno, entrou em vigor imediatamente.';
 
                   return {
