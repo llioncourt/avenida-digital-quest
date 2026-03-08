@@ -2630,7 +2630,7 @@
               bomba: {
                 id: 'bomba',
                 name: 'BOMBA',
-                description: 'Uma bomba poderosa. Ao usar, você a arma com um timer de 10-20 turnos. MATA TODOS no local quando explode!',
+                description: 'Uma bomba fabricada pelo Bombardeador. Use o KIT BOMBA para desarmá-la antes que exploda! Não pode ser armada pelo jogador.',
                 attackPower: 0,
                 defensePower: 0,
                 weight: 6,
@@ -5496,6 +5496,7 @@
 
                 // Desarmar
                 GameState.armedBomb = null;
+                Karma.change(10, 'Desarmou uma bomba');
 
                 // NÃO remove kit bomba - é reutilizável!
 
@@ -7072,6 +7073,7 @@
                 }
 
                 GameState.armedBomb = null;
+                GameState.items.bomba.location = null;
 
                 // Som de explosão + FLASH laranja
                 SoundSystem.playExplosion();
@@ -7317,6 +7319,7 @@
                     location: bombardeador.location,
                     turnsLeft: timerTurns
                   };
+                  GameState.items.bomba.location = bombardeador.location;
 
                   bombardeador.lastBombCreation = GameState.time;
 
