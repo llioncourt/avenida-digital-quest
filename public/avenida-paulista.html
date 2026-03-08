@@ -384,7 +384,14 @@
               z-index: 999;
               white-space: nowrap;
             }
-            .vol-slider.active { display: block; }
+            .vol-slider.active { display: flex; align-items: center; gap: 6px; }
+            .vol-pct {
+              color: #b8860b;
+              font-size: 0.7rem;
+              min-width: 28px;
+              text-align: right;
+              font-family: monospace;
+            }
             .vol-slider input[type=range] {
               -webkit-appearance: none;
               width: 90px;
@@ -2156,13 +2163,15 @@
                 <div class="volume-control">
                   <button id="sound-toggle" class="vol-btn" onclick="SoundSystem.toggleSlider()" title="Volume dos efeitos sonoros">🔊</button>
                   <div class="vol-slider" id="sound-slider">
-                    <input type="range" min="0" max="100" value="30" oninput="SoundSystem.setVolume(this.value/100)">
+                    <input type="range" min="0" max="100" value="30" oninput="SoundSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
+                    <span class="vol-pct">30%</span>
                   </div>
                 </div>
                 <div class="volume-control">
                   <button id="music-toggle" class="vol-btn" onclick="MusicSystem.toggleSlider()" title="Volume da música">🎵</button>
                   <div class="vol-slider" id="music-slider">
-                    <input type="range" min="0" max="100" value="10" oninput="MusicSystem.setVolume(this.value/100)">
+                    <input type="range" min="0" max="100" value="15" oninput="MusicSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
+                    <span class="vol-pct">15%</span>
                   </div>
                 </div>
                 <button
@@ -4833,19 +4842,19 @@
             // ============================================================================
 
             var CombatMusicSystem = createMidiPlayer({
-              base64: COMBAT_MIDI_BASE64, volume: 0.12, name: 'CombatMusicSystem',
+              base64: COMBAT_MIDI_BASE64, volume: 0.15, name: 'CombatMusicSystem',
               osc1Type: 'sawtooth', osc2Type: 'square', freqMult: 2,
               gain1: 0.6, gain2: 0.2, attack: 0.005, decay: 0.08, sustain: 0.5, release: 0.1
             });
 
             var DefeatMusicSystem = createMidiPlayer({
-              base64: DEFEAT_MIDI_BASE64, volume: 0.35, name: 'DefeatMusicSystem',
+              base64: DEFEAT_MIDI_BASE64, volume: 0.15, name: 'DefeatMusicSystem',
               osc1Type: 'triangle', osc2Type: 'sine', freqMult: 0.5,
               gain1: 0.7, gain2: 0.3, attack: 0.02, decay: 0.15, sustain: 0.4, release: 0.2
             });
 
             var VictoryMusicSystem = createMidiPlayer({
-              base64: VICTORY_MIDI_BASE64, volume: 0.12, name: 'VictoryMusicSystem',
+              base64: VICTORY_MIDI_BASE64, volume: 0.15, name: 'VictoryMusicSystem',
               osc1Type: 'square', osc2Type: 'sawtooth', freqMult: 2,
               gain1: 0.6, gain2: 0.15, attack: 0.005, decay: 0.08, sustain: 0.5, release: 0.1
             });
@@ -4857,7 +4866,7 @@
             });
 
             var GameOverMusicSystem = createMidiPlayer({
-              base64: GAMEOVER_MIDI_BASE64, volume: 0.4, name: 'GameOverMusicSystem',
+              base64: GAMEOVER_MIDI_BASE64, volume: 0.15, name: 'GameOverMusicSystem',
               osc1Type: 'triangle', osc2Type: 'sine', freqMult: 0.5,
               gain1: 0.6, gain2: 0.25, attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.15
             });
@@ -4869,7 +4878,7 @@
             const MusicSystem = {
               isPlaying: false,
               isLoaded: false,
-              volume: 0.10,
+              volume: 0.15,
               notes: [],
               duration: 0,
               scheduledOscs: [],
