@@ -4894,79 +4894,22 @@
             // MUSIC SYSTEM - Main background music (extends base player with loop/toggle)
             // ============================================================================
 
-            const MusicSystem = {
+            var _musicBase = createMidiPlayer({
+              base64: MIDI_BASE64, volume: 1.0, name: 'MusicSystem',
+              osc1Type: 'triangle', osc2Type: 'sine', freqMult: 2,
+              gain1: 0.7, gain2: 0.3, attack: 0.01, decay: 0.1, sustain: 0.6, release: 0.15
+            });
+
+            const MusicSystem = Object.assign({}, _musicBase, {
               isPlaying: false,
-              isLoaded: false,
-              volume: 1.0,
-              notes: [],
-              duration: 0,
-              scheduledOscs: [],
               loopTimeoutId: null,
               startTime: 0,
               playbackSpeed: 1.0,
+              musicGain: null,
 
               init: async function() {
-                await this.loadMIDI();
-              },
-
-              loadMIDI: async function() {
-                try {
-                  var result = parseMidiBase64(MIDI_BASE64);
-                  this.notes = result.notes;
-                  this.duration = result.duration;
-                  this.isLoaded = true;
-                  this.start();
-                } catch (err) {
-                  console.error('MusicSystem: Failed to load MIDI', err);
-                }
-              },
-
-              playNote: function(note, startTime, duration, velocity) {
-                var ctx = SoundSystem.audioCtx;
-                if (!ctx || !SoundSystem.enabled) return;
-
-                var freq = 440 * Math.pow(2, (note - 69) / 12);
-                var vol = (velocity / 127) * this.volume;
-
-                var osc1 = ctx.createOscillator();
-                osc1.type = 'triangle';
-                osc1.frequency.value = freq;
-
-                var osc2 = ctx.createOscillator();
-                osc2.type = 'sine';
-                osc2.frequency.value = freq * 2;
-
-                var g1 = ctx.createGain();
-                var g2 = ctx.createGain();
-                var masterGain = ctx.createGain();
-
-                g1.gain.value = 1.4;
-                g2.gain.value = 0.6;
-
-                osc1.connect(g1);
-                osc2.connect(g2);
-                g1.connect(masterGain);
-                g2.connect(masterGain);
-                masterGain.connect(this.musicGain || ctx.destination);
-
-                var now = startTime;
-                var attackTime = 0.01;
-                var decayTime = 0.1;
-                var sustainLevel = 0.6;
-                var releaseTime = 0.15;
-
-                masterGain.gain.setValueAtTime(0, now);
-                masterGain.gain.linearRampToValueAtTime(vol, now + attackTime);
-                masterGain.gain.linearRampToValueAtTime(vol * sustainLevel, now + attackTime + decayTime);
-                masterGain.gain.setValueAtTime(vol * sustainLevel, now + duration - releaseTime);
-                masterGain.gain.linearRampToValueAtTime(0, now + duration);
-
-                osc1.start(now);
-                osc2.start(now);
-                osc1.stop(now + duration + 0.1);
-                osc2.stop(now + duration + 0.1);
-
-                this.scheduledOscs.push(osc1, osc2);
+                if (!this.isLoaded) _musicBase.init.call(this);
+                this.start();
               },
 
               scheduleNotes: function() {
@@ -4974,15 +4917,17 @@
                 var ctx = SoundSystem.audioCtx;
                 this.startTime = ctx.currentTime;
                 var speed = this.playbackSpeed || 1.0;
+                var self = this;
 
-                this.notes.forEach(note => {
-                  this.playNote(note.n, this.startTime + (note.t / speed), note.d / speed, note.v);
+                this.notes.forEach(function(note) {
+                  self.playNote(note.n, self.startTime + (note.t / speed), note.d / speed, note.v);
                 });
 
                 if (this.isPlaying) {
-                  this.loopTimeoutId = setTimeout(() => {
-                    if (this.isPlaying) this.scheduleNotes();
-                  }, ((this.duration / speed) + 0.5) * 1000);
+                  var dur = this.duration;
+                  this.loopTimeoutId = setTimeout(function() {
+                    if (self.isPlaying) self.scheduleNotes();
+                  }, ((dur / speed) + 0.5) * 1000);
                 }
               },
 
@@ -5005,7 +4950,7 @@
                   clearTimeout(this.loopTimeoutId);
                   this.loopTimeoutId = null;
                 }
-                this.scheduledOscs.forEach(osc => {
+                this.scheduledOscs.forEach(function(osc) {
                   try { osc.stop(); } catch(e) {}
                 });
                 this.scheduledOscs = [];
@@ -5057,7 +5002,7 @@
               setSpeed: function(speed) {
                 this.playbackSpeed = speed || 1.0;
               }
-            };
+            });
 
             // ============================================================================
             // GAME STATE
