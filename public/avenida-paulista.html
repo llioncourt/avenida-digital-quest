@@ -2170,8 +2170,8 @@
                 <div class="volume-control">
                   <button id="music-toggle" class="vol-btn" onclick="MusicSystem.toggleSlider()" title="Volume da música">🎵</button>
                   <div class="vol-slider" id="music-slider">
-                    <input type="range" min="0" max="100" value="15" oninput="MusicSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
-                    <span class="vol-pct">15%</span>
+                    <input type="range" min="0" max="100" value="100" oninput="MusicSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
+                    <span class="vol-pct">100%</span>
                   </div>
                 </div>
                 <button
