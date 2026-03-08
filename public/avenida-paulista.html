@@ -9674,7 +9674,15 @@
                   return '<button class="btn btn-item" onclick="VendorTrade.selectVendorItem(\'' + id + '\')" style="width:100%;margin:0.2rem 0;border-color:var(--accent-gold);color:var(--accent-gold);">' +
                     (ITEM_ICONS[id] || '📦') + ' ' + item.name + ' <small>(' + item.weight + 'kg)</small></button>';
                 }).join('');
-                var content = '<p style="font-style:italic;color:var(--text-secondary);">"E aí, chefe! Vamo trocar?"</p>' +
+                var content = '';
+                if (GameState.karma <= -20) {
+                  content = '<p style="font-style:italic;color:var(--accent-red);">"Não negocio com gente como você! Sai fora!"</p>' +
+                    '<button class="btn" onclick="Modals.hide()" style="margin-top:0.75rem;">Fechar</button>';
+                  Modals.show('🛒 VENDEDOR AMBULANTE', content);
+                  return;
+                }
+                content = '<p style="font-style:italic;color:var(--text-secondary);">"E aí, chefe! Vamo trocar?"</p>' +
+                  (GameState.karma >= 20 ? '<p style="color:var(--accent-gold);">😇 "Você é gente boa! Tenho um desconto especial pra você!"</p>' : '') +
                   '<h4 style="margin:0.5rem 0 0.3rem;color:var(--accent-gold);">Escolha o que você quer:</h4>' +
                   '<div style="max-height:40vh;overflow-y:auto;">' + vendorItemsHtml + '</div>' +
                   '<button class="btn" onclick="Modals.hide()" style="margin-top:0.75rem;">Cancelar</button>';
