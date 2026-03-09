@@ -9949,9 +9949,10 @@
                 // Todas as salas exceto teto_masp (para personagens que voam)
                 const flyingRooms = Object.keys(GameState.rooms).filter(r => r !== 'teto_masp' && r !== 'subsolo_masp');
 
-                // Posições fixas
-                GameState.characters.player.location = 'masp';
-                GameState.playerLocation = 'masp';
+                // Posição inicial aleatória (exclui teto_masp, subsolo_masp, ceu_cidade)
+                const startRoom = Utils.randomChoice(groundRooms);
+                GameState.characters.player.location = startRoom;
+                GameState.playerLocation = startRoom;
 
                 GameState.characters.bruxa.location = 'teto_masp';
                 GameState.characters.feiticeiro.location = 'tunel';
