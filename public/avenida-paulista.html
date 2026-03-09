@@ -5272,7 +5272,7 @@
             // Aplicar camada MP3 aos players existentes
             _addMp3Layer(MusicSystem, 'exploration', { loop: true });
             _addMp3Layer(GameOverMusicSystem, 'gameover', { loop: false });
-            _addMp3Layer(CombatMusicSystem, 'combat', { loop: true });
+            _addMp3Layer(CombatMusicSystem, 'combat', { loop: false });
 
             // Pré-carregar MP3s ao iniciar (opcional, melhora UX)
             if ('caches' in window) {
