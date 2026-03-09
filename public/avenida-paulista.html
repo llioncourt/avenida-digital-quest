@@ -9741,15 +9741,15 @@
                     <div class="char-card">
                       <div class="char-card-portrait">
                         <img src="${portraitUrl}" alt="${char.name}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'char-portrait-fallback\\'>${charId === 'feiticeiro' ? '🧙' : charId === 'aguia' ? '🦅' : charId === 'bombardeador' ? '💣' : charId === 'bruxa' ? '🧹' : charId === 'demonio' ? '👹' : charId === 'vendedor' ? '🛒' : '❓'}</div><span class=\\'char-name-overlay\\'>${char.name}</span><span class=\\'char-status-badge ${statusClass}\\'>${statusText}</span>';">
-                        <span class="char-name-overlay">${char.name}</span>
                         <span class="char-status-badge ${statusClass}">${statusText}</span>
+                        <span class="char-name-overlay">${char.name}</span>
+                        <p class="char-card-desc">${char.description}</p>
                       </div>
                       <div class="char-card-body">
-                        <p class="char-card-desc">${char.description}</p>
                         <div class="char-stats-grid">
-                          <div class="char-stat" style="grid-column: 1 / -1;">
+                          <div class="char-stat">
                             <span class="stat-icon">❤️</span>
-                            <div class="stat-info" style="flex:1;">
+                            <div class="stat-info">
                               <span class="stat-label">Vida</span>
                               <span class="stat-value" style="color:${hpColor};">${char.hp} / ${char.maxHp}</span>
                               <div class="hp-bar-container">
