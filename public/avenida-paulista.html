@@ -8347,7 +8347,7 @@
                 );
 
                 // Assinatura: garante que alterações em nome/descricao/peso refletem no UI
-                const sig = roomId + '|' + items.map(i => `${i.id}:${i.name}:${i.weight}:${i.description}`).join('|');
+                const sig = roomId + '|h' + Hallucinations.getLevel() + '|' + items.map(i => `${i.id}:${i.name}:${i.weight}:${i.description}`).join('|');
                 if (this._renderSig.items === sig) return;
                 this._renderSig.items = sig;
 
