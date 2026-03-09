@@ -5236,6 +5236,14 @@
                 }
               };
 
+              player.pause = function() {
+                if (audio && player._mp3Active) {
+                  audio.pause();
+                  // NÃO reseta currentTime — permite retomar
+                }
+                player.isPlaying = false;
+              };
+
               player.stop = function() {
                 if (audio && player._mp3Active) {
                   stoppedManually = true;
