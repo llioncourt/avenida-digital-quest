@@ -5372,7 +5372,7 @@
               playbackSpeed: 1.0,
               musicGain: null,
 
-              init: async function() {
+              init: function() {
                 if (!this.isLoaded) _musicBase.init.call(this);
                 this.start();
               },
@@ -5576,6 +5576,8 @@
                 // Se já está tocando, não faz nada
                 if (audio && !audio.paused && player._mp3Active) return;
 
+                SoundSystem.resume(); // Desbloqueia AudioContext
+
                 // Busca síncrona do cache em memória
                 if (!blobUrl) {
                   blobUrl = _mp3BlobCache.get(url) || null;
@@ -5669,13 +5671,15 @@
               };
 
               // Atualizar volume do audio quando musicGain mudar
-              const originalSetVolume = MusicSystem.setVolume;
-              MusicSystem.setVolume = function(val) {
-                originalSetVolume.call(this, val);
-                if (audio && player._mp3Active) {
-                  audio.volume = val;
-                }
-              };
+              const originalSetVolume = player.setVolume;
+              if (originalSetVolume) {
+                player.setVolume = function(val) {
+                  originalSetVolume.call(player, val);
+                  if (audio && player._mp3Active) {
+                    audio.volume = val;
+                  }
+                };
+              }
             }
 
             // Aplicar camada MP3 aos players existentes
@@ -11018,22 +11022,26 @@
                 crawl.style.animation = 'star-wars-crawl 340s linear forwards';
 
                 // Tocar música da intro (nova track)
-                (async () => {
-                  console.log('[IntroSystem] Loading intro music...');
-                  // Check síncrono primeiro (preserva user gesture se já cacheado)
-                  let blobUrl = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
-                  if (!blobUrl) {
-                    blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
-                  }
-                  console.log('[IntroSystem] blobUrl:', blobUrl);
-                  if (blobUrl) {
-                    IntroSystem._introAudio = new Audio(blobUrl);
-                    IntroSystem._introAudio.volume = 0.8;
-                    IntroSystem._introAudio.play().catch(e => console.error('[IntroSystem] Play error:', e));
-                  } else {
-                    console.warn('[IntroSystem] Failed to load intro music');
-                  }
-                })();
+                console.log('[IntroSystem] Loading intro music...');
+                var introBlob = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
+                console.log('[IntroSystem] blobUrl:', introBlob);
+                if (introBlob) {
+                  IntroSystem._introAudio = new Audio(introBlob);
+                  IntroSystem._introAudio.volume = 0.8;
+                  IntroSystem._introAudio.play().catch(function(e) {
+                    console.error('[IntroSystem] Play error:', e);
+                  });
+                } else {
+                  Mp3Cache.load(MP3_TRACKS.introCrawl).then(function(b) {
+                    if (b) {
+                      IntroSystem._introAudio = new Audio(b);
+                      IntroSystem._introAudio.volume = 0.8;
+                      IntroSystem._introAudio.play().catch(function(e) {
+                        console.error('[IntroSystem] Fallback play error:', e);
+                      });
+                    }
+                  });
+                }
 
                 // Fade-out automático da música ~10s antes do crawl terminar
                 this._fadeTimeout = setTimeout(() => {
