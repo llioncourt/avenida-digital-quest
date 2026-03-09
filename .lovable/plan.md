@@ -1,38 +1,78 @@
 
 
-## Refatoração Completa (Fases 1-4)
+## Botão "Iniciar" + nova música no text crawl
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+### Contexto
+Browsers bloqueiam autoplay sem interação. A solução é adicionar uma tela de "Iniciar" antes do crawl, garantindo que qualquer áudio subsequente funcione sem restrições.
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+### Alterações em `public/avenida-paulista.html`
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+**1. Adicionar nova track ao `MP3_TRACKS` (~linha 5128)**
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+```js
+witchWin: 'AVP-Witch-Win.mp3',
+introCrawl: 'AVP-Intro.mp3'   // ← novo (você precisará fazer upload do arquivo)
+```
 
-### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+**2. Adicionar tela de início no HTML (~linha 2180)**
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+Antes do `intro-container`, inserir um overlay com botão "INICIAR":
+
+```html
+<div id="start-screen" style="position:fixed; inset:0; z-index:10000; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" onclick="StartScreen.start()">
+  <h1 style="color:#FFD700; font-family:'Press Start 2P',monospace; font-size:2rem; text-shadow:0 0 20px #FFD700;">AVENIDA PAULISTA</h1>
+  <p style="color:#aaa; margin-top:2rem; font-size:1.2rem; animation:pulse 2s infinite;">▶ CLIQUE PARA INICIAR</p>
+</div>
+```
+
+**3. Criar `StartScreen` object no JS (~antes do IntroSystem)**
+
+```js
+const StartScreen = {
+  start: function() {
+    document.getElementById('start-screen').remove();
+    IntroSystem.init();
+  }
+};
+```
+
+**4. Modificar `DOMContentLoaded` (~linha 10294)**
+
+Trocar `IntroSystem.init()` por nada — o `StartScreen.start()` já chama `IntroSystem.init()`.
+
+**5. Modificar `IntroSystem.init()` (~linha 10244-10246)**
+
+Trocar a música do crawl: em vez de `MusicSystem.init()` (que toca AVP-Theme), tocar a nova MP3 diretamente:
+
+```js
+// Tocar música da intro (nova track)
+(async () => {
+  const blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
+  if (blobUrl) {
+    IntroSystem._introAudio = new Audio(blobUrl);
+    IntroSystem._introAudio.volume = 0.8;
+    IntroSystem._introAudio.play().catch(() => {});
+  }
+})();
+```
+
+**6. Modificar `IntroSystem.complete()` (~linha 10265)**
+
+Parar a música da intro antes de iniciar o jogo:
+
+```js
+if (this._introAudio) {
+  this._introAudio.pause();
+  this._introAudio = null;
+}
+```
+
+### Resultado
+- Usuário vê tela preta com "CLIQUE PARA INICIAR"
+- Clique = interação do usuário → libera autoplay para toda a sessão
+- Text crawl inicia com música nova (AVP-Intro.mp3)
+- Ao terminar/pular crawl, música da intro para e tema do jogo começa normalmente
+
+### Pendência
+Você precisará fazer upload do arquivo `AVP-Intro.mp3` na pasta `public/`.
+
