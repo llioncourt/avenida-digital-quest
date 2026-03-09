@@ -60,4 +60,11 @@
   - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
 - Mensagens de feedback a cada turno e ao expirar
 - Energético Paulista também ativa 1 turno de cafeína
-- Flash dourado ao consumir café
+
+### ✅ Fase 8 — Portrait com Degradê Full-Card
+
+- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
+- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
+- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
+- Placeholder agora é gradiente sutil sem texto/ícone
+- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
