@@ -8461,6 +8461,20 @@
 
                 container.replaceChildren(frag);
                 this._nodeCache.chars = nextCache;
+
+                // Alucinações: injetar NPCs fantasmas
+                var phantomNpcs = Hallucinations.getPhantomNPCs();
+                for (var pn = 0; pn < phantomNpcs.length; pn++) {
+                  var pNpc = phantomNpcs[pn];
+                  var pBtn = document.createElement('button');
+                  pBtn.className = 'btn btn-character phantom-npc stagger-in';
+                  pBtn.dataset.action = 'showCharacter';
+                  pBtn.dataset.charId = pNpc.id;
+                  pBtn.title = pNpc.desc;
+                  pBtn.textContent = pNpc.icon + ' ' + pNpc.name;
+                  pBtn.style.animationDelay = ((chars.length + pn) * 50) + 'ms';
+                  container.appendChild(pBtn);
+                }
               },
 
               updateInventory: function() {
