@@ -1,5 +1,6 @@
 
 
+
 ## Refatoração Completa (Fases 1-4)
 
 ### ✅ Fase 1 — Bugs e segurança
@@ -36,3 +37,15 @@
   - Sem MP3 → fallback automático para MIDI
 - Integração de volume com `musicGain` existente (sliders continuam funcionando)
 - Tudo autocontido no HTML
+
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
