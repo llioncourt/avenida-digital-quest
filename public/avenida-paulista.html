@@ -5425,8 +5425,8 @@
               nightModeActive: false,
               // Neblina ativa
               fogActive: false,
-              // Pular próximo avanço de tempo (Café)
-              skipNextTimeAdvance: false,
+              // Turnos restantes do efeito Cafeinado (Café Paulistano)
+              caffeinatedTurns: 0,
               // Armadilhas ambientais por sala
               environmentTraps: {},
               // Armadilhas de grafite por sala
@@ -5620,6 +5620,11 @@
                   const item = GameState.items[itemId];
                   if (item) attack += item.attackPower;
                 });
+
+                // Bônus temporário de cafeína
+                if (GameState.caffeinatedTurns > 0) {
+                  attack += 2;
+                }
 
                 return attack;
               },
@@ -6114,11 +6119,13 @@
               },
 
               cafe: function() {
-                GameState.skipNextTimeAdvance = true;
+                GameState.caffeinatedTurns = 3;
+                GameState.energy = Math.min(100, GameState.energy + 20);
                 SoundSystem.playUseItem();
+                ScreenEffects.flash('rgba(212, 168, 70, 0.5)');
                 return {
                   success: true,
-                  message: '☕ Você toma o CAFÉ PAULISTANO! A cafeína corre pelas veias — sua próxima ação não avançará o tempo!',
+                  message: '☕ Você toma o CAFÉ PAULISTANO! A cafeína corre pelas veias — por 3 turnos: tempo congelado, +20 energia, +2 ataque, movimento sem custo e mente clara!',
                   consumed: true
                 };
               },
@@ -6278,12 +6285,13 @@
                 var oldHp = player.hp;
                 player.hp = Math.min(player.maxHp, player.hp + GAME_CONSTANTS.ENERGETICO_HEAL);
                 var healed = player.hp - oldHp;
-                GameState.skipNextTimeAdvance = true;
+                // Energético também ativa efeito cafeinado (1 turno)
+                if (GameState.caffeinatedTurns < 1) GameState.caffeinatedTurns = 1;
                 SoundSystem.playHeal();
                 ScreenEffects.flash('rgba(0, 255, 100, 0.4)');
                 return {
                   success: true,
-                  message: '⚡ Você bebeu o ENERGÉTICO PAULISTA! +' + healed + ' HP! Sua próxima ação não avança o tempo!',
+                  message: '⚡ Você bebeu o ENERGÉTICO PAULISTA! +' + healed + ' HP! O tempo não avançará neste turno!',
                   consumed: true
                 };
               }
@@ -7201,9 +7209,13 @@
             const Events = {
               // Verificar efeito do café antes de avançar tempo
               maybeAdvanceTime: function() {
-                if (GameState.skipNextTimeAdvance) {
-                  GameState.skipNextTimeAdvance = false;
-                  Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+                if (GameState.caffeinatedTurns > 0) {
+                  GameState.caffeinatedTurns--;
+                  if (GameState.caffeinatedTurns > 0) {
+                    Log.add('☕ Cafeína: ' + GameState.caffeinatedTurns + ' turno' + (GameState.caffeinatedTurns > 1 ? 's' : '') + ' restante' + (GameState.caffeinatedTurns > 1 ? 's' : '') + '. O tempo não avançou!', 'success');
+                  } else {
+                    Log.add('☕ O efeito do café passou... você sente o cansaço voltar.', 'info');
+                  }
                 } else {
                   Events.advanceTime();
                 }
@@ -9439,7 +9451,7 @@
                 GameState.armedBomb = null;
                 GameState.hasReadMagicBook = false;
                 GameState.discoveredItems = new Set();
-                GameState.skipNextTimeAdvance = false;
+                GameState.caffeinatedTurns = 0;
                 GameState.roomTraps = {};
                 GameState.visitedRooms = new Set(['masp']);
                 GameState.energy = GAME_CONSTANTS.MAX_ENERGY;
@@ -10369,6 +10381,8 @@
                */
               getLevel: function() {
                 if (GameState.gameOver) return 0;
+                // Cafeína bloqueia alucinações
+                if (GameState.caffeinatedTurns > 0) return 0;
                 var player = GameState.characters.player;
                 if (!player || !player.isAlive) return 0;
                 var hpPerc = (player.hp / player.maxHp) * 100;
