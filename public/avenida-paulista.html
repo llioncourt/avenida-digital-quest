@@ -7589,7 +7589,8 @@
                 this.typeTimers.forEach(function(t) { clearTimeout(t); });
                 this.typeTimers = [];
                 document.getElementById('combat-modal-overlay').classList.remove('active');
-                document.getElementById('combat-confirm-btn').style.display = 'none';
+                document.getElementById('combat-confirm-btn').style.visibility = 'hidden';
+                document.getElementById('combat-confirm-btn').style.opacity = '0';
               }
             };
 
