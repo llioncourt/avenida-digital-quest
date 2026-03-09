@@ -5220,7 +5220,9 @@
 
                   player._mp3Active = true;
                   player.isPlaying = true;
-                  audio.play().catch(err => {
+                  audio.play().then(() => {
+                    if (player.updateButton) player.updateButton();
+                  }).catch(err => {
                     console.warn('[Mp3Layer] Playback error, falling back to MIDI:', err);
                     player._mp3Active = false;
                     originalStart();
