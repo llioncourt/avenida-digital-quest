@@ -5113,7 +5113,8 @@
               gameover: 'AVP Game Over.mp3',
               combat: 'AVP Combat.mp3',
               defeat: 'AVP Combat Defeat.mp3',
-              victory: 'AVP Combat Victory.mp3'
+              victory: 'AVP Combat Victory.mp3',
+              witchChanting: 'AVP Witch Chanting.mp3'
             };
 
             const MP3_CACHE_NAME = 'avp-music-v1';
@@ -7373,8 +7374,23 @@
                   GameState.lastWitchWordTime = GameState.time;
 
                   // Som de magia negra e efeito visual
-                  SoundSystem.playDarkMagic();
                   ScreenEffects.flash();
+
+                  // Tentar MP3, fallback para efeito synth
+                  (async () => {
+                    try {
+                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchChanting);
+                      if (blobUrl) {
+                        const a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(() => SoundSystem.playDarkMagic());
+                      } else {
+                        SoundSystem.playDarkMagic();
+                      }
+                    } catch(e) {
+                      SoundSystem.playDarkMagic();
+                    }
+                  })();
 
                   const messages = [
                     'O ar estremece... você sente uma energia arcana se acumulando no MASP!',

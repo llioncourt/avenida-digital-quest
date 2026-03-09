@@ -1,47 +1,38 @@
 
 
-## Integrar MP3 "AVP Witch Chanting" no evento da Bruxa
+## Refatoração Completa (Fases 1-4)
 
-Sem criar player novo. Usar diretamente o sistema `Mp3Cache` + `<audio>` inline no `processWitchWord`, com fallback para o `SoundSystem.playDarkMagic()` que já existe.
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-### Alterações em `public/avenida-paulista.html`
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-**1. Adicionar `witchChanting` ao `MP3_TRACKS` (linha 5116)**
-```js
-victory: 'AVP Combat Victory.mp3',
-witchChanting: 'AVP Witch Chanting.mp3'
-```
-Isso garante que o MP3 seja pré-cacheado pelo `Mp3Cache.preloadAll()` automaticamente.
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-**2. Modificar `processWitchWord` (linha 7371-7387)**
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-Dentro do bloco `if (Utils.random() < chance)`, substituir a chamada direta a `SoundSystem.playDarkMagic()` por uma tentativa async de tocar o MP3 via `Mp3Cache.load()`. Se o MP3 estiver disponível (cache ou rede), toca com `new Audio()`. Se não, faz fallback para `SoundSystem.playDarkMagic()` (o efeito MIDI/synth atual).
+### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-```js
-if (Utils.random() < chance) {
-  GameState.witchWords++;
-  GameState.lastWitchWordTime = GameState.time;
-  ScreenEffects.flash();
-
-  // Tentar MP3, fallback para efeito synth
-  (async () => {
-    const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchChanting);
-    if (blobUrl) {
-      const a = new Audio(blobUrl);
-      if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-      a.play().catch(() => SoundSystem.playDarkMagic());
-    } else {
-      SoundSystem.playDarkMagic();
-    }
-  })();
-
-  // ... mensagens continuam iguais
-}
-```
-
-### Resumo
-- Nenhum player novo criado
-- MP3 priorizado, fallback para o efeito synth existente
-- Cache offline funciona via `Mp3Cache` já implementado
-- 2 pontos de edição no arquivo
-
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
