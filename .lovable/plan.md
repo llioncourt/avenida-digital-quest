@@ -1,21 +1,63 @@
 
 
-## Download do Log na Tela de Game Over
 
-### O que será feito
-Adicionar um ícone discreto (📥 ou ícone de download) no modal de game over que permite baixar todo o log da partida como arquivo `.txt`.
+## Refatoração Completa (Fases 1-4)
 
-### Alterações em `public/avenida-paulista.html`
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-**1. Função de download no namespace `Log`** (~15 linhas)
-- `Log.downloadAsText()` — converte `Log.entries` em texto formatado (`[HH:MM] mensagem`) e dispara download como `avp-log-YYYY-MM-DD.txt` via `Blob` + `URL.createObjectURL` + link temporário
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-**2. Botão no modal de game over** (linha ~9359)
-- Adicionar um ícone pequeno (usando emoji 📥 ou caractere ⬇) posicionado discretamente ao lado do título ou abaixo das conquistas, antes do botão "Jogar Novamente"
-- Estilo inline: opacity 0.5, hover opacity 1, cursor pointer, tamanho pequeno
-- `onclick="Log.downloadAsText()"`
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-### Escopo
-- ~20 linhas de JS/HTML adicionadas
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+
+### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
 - Tudo autocontido no HTML
 
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+
+### ✅ Fase 7 — Buff do Café Paulistano
+
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
+- Flash dourado ao consumir café

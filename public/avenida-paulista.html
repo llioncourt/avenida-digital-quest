@@ -7821,6 +7821,25 @@
                 return this._container;
               },
 
+              downloadAsText: function() {
+                var lines = this.entries.map(function(e) {
+                  var msg = String(e.message).replace(/<[^>]*>/g, '').replace(/\*([^*]+)\*/g, '$1');
+                  return '[' + e.time + '] ' + msg;
+                });
+                var text = '=== Aventuras na Av. Paulista — Log da Partida ===\n';
+                text += 'Data: ' + new Date().toLocaleString('pt-BR') + '\n\n';
+                text += lines.join('\n');
+                var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'avp-log-' + new Date().toISOString().slice(0, 10) + '.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              },
+
               _formatMessageHTML: function(message) {
                 // Mantém o mesmo comportamento: trechos *assim* viram <em>assim</em>
                 return String(message).replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -9357,9 +9376,12 @@
                   <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${reason}</p>
                   ${summaryStats}
                   ${achievementsHTML}
-                  <button id="restart-btn" class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="margin-top: 1rem; display: none;">
-                    🔄 Jogar Novamente
-                  </button>
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-top: 1rem;">
+                    <button id="restart-btn" class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="display: none;">
+                      🔄 Jogar Novamente
+                    </button>
+                    <span onclick="Log.downloadAsText()" title="Baixar log da partida" style="cursor: pointer; opacity: 0.4; font-size: 1.1rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'">📥</span>
+                  </div>
                 `;
                 // Mostrar botão somente após a música de game over terminar
                 setTimeout(() => {
