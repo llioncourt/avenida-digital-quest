@@ -5668,6 +5668,15 @@
             // Pré-carregar MP3s ao iniciar
             Mp3Cache.preloadAll();
 
+            // Fallback: se preload falhou, retry no primeiro clique do usuário
+            document.addEventListener('click', function _retryPreload() {
+              if (_mp3AudioElements.size === 0) {
+                console.log('[Mp3Cache] Retry preload on first click');
+                Mp3Cache.preloadAll();
+              }
+              document.removeEventListener('click', _retryPreload);
+            }, { once: true });
+
             // Indicador online no título (roxo = online, amarelo = offline)
             function updateTitleOnlineStatus() {
               const title = document.querySelector('.modern-pulse-title');
