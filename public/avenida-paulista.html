@@ -552,6 +552,15 @@
               text-shadow: 0 0 15px rgba(212, 168, 70, 0.2);
             }
 
+            .modern-pulse-title.online {
+              background: linear-gradient(270deg, #9b59b6, #fff, #9b59b6, #6c3483);
+              background-size: 300% 300%;
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              text-shadow: 0 0 15px rgba(155, 89, 182, 0.2);
+            }
+
             .button-group {
               display: flex;
               flex-wrap: wrap;
@@ -2189,42 +2198,16 @@
               </div>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
                 <div class="volume-control">
-                  <button
-                    id="sound-toggle"
-                    class="vol-btn"
-                    onclick="SoundSystem.toggleSlider()"
-                    title="Volume dos efeitos sonoros"
-                  >
-                    🔊
-                  </button>
+                  <button id="sound-toggle" class="vol-btn" onclick="SoundSystem.toggleSlider()" title="Volume dos efeitos sonoros">🔊</button>
                   <div class="vol-slider" id="sound-slider">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value="100"
-                      oninput="SoundSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'"
-                    />
+                    <input type="range" min="0" max="100" value="100" oninput="SoundSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
                     <span class="vol-pct">100%</span>
                   </div>
                 </div>
                 <div class="volume-control">
-                  <button
-                    id="music-toggle"
-                    class="vol-btn"
-                    onclick="MusicSystem.toggleSlider()"
-                    title="Volume da música"
-                  >
-                    🎵
-                  </button>
+                  <button id="music-toggle" class="vol-btn" onclick="MusicSystem.toggleSlider()" title="Volume da música">🎵</button>
                   <div class="vol-slider" id="music-slider">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value="100"
-                      oninput="MusicSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'"
-                    />
+                    <input type="range" min="0" max="100" value="100" oninput="MusicSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
                     <span class="vol-pct">100%</span>
                   </div>
                 </div>
@@ -2331,9 +2314,7 @@
                 <div class="bomb-tooltip" id="bomb-tooltip-content"></div>
               </button>
               <div id="minimap-title">🗺️ MAPA</div>
-              <button class="journal-btn" onclick="Journal.showModal()" title="Diário" style="justify-self: end;">
-                📓
-              </button>
+              <button class="journal-btn" onclick="Journal.showModal()" title="Diário" style="justify-self: end;">📓</button>
             </div>
             <div id="minimap-viewport">
               <div id="minimap"></div>
@@ -4998,9 +4979,9 @@
             });
 
             var ClickMusicSystem = createMidiPlayer({
-              base64: CLICK_MIDI_BASE64, volume: 1.0, name: 'ClickMusicSystem',
+              base64: CLICK_MIDI_BASE64, volume: 0.7, name: 'ClickMusicSystem',
               osc1Type: 'square', osc2Type: 'triangle', freqMult: 1,
-              gain1: 0.6, gain2: 0.25, attack: 0.003, decay: 0.05, sustain: 0.3, release: 0.08
+              gain1: 0.42, gain2: 0.175, attack: 0.003, decay: 0.05, sustain: 0.3, release: 0.08
             });
 
             var GameOverMusicSystem = createMidiPlayer({
@@ -5103,7 +5084,11 @@
                 if (this.musicGain) this.musicGain.gain.value = val;
                 var btn = document.getElementById('music-toggle');
                 if (val === 0) {
-                  if (this.isPlaying) this.stop();
+                  if (this.isPlaying && this.pause) {
+                    this.pause();
+                  } else if (this.isPlaying) {
+                    this.stop();
+                  }
                   if (btn) btn.textContent = '🔕';
                 } else {
                   if (!this.isPlaying) { SoundSystem.resume(); this.start(); }
@@ -5135,9 +5120,12 @@
             const MP3_TRACKS = {
               exploration: 'AVP Theme.mp3',
               gameover: 'AVP Game Over.mp3',
-              combat: '',    // placeholder — adicionar MP3 quando disponível
-              defeat: '',    // placeholder
-              victory: ''    // placeholder
+              combat: 'AVP Combat.mp3',
+              defeat: 'AVP Combat Defeat.mp3',
+              victory: 'AVP Combat Victory.mp3',
+              witchChanting: 'AVP Witch Chanting.mp3',
+              witchSummon: 'AVP Witch Summon.mp3',
+              witchWin: 'AVP Witch Win.mp3'
             };
 
             const MP3_CACHE_NAME = 'avp-music-v1';
@@ -5158,7 +5146,7 @@
                 try {
                   const cache = await caches.open(MP3_CACHE_NAME);
                   let response = await cache.match(url);
-
+                  
                   if (!response) {
                     // Não está no cache, buscar da rede
                     console.log('[Mp3Cache] Fetching from network:', url);
@@ -5174,7 +5162,7 @@
                   } else {
                     console.log('[Mp3Cache] Loaded from cache:', url);
                   }
-
+                  
                   const blob = await response.blob();
                   return URL.createObjectURL(blob);
                 } catch (err) {
@@ -5232,7 +5220,7 @@
                     audio = new Audio(blobUrl);
                     audio.loop = loop;
                   }
-
+                  
                   // Sincronizar volume com musicGain
                   if (MusicSystem.musicGain) {
                     audio.volume = MusicSystem.musicGain.gain.value;
@@ -5248,7 +5236,9 @@
 
                   player._mp3Active = true;
                   player.isPlaying = true;
-                  audio.play().catch(err => {
+                  audio.play().then(() => {
+                    if (player.updateButton) player.updateButton();
+                  }).catch(err => {
                     console.warn('[Mp3Layer] Playback error, falling back to MIDI:', err);
                     player._mp3Active = false;
                     originalStart();
@@ -5260,6 +5250,14 @@
                   console.log('[Mp3Layer] No MP3 available, using MIDI:', trackKey);
                   originalStart();
                 }
+              };
+
+              player.pause = function() {
+                if (audio && player._mp3Active) {
+                  audio.pause();
+                  // NÃO reseta currentTime — permite retomar
+                }
+                player.isPlaying = false;
               };
 
               player.stop = function() {
@@ -5286,12 +5284,29 @@
             // Aplicar camada MP3 aos players existentes
             _addMp3Layer(MusicSystem, 'exploration', { loop: true });
             _addMp3Layer(GameOverMusicSystem, 'gameover', { loop: false });
-            _addMp3Layer(CombatMusicSystem, 'combat', { loop: true });
+            _addMp3Layer(CombatMusicSystem, 'combat', { loop: false });
+            _addMp3Layer(DefeatMusicSystem, 'defeat', { loop: false });
+            _addMp3Layer(VictoryMusicSystem, 'victory', { loop: false });
 
             // Pré-carregar MP3s ao iniciar (opcional, melhora UX)
             if ('caches' in window) {
               Mp3Cache.preloadAll();
             }
+
+            // Indicador online no título (roxo = online, amarelo = offline)
+            function updateTitleOnlineStatus() {
+              const title = document.querySelector('.modern-pulse-title');
+              if (title) {
+                if (navigator.onLine) {
+                  title.classList.add('online');
+                } else {
+                  title.classList.remove('online');
+                }
+              }
+            }
+            updateTitleOnlineStatus();
+            window.addEventListener('online', updateTitleOnlineStatus);
+            window.addEventListener('offline', updateTitleOnlineStatus);
 
             // ============================================================================
             // GAME STATE
@@ -6659,7 +6674,16 @@
                     const demon = GameState.characters.demonio;
                     demon.location = t.location;
                     demon.isSummoned = true;
-                    SoundSystem.playDemonSummon();
+                    (async () => {
+                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchSummon);
+                      if (blobUrl) {
+                        const a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(() => SoundSystem.playDemonSummon());
+                      } else {
+                        SoundSystem.playDemonSummon();
+                      }
+                    })();
                     ScreenEffects.flash('rgba(139, 0, 0, 0.6)'); // Flash vermelho escuro
                     Log.add('🔥 A Bruxa invoca o DEMÔNIO! O chão treme e chamas brotam das sombras!', 'danger');
                   }
@@ -6805,10 +6829,14 @@
                 this.phase = 0;
                 this.pendingCombat = { attacker: attackerData, defender: defenderData, result: combatResult, applyCallback: applyCallback };
 
-                // Pause music
+                // Pause music (use pause() to preserve playback position)
                 if (MusicSystem.isPlaying) {
                   this.musicWasPlaying = true;
-                  MusicSystem.stop();
+                  if (MusicSystem.pause) {
+                    MusicSystem.pause();
+                  } else {
+                    MusicSystem.stop();
+                  }
                 }
 
                 // Pause ambient sounds during combat
@@ -7381,8 +7409,23 @@
                   GameState.lastWitchWordTime = GameState.time;
 
                   // Som de magia negra e efeito visual
-                  SoundSystem.playDarkMagic();
                   ScreenEffects.flash();
+
+                  // Tentar MP3, fallback para efeito synth
+                  (async () => {
+                    try {
+                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchChanting);
+                      if (blobUrl) {
+                        const a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(() => SoundSystem.playDarkMagic());
+                      } else {
+                        SoundSystem.playDarkMagic();
+                      }
+                    } catch(e) {
+                      SoundSystem.playDarkMagic();
+                    }
+                  })();
 
                   const messages = [
                     'O ar estremece... você sente uma energia arcana se acumulando no MASP!',
@@ -8317,7 +8360,8 @@
 
                   // Vendedor: ação especial
                   if (char.isNeutral && char.id === 'vendedor') {
-                    btn.dataset.action = 'vendorTrade';
+                    btn.dataset.action = 'showCharacter';
+                    btn.dataset.charId = char.id;
                     btn.className = 'btn btn-character stagger-in';
                     btn.style.borderColor = 'var(--accent-gold)';
                     btn.style.color = 'var(--accent-gold)';
@@ -8710,7 +8754,7 @@
                   'avenida_paulista_leste':  { x: 90, y: 40 },
 
                   // Nível médio-baixo
-                  'subsolo_masp':            { x: 10,  y: 40 },
+                  'subsolo_masp':            { x: 10,  y: 50 },
                   'livraria':                { x: 70,  y: 50 },
 
                   'nove_julho_norte':        { x: 40,  y: 60 },
@@ -9119,6 +9163,19 @@
                 RandomEvents.stopAllSounds();
                 // Tocar música de game over ao exibir o modal
                 GameOverMusicSystem.start();
+                // Se game over por portal da bruxa, tocar AVP Witch Win junto
+                if (GameState.witchWords >= 4) {
+                  (async () => {
+                    try {
+                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchWin);
+                      if (blobUrl) {
+                        const a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(() => {});
+                      }
+                    } catch(e) {}
+                  })();
+                }
                 const player = GameState.characters.player;
                 const witch = GameState.characters.bruxa;
 
@@ -9197,6 +9254,7 @@
                       <div>Status: ${allyText}</div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
+                      ${charId === 'vendedor' && char.isNeutral && char.isAlive ? `<button class="btn" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="Modals.hide(); VendorTrade.openTradeModal();">🛒 Trocar</button>` : ''}
                       ${char.isAlly ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'ally')">⚠️ Atacar</button>` : (char.isNeutral ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'neutral')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
                       ${convertButton}
                       <button class="btn" onclick="Modals.hide()">Fechar</button>
