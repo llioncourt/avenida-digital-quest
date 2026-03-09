@@ -6581,7 +6581,11 @@
                   return { success: false, message: 'Este item não tem efeito definido!' };
                 }
 
+                // Alucinações: capturar nível antes de usar item (cura pode reduzir)
+                var _hallucinLevelBefore = Hallucinations.getLevel();
                 const result = handler(targetItemId);
+                // Alucinações: notificar cura se nível mudou
+                if (result.success) Hallucinations.notifyCure(_hallucinLevelBefore);
 
                 // Se consumed for true, remover do inventário
                 if (result.consumed) {
