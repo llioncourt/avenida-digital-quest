@@ -1,78 +1,70 @@
 
 
-## Diagnóstico
 
-Dois problemas distintos:
+## Refatoração Completa (Fases 1-4)
 
-### 1. Exploração MP3 nunca toca
-O `start()` síncrono funciona assim: se o blob não está no cache → toca MIDI e carrega MP3 em background. Mas **nunca faz a troca** de MIDI para MP3 depois que o blob fica pronto. O `start()` da exploração só é chamado uma vez (no início do jogo). Se `preloadAll()` não terminou antes desse momento, o MIDI toca e o MP3 carregado em background é ignorado até o próximo `start()` (só após um combate).
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-### 2. Intro MP3 não toca
-O código da intro faz `await Mp3Cache.load(...)` dentro de um async IIFE no click handler. Se `preloadAll()` já completou, o `load()` retorna do Map instantaneamente (sem delay real no await) e o browser ainda aceita o gesto. Se não completou, o `await fetch()` quebra a cadeia do user gesture → `audio.play()` bloqueado.
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-## Fix — arquivo `public/avenida-paulista.html`
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-### Mudança 1: Auto-switch MIDI→MP3 no fallback (linhas 5614-5620)
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-Quando o blob carrega em background, parar o MIDI e iniciar o MP3 automaticamente:
+### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-```js
-} else {
-  // MP3 não carregou ainda → MIDI agora, carrega em background
-  player._mp3Active = false;
-  console.log('[Mp3Layer] Not preloaded yet, using MIDI:', trackKey);
-  Mp3Cache.load(url).then(b => {
-    blobUrl = b;
-    // Auto-switch: se ainda está tocando (MIDI), trocar para MP3
-    if (b && player.isPlaying) {
-      originalStop();
-      if (!audio) {
-        audio = new Audio(blobUrl);
-        audio.loop = loop;
-      }
-      if (MusicSystem.musicGain) {
-        audio.volume = MusicSystem.musicGain.gain.value;
-      } else {
-        audio.volume = MusicSystem.volume || 1.0;
-      }
-      player._mp3Active = true;
-      audio.play().then(() => {
-        console.log('[Mp3Layer] ▶ Auto-switched to MP3:', trackKey);
-        if (player.updateButton) player.updateButton();
-      }).catch(() => {
-        // Browser bloqueou (sem gesto) — manter MIDI
-        player._mp3Active = false;
-        originalStart();
-      });
-    }
-  });
-  originalStart();
-}
-```
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
 
-### Mudança 2: Intro — check síncrono do cache antes do await (linhas 10995-11006)
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
 
-```js
-(async () => {
-  console.log('[IntroSystem] Loading intro music...');
-  // Check síncrono primeiro (preserva user gesture se já cacheado)
-  let blobUrl = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
-  if (!blobUrl) {
-    blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
-  }
-  console.log('[IntroSystem] blobUrl:', blobUrl);
-  if (blobUrl) {
-    IntroSystem._introAudio = new Audio(blobUrl);
-    IntroSystem._introAudio.volume = 0.8;
-    IntroSystem._introAudio.play().catch(e => console.error('[IntroSystem] Play error:', e));
-  } else {
-    console.warn('[IntroSystem] Failed to load intro music');
-  }
-})();
-```
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
 
-### O que NÃO muda
-- `preloadAll()`, `Mp3Cache.load()`, `stop()`, `pause()` — intocados
-- Efeitos da bruxa — intocados
-- Paths dos MP3s — intocados
+### ✅ Fase 7 — Buff do Café Paulistano
 
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
+
+### ✅ Fase 8 — Portrait com Degradê Full-Card
+
+- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
+- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
+- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
+- Placeholder agora é gradiente sutil sem texto/ícone
+- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
