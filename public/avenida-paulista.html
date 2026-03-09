@@ -5576,6 +5576,8 @@
                 // Se já está tocando, não faz nada
                 if (audio && !audio.paused && player._mp3Active) return;
 
+                SoundSystem.resume(); // Desbloqueia AudioContext
+
                 // Busca síncrona do cache em memória
                 if (!blobUrl) {
                   blobUrl = _mp3BlobCache.get(url) || null;
