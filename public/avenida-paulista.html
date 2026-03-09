@@ -9167,16 +9167,19 @@
                 GameOverMusicSystem.start();
                 // Se game over por portal da bruxa, tocar AVP Witch Win junto
                 if (GameState.witchWords >= 4) {
-                  (async () => {
-                    try {
-                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchWin);
-                      if (blobUrl) {
-                        const a = new Audio(blobUrl);
-                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-                        a.play().catch(() => {});
-                      }
-                    } catch(e) {}
-                  })();
+                  const halfDuration = ((GameOverMusicSystem.duration || 10) / 2) * 1000;
+                  setTimeout(() => {
+                    (async () => {
+                      try {
+                        const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchWin);
+                        if (blobUrl) {
+                          const a = new Audio(blobUrl);
+                          if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                          a.play().catch(() => {});
+                        }
+                      } catch(e) {}
+                    })();
+                  }, halfDuration);
                 }
                 const player = GameState.characters.player;
                 const witch = GameState.characters.bruxa;
