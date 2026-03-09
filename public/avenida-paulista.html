@@ -5115,7 +5115,8 @@
               defeat: 'AVP Combat Defeat.mp3',
               victory: 'AVP Combat Victory.mp3',
               witchChanting: 'AVP Witch Chanting.mp3',
-              witchSummon: 'AVP Witch Summon.mp3'
+              witchSummon: 'AVP Witch Summon.mp3',
+              witchWin: 'AVP Witch Win.mp3'
             };
 
             const MP3_CACHE_NAME = 'avp-music-v1';
@@ -9138,6 +9139,19 @@
                 RandomEvents.stopAllSounds();
                 // Tocar música de game over ao exibir o modal
                 GameOverMusicSystem.start();
+                // Se game over por portal da bruxa, tocar AVP Witch Win junto
+                if (GameState.witchWords >= 4) {
+                  (async () => {
+                    try {
+                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchWin);
+                      if (blobUrl) {
+                        const a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(() => {});
+                      }
+                    } catch(e) {}
+                  })();
+                }
                 const player = GameState.characters.player;
                 const witch = GameState.characters.bruxa;
 
