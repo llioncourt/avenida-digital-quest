@@ -7791,7 +7791,7 @@
 
                 // Destruir TODOS os itens no local
                 Object.values(GameState.items).forEach(item => {
-                  if (item.location === bombLocation) {
+                  if (item.location === bombLocation && item.id !== 'bomba') {
                     item.location = null;
                     item.isDestroyed = true;
                   }
@@ -8062,6 +8062,7 @@
                     turnsLeft: timerTurns
                   };
                   GameState.items.bomba.location = bombardeador.location;
+                  GameState.items.bomba.isDestroyed = false;
 
                   bombardeador.lastBombCreation = GameState.time;
 
