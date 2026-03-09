@@ -5533,10 +5533,24 @@
                 const urls = Object.values(MP3_TRACKS).filter(u => u);
                 const results = await Promise.all(urls.map(u => this.load(u)));
                 const loaded = results.filter(r => r !== null).length;
-                const failed = results.length - loaded;
                 console.log(`[Mp3Cache] Preload complete: ${loaded}/${results.length} OK`);
+
+                // Pré-criar Audio elements para playback síncrono
+                for (const [key, trackUrl] of Object.entries(MP3_TRACKS)) {
+                  if (!trackUrl) continue;
+                  const blob = _mp3BlobCache.get(trackUrl);
+                  if (blob) {
+                    const a = new Audio(blob);
+                    a.preload = 'auto';
+                    _mp3AudioElements.set(key, a);
+                  }
+                }
+                console.log(`[Mp3Cache] Pre-created ${_mp3AudioElements.size} Audio elements`);
               }
             };
+
+            /** Map de Audio elements pré-criados por trackKey */
+            const _mp3AudioElements = new Map();
 
             /**
              * @function _addMp3Layer
@@ -5561,22 +5575,23 @@
               let stoppedManually = false;
 
               player.start = function() {
-                // Se já está tocando, não faz nada
+                // Se já está tocando MP3, não faz nada
                 if (audio && !audio.paused && player._mp3Active) return;
 
                 SoundSystem.resume(); // Desbloqueia AudioContext
 
-                // Busca síncrona do cache em memória
-                if (!blobUrl) {
-                  blobUrl = _mp3BlobCache.get(url) || null;
-                }
-
-                if (blobUrl) {
-                  // Usar MP3
-                  if (!audio) {
-                    audio = new Audio(blobUrl);
+                // Buscar Audio pré-criado (síncrono, sem await)
+                if (!audio) {
+                  const cached = _mp3AudioElements.get(trackKey);
+                  if (cached) {
+                    audio = cached;
                     audio.loop = loop;
                   }
+                }
+
+                if (audio) {
+                  // PARAR MIDI antes de tocar MP3
+                  originalStop();
 
                   // Sincronizar volume com musicGain
                   if (MusicSystem.musicGain) {
@@ -5602,36 +5617,9 @@
                     originalStart();
                   });
                 } else {
-                  // MP3 não carregou ainda → MIDI agora, carrega em background
+                  // Nenhum Audio pré-criado → MIDI direto
                   player._mp3Active = false;
-                  console.log('[Mp3Layer] Not preloaded yet, using MIDI:', trackKey);
-                  Mp3Cache.load(url).then(b => {
-                    blobUrl = b;
-                    // Auto-switch: se ainda está tocando (MIDI), trocar para MP3
-                    if (b && player.isPlaying) {
-                      originalStop();
-                      if (!audio) {
-                        audio = new Audio(blobUrl);
-                        audio.loop = loop;
-                      } else {
-                        audio.src = blobUrl;
-                      }
-                      if (MusicSystem.musicGain) {
-                        audio.volume = MusicSystem.musicGain.gain.value;
-                      } else {
-                        audio.volume = MusicSystem.volume || 1.0;
-                      }
-                      player._mp3Active = true;
-                      audio.play().then(() => {
-                        console.log('[Mp3Layer] ▶ Auto-switched to MP3:', trackKey);
-                        if (player.updateButton) player.updateButton();
-                      }).catch(() => {
-                        // Browser bloqueou (sem gesto) — manter MIDI
-                        player._mp3Active = false;
-                        originalStart();
-                      });
-                    }
-                  });
+                  console.log('[Mp3Layer] No pre-created audio, using MIDI:', trackKey);
                   originalStart();
                 }
               };
@@ -5679,6 +5667,15 @@
 
             // Pré-carregar MP3s ao iniciar
             Mp3Cache.preloadAll();
+
+            // Fallback: se preload falhou, retry no primeiro clique do usuário
+            document.addEventListener('click', function _retryPreload() {
+              if (_mp3AudioElements.size === 0) {
+                console.log('[Mp3Cache] Retry preload on first click');
+                Mp3Cache.preloadAll();
+              }
+              document.removeEventListener('click', _retryPreload);
+            }, { once: true });
 
             // Indicador online no título (roxo = online, amarelo = offline)
             function updateTitleOnlineStatus() {
