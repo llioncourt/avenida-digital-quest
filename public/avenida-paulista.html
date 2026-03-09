@@ -1637,6 +1637,7 @@
               inset: 0;
               background: black;
               z-index: 10000;
+              display: none;
               overflow: hidden;
               perspective: 400px;
               perspective-origin: 50% 40%;
@@ -10232,6 +10233,9 @@
                   Game.init();
                   return;
                 }
+
+                // Mostrar intro-container
+                intro.style.display = '';
 
                 // Marcar que intro está ativo (esconde o jogo)
                 document.body.classList.add('intro-active');
