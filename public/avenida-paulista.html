@@ -1398,6 +1398,7 @@
             #character-modal-content .char-card-portrait {
               position: relative;
               width: 50%;
+              container-type: inline-size;
               min-height: 320px;
               overflow: hidden;
               background: linear-gradient(135deg, #0a0806, #1a150c);
@@ -1435,16 +1436,19 @@
 
             #character-modal-content .char-card-portrait .char-name-overlay {
               position: absolute;
-              bottom: 52px;
+              bottom: 62px;
               left: 16px;
               right: 16px;
               z-index: 2;
               font-family: var(--font-mono);
-              font-size: 1.4rem;
+              font-size: clamp(0.85rem, 4cqw, 1.4rem);
               font-weight: 700;
               color: var(--accent-gold);
               text-shadow: 0 2px 12px rgba(0,0,0,0.8);
               letter-spacing: 0.08em;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: clip;
             }
 
             #character-modal-content .char-card-portrait .char-card-desc {
