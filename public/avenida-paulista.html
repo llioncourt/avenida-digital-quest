@@ -7029,8 +7029,11 @@
                 }
                 defenderLines.push({ text: 'TOTAL: ' + def.totalDefense, cls: 'combat-total' });
 
-                // Render attacker card
+                // Render attacker card with portrait
                 var atkCard = document.getElementById('combat-card-attacker');
+                var atkCharId = this.pendingCombat.result.attackerId || 'player';
+                var atkMoveName = atk.moveName || null;
+                atkCard.appendChild(Portraits.createEl(atkCharId, atkMoveName));
                 attackerLines.forEach(function(line) {
                   var div = document.createElement('div');
                   if (line.cls === 'combat-card-title') {
@@ -7042,8 +7045,11 @@
                   atkCard.appendChild(div);
                 });
 
-                // Render defender card
+                // Render defender card with portrait
                 var defCard = document.getElementById('combat-card-defender');
+                var defCharId = this.pendingCombat.result.targetId || 'player';
+                var defMoveName = def.moveName || null;
+                defCard.appendChild(Portraits.createEl(defCharId, defMoveName));
                 defenderLines.forEach(function(line) {
                   var div = document.createElement('div');
                   if (line.cls === 'combat-card-title') {
