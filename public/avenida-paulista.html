@@ -11027,6 +11027,7 @@
                   });
                 } else {
                   Mp3Cache.load(MP3_TRACKS.introCrawl).then(function(b) {
+                    if (IntroSystem.isComplete) return;
                     if (b) {
                       IntroSystem._introAudio = new Audio(b);
                       IntroSystem._introAudio.volume = 0.8;
