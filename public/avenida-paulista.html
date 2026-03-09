@@ -1239,6 +1239,7 @@
             }
 
             #modal {
+              position: relative;
               background: var(--bg-secondary);
               border: 2px solid var(--accent-gold);
               border-radius: var(--radius);
@@ -9373,15 +9374,13 @@
                 `;
 
                 const content = `
+                  <span onclick="Log.downloadAsText()" title="Baixar log da partida" style="position: absolute; top: 0.75rem; right: 0.75rem; cursor: pointer; opacity: 0.4; font-size: 1.1rem; transition: opacity 0.2s; z-index: 1;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'">📥</span>
                   <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${reason}</p>
                   ${summaryStats}
                   ${achievementsHTML}
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-top: 1rem;">
-                    <button id="restart-btn" class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="display: none;">
-                      🔄 Jogar Novamente
-                    </button>
-                    <span onclick="Log.downloadAsText()" title="Baixar log da partida" style="cursor: pointer; opacity: 0.4; font-size: 1.1rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'">📥</span>
-                  </div>
+                  <button id="restart-btn" class="btn ${isVictory ? '' : 'btn-danger'}" onclick="Game.restart()" style="margin-top: 1rem; display: none;">
+                    🔄 Jogar Novamente
+                  </button>
                 `;
                 // Mostrar botão somente após a música de game over terminar
                 setTimeout(() => {
