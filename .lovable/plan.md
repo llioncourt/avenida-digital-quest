@@ -1,43 +1,38 @@
 
 
-## Risada da bruxa: sem som na 4ª palavra + delay de metade da música
+## Refatoração Completa (Fases 1-4)
 
-### Alterações em `public/avenida-paulista.html`
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-**1. Silenciar som na 4ª palavra (~linha 7414)**
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-Envolver o bloco de áudio do chanting com condição: só tocar se `witchWords < 4` (após o incremento na linha 7408, a 4ª palavra resulta em `witchWords === 4`).
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-```js
-// Linha 7414 — trocar de incondicional para condicional
-if (GameState.witchWords < 4) {
-  (async () => {
-    // ... código existente do witchChanting MP3 + fallback ...
-  })();
-}
-```
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-**2. Atrasar risada para metade da música de game over (~linha 9167)**
+### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-Usar `GameOverMusicSystem.duration` (já usado na linha 9233) para calcular metade da duração e atrasar a risada com `setTimeout`.
-
-```js
-if (GameState.witchWords >= 4) {
-  const halfDuration = ((GameOverMusicSystem.duration || 10) / 2) * 1000;
-  setTimeout(() => {
-    (async () => {
-      try {
-        const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchWin);
-        if (blobUrl) {
-          const a = new Audio(blobUrl);
-          if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-          a.play().catch(() => {});
-        }
-      } catch(e) {}
-    })();
-  }, halfDuration);
-}
-```
-
-2 pontos de edição, zero risco de quebra.
-
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
