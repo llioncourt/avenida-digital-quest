@@ -6400,6 +6400,12 @@
               /** Move o jogador para uma sala adjacente. */
               moveTo: function(roomId) {
                 if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+
+                // Alucinações: saída fantasma
+                if (Hallucinations.isPhantom(roomId)) {
+                  return { success: false, message: '🌫️ Você caminha em direção à passagem... e bate numa parede. Não há saída alguma.' };
+                }
+
                 const currentRoom = GameState.rooms[GameState.playerLocation];
                 const targetRoom = GameState.rooms[roomId];
                 if (!targetRoom) return { success: false, message: 'Sala não encontrada!' };
