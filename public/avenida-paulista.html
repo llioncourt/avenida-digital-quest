@@ -7296,7 +7296,8 @@
                 // Clear cards
                 document.getElementById('combat-card-attacker').innerHTML = '';
                 document.getElementById('combat-card-defender').innerHTML = '';
-                document.getElementById('combat-confirm-btn').style.display = 'none';
+                document.getElementById('combat-confirm-btn').style.visibility = 'hidden';
+                document.getElementById('combat-confirm-btn').style.opacity = '0';
                 document.getElementById('combat-modal-overlay').classList.add('active');
 
                 this.showStats();
