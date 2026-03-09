@@ -5075,7 +5075,11 @@
                 if (this.musicGain) this.musicGain.gain.value = val;
                 var btn = document.getElementById('music-toggle');
                 if (val === 0) {
-                  if (this.isPlaying) this.stop();
+                  if (this.isPlaying && this.pause) {
+                    this.pause();
+                  } else if (this.isPlaying) {
+                    this.stop();
+                  }
                   if (btn) btn.textContent = '🔕';
                 } else {
                   if (!this.isPlaying) { SoundSystem.resume(); this.start(); }
