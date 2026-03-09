@@ -10305,7 +10305,9 @@
                 if (this.isComplete) return;
                 this.isComplete = true;
 
-                // Parar música da intro
+                // Parar música da intro e limpar fade
+                if (this._fadeTimeout) { clearTimeout(this._fadeTimeout); this._fadeTimeout = null; }
+                if (this._fadeInterval) { clearInterval(this._fadeInterval); this._fadeInterval = null; }
                 if (this._introAudio) {
                   this._introAudio.pause();
                   this._introAudio = null;
