@@ -2500,13 +2500,23 @@
     <div id="fog-overlay"></div>
     <div id="whisper-overlay"></div>
 
-    <div id="start-screen" style="position:fixed; inset:0; z-index:10000; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-      <h1 onclick="StartScreen.start()" style="color:#FFD700; font-family:'Press Start 2P',monospace; font-size:2rem; text-shadow:0 0 20px #FFD700, 0 0 40px #FFD70066; cursor:pointer; animation:heartbeat 1.5s ease-in-out infinite;">AVENIDA PAULISTA</h1>
+    <div
+      id="start-screen"
+      style="position:fixed; inset:0; z-index:10000; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center;"
+    >
+      <h1
+        onclick="StartScreen.start()"
+        style="color:#FFD700; font-family:'Press Start 2P',monospace; font-size:2rem; text-shadow:0 0 20px #FFD700, 0 0 40px #FFD70066; cursor:pointer; animation:heartbeat 1.5s ease-in-out infinite;"
+      >
+        AVENIDA PAULISTA
+      </h1>
     </div>
 
     <div id="intro-container">
       <div id="intro-stars"></div>
-      <button id="intro-skip" onclick="IntroSystem.skip()">PULAR <span style="font-size:0.7em;opacity:0.7;">▸▸</span></button>
+      <button id="intro-skip" onclick="IntroSystem.skip()">
+        PULAR <span style="font-size:0.7em;opacity:0.7;">▸▸</span>
+      </button>
       <div id="intro-crawl"></div>
     </div>
 
@@ -2525,16 +2535,42 @@
               </div>
               <div style="display:flex; gap:0.3rem; flex-shrink:0;">
                 <div class="volume-control">
-                  <button id="sound-toggle" class="vol-btn" onclick="SoundSystem.toggleSlider()" title="Volume dos efeitos sonoros">🔊</button>
+                  <button
+                    id="sound-toggle"
+                    class="vol-btn"
+                    onclick="SoundSystem.toggleSlider()"
+                    title="Volume dos efeitos sonoros"
+                  >
+                    🔊
+                  </button>
                   <div class="vol-slider" id="sound-slider">
-                    <input type="range" min="0" max="100" value="100" oninput="SoundSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="100"
+                      oninput="SoundSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'"
+                    />
                     <span class="vol-pct">100%</span>
                   </div>
                 </div>
                 <div class="volume-control">
-                  <button id="music-toggle" class="vol-btn" onclick="MusicSystem.toggleSlider()" title="Volume da música">🎵</button>
+                  <button
+                    id="music-toggle"
+                    class="vol-btn"
+                    onclick="MusicSystem.toggleSlider()"
+                    title="Volume da música"
+                  >
+                    🎵
+                  </button>
                   <div class="vol-slider" id="music-slider">
-                    <input type="range" min="0" max="100" value="100" oninput="MusicSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="100"
+                      oninput="MusicSystem.setVolume(this.value/100); this.nextElementSibling.textContent=this.value+'%'"
+                    />
                     <span class="vol-pct">100%</span>
                   </div>
                 </div>
@@ -2641,7 +2677,9 @@
                 <div class="bomb-tooltip" id="bomb-tooltip-content"></div>
               </button>
               <div id="minimap-title">🗺️ MAPA</div>
-              <button class="journal-btn" onclick="Journal.showModal()" title="Diário" style="justify-self: end;">📓</button>
+              <button class="journal-btn" onclick="Journal.showModal()" title="Diário" style="justify-self: end;">
+                📓
+              </button>
             </div>
             <div id="minimap-viewport">
               <div id="minimap"></div>
@@ -5549,7 +5587,7 @@
                     audio = new Audio(blobUrl);
                     audio.loop = loop;
                   }
-                  
+
                   // Sincronizar volume com musicGain
                   if (MusicSystem.musicGain) {
                     audio.volume = MusicSystem.musicGain.gain.value;
@@ -9737,7 +9775,7 @@
                 // Botão de converter para o demônio
                 let convertButton = '';
                 if (charId === 'demonio' && GameState.hasReadMagicBook && !char.isAlly && char.isAlive) {
-                  convertButton = `<button class="btn btn-spectral" onclick="Game.speak('${GameState.demonMagicWord}'); Modals.hide();">✨ Converter</button>`;
+                  convertButton = `<button class="btn btn-spectral" onclick="Game.speak('${GameState.demonMagicWord}'); Modals.hide();">✨ Adunar</button>`;
                 }
 
                 const content = `
