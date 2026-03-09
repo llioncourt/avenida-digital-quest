@@ -6114,11 +6114,13 @@
               },
 
               cafe: function() {
-                GameState.skipNextTimeAdvance = true;
+                GameState.caffeinatedTurns = 3;
+                GameState.energy = Math.min(100, GameState.energy + 20);
                 SoundSystem.playUseItem();
+                ScreenEffects.flash('rgba(212, 168, 70, 0.5)');
                 return {
                   success: true,
-                  message: '☕ Você toma o CAFÉ PAULISTANO! A cafeína corre pelas veias — sua próxima ação não avançará o tempo!',
+                  message: '☕ Você toma o CAFÉ PAULISTANO! A cafeína corre pelas veias — por 3 turnos: tempo congelado, +20 energia, +2 ataque, movimento sem custo e mente clara!',
                   consumed: true
                 };
               },
