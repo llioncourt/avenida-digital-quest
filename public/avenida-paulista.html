@@ -8424,7 +8424,7 @@
 
                 // Assinatura inclui campos exibidos para refletir status (hp, efeitos, etc.)
                 const hasLanterna = Rules.hasEffect('revealAdjacent');
-                const sig = roomId + '|' + chars.map(c => {
+                const sig = roomId + '|h' + Hallucinations.getLevel() + '|' + chars.map(c => {
                   const statusA = (c.pacifiedTurns && c.pacifiedTurns > 0) ? 1 : 0;
                   const statusB = (c.paralyzedTurns && c.paralyzedTurns > 0) ? 1 : 0;
                   const hpTextKey = hasLanterna && !c.isAlly ? `${c.hp}/${c.maxHp}` : `${c.hp}`;
