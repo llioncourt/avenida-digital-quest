@@ -9664,9 +9664,20 @@
 
               showCharacter: function(charId) {
                 const char = GameState.characters[charId];
-                const allyText = char.isAlly ? '(Aliado)' : '(Hostil)';
+                const isAlly = char.isAlly;
+                const isNeutral = char.isNeutral;
+                const statusText = isAlly ? 'Aliado' : (isNeutral ? 'Neutro' : 'Hostil');
+                const statusClass = isAlly ? 'ally' : (isNeutral ? 'neutral' : 'hostile');
 
-                // Botão de converter para o demônio (se leu o livro e ainda é hostil)
+                // Portrait URL
+                const prefix = Portraits.MAP[charId] || '00';
+                const portraitUrl = 'portraits/' + prefix + '_' + charId + '_neutro.webp';
+
+                // HP percentage and color
+                const hpPct = Math.round((char.hp / char.maxHp) * 100);
+                const hpColor = hpPct > 60 ? '#6bffaa' : (hpPct > 30 ? '#ffd66b' : '#ff6b6b');
+
+                // Botão de converter para o demônio
                 let convertButton = '';
                 if (charId === 'demonio' && GameState.hasReadMagicBook && !char.isAlly && char.isAlive) {
                   convertButton = `<button class="btn btn-spectral" onclick="Game.speak('${GameState.demonMagicWord}'); Modals.hide();">✨ Converter</button>`;
@@ -9674,22 +9685,51 @@
 
                 const content = `
                   <div id="character-modal-content">
-                    <p>${char.description}</p>
-                    <div class="character-stats">
-                      <div>❤️ HP: ${char.hp}/${char.maxHp}</div>
-                      <div>⚔️ Ataque: ${char.attackPower}</div>
-                      <div>🛡️ Defesa: ${char.defensePower}</div>
-                      <div>Status: ${allyText}</div>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
-                      ${charId === 'vendedor' && char.isNeutral && char.isAlive ? `<button class="btn" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="Modals.hide(); VendorTrade.openTradeModal();">🛒 Trocar</button>` : ''}
-                      ${char.isAlly ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'ally')">⚠️ Atacar</button>` : (char.isNeutral ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'neutral')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
-                      ${convertButton}
-                      <button class="btn" onclick="Modals.hide()">Fechar</button>
+                    <div class="char-card">
+                      <div class="char-card-portrait">
+                        <img src="${portraitUrl}" alt="${char.name}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'char-portrait-fallback\\'>${charId === 'feiticeiro' ? '🧙' : charId === 'aguia' ? '🦅' : charId === 'bombardeador' ? '💣' : charId === 'bruxa' ? '🧹' : charId === 'demonio' ? '👹' : charId === 'vendedor' ? '🛒' : '❓'}</div><span class=\\'char-name-overlay\\'>${char.name}</span><span class=\\'char-status-badge ${statusClass}\\'>${statusText}</span>';">
+                        <span class="char-name-overlay">${char.name}</span>
+                        <span class="char-status-badge ${statusClass}">${statusText}</span>
+                      </div>
+                      <div class="char-card-body">
+                        <p class="char-card-desc">${char.description}</p>
+                        <div class="char-stats-grid">
+                          <div class="char-stat" style="grid-column: 1 / -1;">
+                            <span class="stat-icon">❤️</span>
+                            <div class="stat-info" style="flex:1;">
+                              <span class="stat-label">Vida</span>
+                              <span class="stat-value" style="color:${hpColor};">${char.hp} / ${char.maxHp}</span>
+                              <div class="hp-bar-container">
+                                <div class="hp-bar-fill" style="width:${hpPct}%;background:${hpColor};"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="char-stat">
+                            <span class="stat-icon">⚔️</span>
+                            <div class="stat-info">
+                              <span class="stat-label">Ataque</span>
+                              <span class="stat-value">${char.attackPower}</span>
+                            </div>
+                          </div>
+                          <div class="char-stat">
+                            <span class="stat-icon">🛡️</span>
+                            <div class="stat-info">
+                              <span class="stat-label">Defesa</span>
+                              <span class="stat-value">${char.defensePower}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="char-card-actions">
+                          ${charId === 'vendedor' && char.isNeutral && char.isAlive ? `<button class="btn" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="Modals.hide(); VendorTrade.openTradeModal();">🛒 Trocar</button>` : ''}
+                          ${isAlly ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'ally')">⚠️ Atacar</button>` : (isNeutral ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'neutral')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
+                          ${convertButton}
+                          <button class="btn" onclick="Modals.hide()">Fechar</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 `;
-                this.show(char.name, content);
+                this.show('', content);
               }
             };
 
