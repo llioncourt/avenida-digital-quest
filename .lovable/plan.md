@@ -1,70 +1,45 @@
 
 
+## Plano: Ajustar caminhos MP3 + Redesign tela inicial
 
-## Refatoração Completa (Fases 1-4)
+### 1. Prefixar todos os MP3s com `music/`
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+No objeto `MP3_TRACKS` (~linha 5193), adicionar `music/` a todos os valores:
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+```javascript
+const MP3_TRACKS = {
+  exploration: 'music/AVP-Theme.mp3',
+  gameover: 'music/AVP-Game-Over.mp3',
+  combat: 'music/AVP-Combat.mp3',
+  defeat: 'music/AVP-Combat-Defeat.mp3',
+  victory: 'music/AVP-Combat-Victory.mp3',
+  witchChanting: 'music/AVP-Witch-Chanting.mp3',
+  witchSummon: 'music/AVP-Witch-Summon.mp3',
+  witchWin: 'music/AVP-Witch-Win.mp3',
+  introCrawl: 'music/AVP-Intro.mp3'
+};
+```
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+### 2. Redesign da tela inicial (~linha 2248-2251)
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+- Remover o `<p>` com "CLIQUE PARA INICIAR"
+- O `<h1>` "AVENIDA PAULISTA" vira o botão clicável (já está dentro do div com `onclick`)
+- Adicionar animação de heartbeat/pulsar ao título:
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+```css
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.08); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.05); }
+  60% { transform: scale(1); }
+}
+```
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+Aplicar `animation: heartbeat 1.5s ease-in-out infinite` ao `<h1>`, com `cursor: pointer` e `text-shadow` dourado para reforçar que é clicável.
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+### Escopo
+- ~10 linhas CSS (keyframe heartbeat)
+- ~2 linhas HTML alteradas (remover `<p>`, estilizar `<h1>`)
+- ~9 linhas JS alteradas (prefixo `music/` nos tracks)
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
-
-### ✅ Fase 7 — Buff do Café Paulistano
-
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
-
-### ✅ Fase 8 — Portrait com Degradê Full-Card
-
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
