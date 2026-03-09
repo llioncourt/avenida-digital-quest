@@ -5535,18 +5535,6 @@
                 const loaded = results.filter(r => r !== null).length;
                 const failed = results.length - loaded;
                 console.log(`[Mp3Cache] Preload complete: ${loaded}/${results.length} OK`);
-                // Badge visual temporário
-                const badge = document.createElement('div');
-                badge.textContent = failed === 0 ? `🎵 MP3s OK (${loaded})` : `⚠️ MP3: ${loaded}/${results.length}`;
-                Object.assign(badge.style, {
-                  position: 'fixed', bottom: '12px', left: '12px', zIndex: '99999',
-                  padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '600',
-                  color: '#fff', background: failed === 0 ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)',
-                  backdropFilter: 'blur(8px)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  transition: 'opacity 0.5s', opacity: '1'
-                });
-                document.body.appendChild(badge);
-                setTimeout(() => { badge.style.opacity = '0'; setTimeout(() => badge.remove(), 600); }, 3000);
               }
             };
 
