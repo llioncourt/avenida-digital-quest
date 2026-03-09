@@ -1,6 +1,11 @@
 
 
+### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
 
+- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
+- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
+- `originalStop()` chamado antes de `audio.play()` para parar MIDI
+- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
 ## Refatoração Completa (Fases 1-4)
 
 ### ✅ Fase 1 — Bugs e segurança
