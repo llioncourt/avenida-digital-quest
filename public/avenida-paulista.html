@@ -8307,7 +8307,8 @@
 
                   // Vendedor: ação especial
                   if (char.isNeutral && char.id === 'vendedor') {
-                    btn.dataset.action = 'vendorTrade';
+                    btn.dataset.action = 'showCharacter';
+                    btn.dataset.charId = char.id;
                     btn.className = 'btn btn-character stagger-in';
                     btn.style.borderColor = 'var(--accent-gold)';
                     btn.style.color = 'var(--accent-gold)';
