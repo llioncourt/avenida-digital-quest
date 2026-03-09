@@ -10247,9 +10247,15 @@
                 // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
                 crawl.style.animation = 'star-wars-crawl 168s linear forwards';
 
-                // Iniciar música em velocidade lenta
-                MusicSystem.init();
-                MusicSystem.setSpeed(0.7);
+                // Tocar música da intro (nova track)
+                (async () => {
+                  const blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
+                  if (blobUrl) {
+                    IntroSystem._introAudio = new Audio(blobUrl);
+                    IntroSystem._introAudio.volume = 0.8;
+                    IntroSystem._introAudio.play().catch(() => {});
+                  }
+                })();
 
                 // Listener para fim da animação (once: true evita múltiplas execuções)
                 crawl.addEventListener('animationend', () => this.complete(), { once: true });
