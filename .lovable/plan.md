@@ -49,3 +49,15 @@
 - Cura: notificação ao usar item de cura/comida que reduza o nível
 - Invalidação de renderSig inclui nível de alucinação
 - CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+
+### ✅ Fase 7 — Buff do Café Paulistano
+
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
+- Flash dourado ao consumir café
