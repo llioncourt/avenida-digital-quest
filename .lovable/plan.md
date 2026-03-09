@@ -1,38 +1,60 @@
 
 
-## Refatoração Completa (Fases 1-4)
+## Problemas Identificados
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+### 1. Ícone aparece desligado mas música toca
+O wrapper `_addMp3Layer` sobrescreve `player.start()` mas **não chama `updateButton()`** após iniciar o MP3. O `isPlaying = true` é setado (linha 5222), mas o ícone não é atualizado.
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+### 2. Volume 0% reinicia a música
+`setVolume(0)` chama `this.stop()` (linha 5078), que aciona o wrapper com `stoppedManually = true` + `audio.currentTime = 0`. Deveria apenas **pausar** sem resetar.
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+---
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+## Solução
 
-### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+### Alterações em `_addMp3Layer` (linhas ~5192-5246)
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+1. **Chamar `updateButton()`** após `audio.play()` iniciar com sucesso
+2. **Adicionar método `player.pause()`** que só pausa o áudio sem resetar `currentTime`
+
+### Alterações em `MusicSystem.setVolume` (linhas ~5073-5084)
+
+1. Quando `val === 0`: chamar `player.pause()` ao invés de `player.stop()`
+2. Quando `val > 0` e estava pausado: chamar `audio.play()` para retomar
+
+### Código simplificado:
+
+```js
+// Em _addMp3Layer — adicionar método pause
+player.pause = function() {
+  if (audio && player._mp3Active) {
+    audio.pause();
+    // NÃO reseta currentTime
+  }
+  player.isPlaying = false;
+  // NÃO chama originalStop (mantém MIDI scheduledOscs)
+};
+
+// Em player.start — chamar updateButton
+audio.play().then(() => {
+  if (player.updateButton) player.updateButton();
+}).catch(...)
+
+// Em MusicSystem.setVolume
+if (val === 0) {
+  this.pause();  // não stop()
+  if (btn) btn.textContent = '🔕';
+} else {
+  if (audio && audio.paused) audio.play();  // retoma
+  if (btn) btn.textContent = '🎵';
+}
+```
+
+---
+
+## Arquivos a editar
+
+`public/avenida-paulista.html`:
+- Linhas 5192-5255: `_addMp3Layer` — adicionar `pause()` e `updateButton()` call
+- Linhas 5073-5084: `MusicSystem.setVolume` — usar `pause()` ao invés de `stop()`
+
