@@ -1,63 +1,51 @@
 
 
+## Portrait com Degradê ao Longo do Card — Visual "WOW"
 
-## Refatoração Completa (Fases 1-4)
+### Conceito
+A imagem do portrait no topo do card se estende para baixo com um degradê suave que vai desaparecendo, criando um efeito cinematográfico moderno. O portrait ocupa o card inteiro como background, mas com um gradiente forte de cima para baixo que faz a imagem "dissolver" no fundo escuro do card. O texto fica por cima sem precisar de background nas letras — a opacidade baixa + gradiente garante legibilidade.
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+### Alterações em `public/avenida-paulista.html`
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+**1. Reestruturar `.combat-portrait`** — Em vez de um bloco fixo de 160px no topo, o portrait vira uma camada absoluta que cobre o card inteiro:
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+```css
+.combat-card {
+  position: relative;
+  overflow: hidden;
+}
+.combat-portrait {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0;
+}
+.combat-portrait img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 40%, transparent 75%);
+  -webkit-mask-image: /* idem */;
+  animation: portrait-reveal 0.6s ease-out;
+}
+```
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+O `mask-image` com gradiente faz a imagem ser forte no topo e ir desaparecendo suavemente — sem atrapalhar o texto embaixo. Sem background nas letras. Moderno.
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+**2. Conteúdo do card acima do portrait** — Todos os filhos diretos do card ganham `position: relative; z-index: 1` para ficarem acima da camada de imagem.
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+**3. Remover margin negativo** — O portrait antigo usava `margin: -1.5rem` para sangrar. Agora com `position: absolute` isso é desnecessário. Remover também a `height: 160px` fixa.
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+**4. Placeholder** — Mesma lógica, mas o placeholder agora também cobre o card inteiro com gradiente escuro sutil.
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+**5. Animação** — Manter o `portrait-reveal` (scale 1.05→1 + fade-in), que combina bem com o efeito full-card.
 
-### ✅ Fase 7 — Buff do Café Paulistano
+### Resultado Visual
+- Imagem do personagem cobre o topo do card, dissolve suavemente para baixo
+- Texto do combate fica legível naturalmente sobre a parte já transparente
+- Visual tipo "card de herói" de jogos modernos (Genshin Impact, Honkai Star Rail)
+- Zero background nas letras, zero hack — só mask-image + z-index
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
-- Flash dourado ao consumir café
+### Escopo
+- ~20 linhas CSS alteradas
+- ~5 linhas JS (remover margin negativo do createEl, adicionar z-index nos filhos)
+
