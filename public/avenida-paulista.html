@@ -8302,6 +8302,24 @@
                 } else {
                   this.dom.locationDescription.classList.remove('hallucination-text');
                 }
+
+                // Alucinações: saídas fantasmas (nível 3) — exibir como botões
+                var oldPhantomExits = document.querySelectorAll('.phantom-exit-btn');
+                oldPhantomExits.forEach(function(el) { el.remove(); });
+                var phantomExits = Hallucinations.getPhantomExits();
+                if (phantomExits.length > 0) {
+                  var descEl = this.dom.locationDescription;
+                  phantomExits.forEach(function(pe) {
+                    var btn = document.createElement('button');
+                    btn.className = 'btn btn-item phantom-item phantom-exit-btn';
+                    btn.style.marginTop = '0.5rem';
+                    btn.style.display = 'block';
+                    btn.textContent = '🚪 ' + pe.name;
+                    btn.title = 'Uma passagem que você não notou antes...';
+                    btn.onclick = function() { Game.move(pe.id); };
+                    descEl.parentElement.appendChild(btn);
+                  });
+                }
               },
 
               updateItems: function() {
