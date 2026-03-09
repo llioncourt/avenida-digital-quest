@@ -5355,10 +5355,8 @@
             _addMp3Layer(DefeatMusicSystem, 'defeat', { loop: false });
             _addMp3Layer(VictoryMusicSystem, 'victory', { loop: false });
 
-            // Pré-carregar MP3s ao iniciar (opcional, melhora UX)
-            if ('caches' in window) {
-              Mp3Cache.preloadAll();
-            }
+            // Pré-carregar MP3s ao iniciar
+            Mp3Cache.preloadAll();
 
             // Indicador online no título (roxo = online, amarelo = offline)
             function updateTitleOnlineStatus() {
