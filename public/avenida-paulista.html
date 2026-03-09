@@ -7454,8 +7454,9 @@
                     DefeatMusicSystem.start();
                   }
                   // Hide confirm button
-                  document.getElementById('combat-confirm-btn').style.display = 'none';
-                  this.phase = 2;
+                  document.getElementById('combat-confirm-btn').style.visibility = 'hidden';
+                  document.getElementById('combat-confirm-btn').style.opacity = '0';
+                   this.phase = 2;
                   // Apply the combat
                   if (this.pendingCombat.applyCallback) {
                     this.pendingCombat.applyCallback(this.pendingCombat.result);
