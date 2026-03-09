@@ -7203,9 +7203,13 @@
             const Events = {
               // Verificar efeito do café antes de avançar tempo
               maybeAdvanceTime: function() {
-                if (GameState.skipNextTimeAdvance) {
-                  GameState.skipNextTimeAdvance = false;
-                  Log.add('☕ O efeito do CAFÉ fez o tempo não avançar!', 'success');
+                if (GameState.caffeinatedTurns > 0) {
+                  GameState.caffeinatedTurns--;
+                  if (GameState.caffeinatedTurns > 0) {
+                    Log.add('☕ Cafeína: ' + GameState.caffeinatedTurns + ' turno' + (GameState.caffeinatedTurns > 1 ? 's' : '') + ' restante' + (GameState.caffeinatedTurns > 1 ? 's' : '') + '. O tempo não avançou!', 'success');
+                  } else {
+                    Log.add('☕ O efeito do café passou... você sente o cansaço voltar.', 'info');
+                  }
                 } else {
                   Events.advanceTime();
                 }
