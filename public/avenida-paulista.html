@@ -6424,6 +6424,11 @@
               pickupItem: function(itemId) {
                 if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
 
+                // Alucinações: item fantasma
+                if (Hallucinations.isPhantom(itemId)) {
+                  return { success: false, message: '🌫️ Você estica a mão... e ela atravessa o objeto. Era só uma miragem.' };
+                }
+
                 const item = GameState.items[itemId];
                 if (!item) {
                   return { success: false, message: 'Item não encontrado!' };
