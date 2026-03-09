@@ -9188,6 +9188,7 @@
                       <div>Status: ${allyText}</div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
+                      ${charId === 'vendedor' && char.isNeutral && char.isAlive ? `<button class="btn" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="Modals.hide(); VendorTrade.openTradeModal();">🛒 Trocar</button>` : ''}
                       ${char.isAlly ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'ally')">⚠️ Atacar</button>` : (char.isNeutral ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'neutral')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
                       ${convertButton}
                       <button class="btn" onclick="Modals.hide()">Fechar</button>
