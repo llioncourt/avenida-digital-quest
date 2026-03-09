@@ -5095,6 +5095,170 @@
               }
             });
 
+            // ============================================================================
+            // MP3 HYBRID LAYER (Cache API + Fallback to MIDI)
+            // ============================================================================
+
+            /**
+             * @constant MP3_TRACKS
+             * @description Mapeia estados do jogo para URLs de MP3 locais.
+             * URLs vazias = fallback automático para MIDI.
+             */
+            const MP3_TRACKS = {
+              exploration: 'AVP Theme.mp3',
+              gameover: 'AVP Game Over.mp3',
+              combat: '',    // placeholder — adicionar MP3 quando disponível
+              defeat: '',    // placeholder
+              victory: ''    // placeholder
+            };
+
+            const MP3_CACHE_NAME = 'avp-music-v1';
+
+            /**
+             * @namespace Mp3Cache
+             * @description Gerencia cache de MP3s usando Cache API do navegador.
+             * Permite reprodução offline após primeiro carregamento.
+             */
+            const Mp3Cache = {
+              /**
+               * Carrega MP3 do cache ou rede, salvando no cache se necessário.
+               * @param {string} url - URL relativa do MP3
+               * @returns {Promise<string|null>} Blob URL para reprodução ou null se falhar
+               */
+              async load(url) {
+                if (!url) return null;
+                try {
+                  const cache = await caches.open(MP3_CACHE_NAME);
+                  let response = await cache.match(url);
+                  
+                  if (!response) {
+                    // Não está no cache, buscar da rede
+                    console.log('[Mp3Cache] Fetching from network:', url);
+                    response = await fetch(url);
+                    if (response.ok) {
+                      // Salvar no cache para uso offline
+                      await cache.put(url, response.clone());
+                      console.log('[Mp3Cache] Cached:', url);
+                    } else {
+                      console.warn('[Mp3Cache] Network fetch failed:', url);
+                      return null;
+                    }
+                  } else {
+                    console.log('[Mp3Cache] Loaded from cache:', url);
+                  }
+                  
+                  const blob = await response.blob();
+                  return URL.createObjectURL(blob);
+                } catch (err) {
+                  console.warn('[Mp3Cache] Error loading MP3:', url, err);
+                  return null;
+                }
+              },
+
+              /**
+               * Pré-carrega todos os MP3s definidos em MP3_TRACKS.
+               */
+              async preloadAll() {
+                const urls = Object.values(MP3_TRACKS).filter(u => u);
+                for (const url of urls) {
+                  await this.load(url);
+                }
+                console.log('[Mp3Cache] Preload complete');
+              }
+            };
+
+            /**
+             * @function _addMp3Layer
+             * @description Adiciona camada MP3 a um player MIDI existente.
+             * Sobrescreve start() e stop() para priorizar MP3 com fallback para MIDI.
+             * @param {object} player - Player MIDI criado por createMidiPlayer
+             * @param {string} trackKey - Chave em MP3_TRACKS (exploration, combat, etc.)
+             * @param {object} options - { loop: boolean }
+             */
+            function _addMp3Layer(player, trackKey, options = {}) {
+              const url = MP3_TRACKS[trackKey];
+              if (!url) return; // Sem MP3 definido, mantém apenas MIDI
+
+              const loop = options.loop !== false;
+              let audio = null;
+              let blobUrl = null;
+
+              const originalStart = player.start.bind(player);
+              const originalStop = player.stop.bind(player);
+
+              player._mp3Active = false;
+
+              player.start = async function() {
+                // Tentar carregar MP3
+                if (!blobUrl) {
+                  blobUrl = await Mp3Cache.load(url);
+                }
+
+                if (blobUrl) {
+                  // Usar MP3
+                  if (!audio) {
+                    audio = new Audio(blobUrl);
+                    audio.loop = loop;
+                  }
+                  
+                  // Sincronizar volume com musicGain
+                  if (MusicSystem.musicGain) {
+                    audio.volume = MusicSystem.musicGain.gain.value;
+                  } else {
+                    audio.volume = MusicSystem.volume || 1.0;
+                  }
+
+                  player._mp3Active = true;
+                  player.isPlaying = true;
+                  audio.currentTime = 0;
+                  audio.play().catch(err => {
+                    console.warn('[Mp3Layer] Playback error, falling back to MIDI:', err);
+                    player._mp3Active = false;
+                    originalStart();
+                  });
+                  console.log('[Mp3Layer] Playing MP3:', trackKey);
+                } else {
+                  // Fallback para MIDI
+                  player._mp3Active = false;
+                  console.log('[Mp3Layer] No MP3 available, using MIDI:', trackKey);
+                  originalStart();
+                }
+              };
+
+              player.stop = function() {
+                if (audio && player._mp3Active) {
+                  audio.pause();
+                  audio.currentTime = 0;
+                }
+                player._mp3Active = false;
+                player.isPlaying = false;
+                originalStop();
+              };
+
+              // Atualizar volume do audio quando musicGain mudar
+              const originalSetVolume = MusicSystem.setVolume;
+              MusicSystem.setVolume = function(val) {
+                originalSetVolume.call(this, val);
+                if (audio && player._mp3Active) {
+                  audio.volume = val;
+                }
+              };
+            }
+
+            // Aplicar camada MP3 aos players existentes
+            _addMp3Layer(MusicSystem, 'exploration', { loop: true });
+            _addMp3Layer(GameOverMusicSystem, 'gameover', { loop: false });
+            _addMp3Layer(CombatMusicSystem, 'combat', { loop: true });
+
+            // Pré-carregar MP3s ao iniciar (opcional, melhora UX)
+            if ('caches' in window) {
+              Mp3Cache.preloadAll();
+            }
+
+            // ============================================================================
+            // GAME STATE
+            // ============================================================================
+
             /**
              * @namespace GameState
              * @description Estado mutável global do jogo. Todas as propriedades são
