@@ -1862,6 +1862,31 @@
               box-shadow: 0 0 20px rgba(64, 128, 192, 0.3);
             }
 
+            .combat-portrait {
+              width: calc(100% + 3rem);
+              height: 160px;
+              margin: -1.5rem -1.5rem 1rem -1.5rem;
+              border-radius: var(--radius) var(--radius) 0 0;
+              overflow: hidden;
+              position: relative;
+            }
+            .combat-portrait img {
+              width: 100%; height: 100%;
+              object-fit: cover; object-position: top center;
+              animation: portrait-reveal 0.5s ease-out;
+            }
+            .combat-portrait-placeholder {
+              width: 100%; height: 100%;
+              background: linear-gradient(135deg, #1a1a2e, #16213e);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 3rem; opacity: 0.4;
+              color: #fff;
+            }
+            @keyframes portrait-reveal {
+              from { opacity: 0; transform: scale(1.05); }
+              to { opacity: 1; transform: scale(1); }
+            }
+
             .combat-card-title {
               font-family: var(--font-mono);
               font-size: 1.1rem;
@@ -6803,6 +6828,46 @@
             // ============================================================================
             // COMBAT MODAL - Modal cinematográfico de combate
             // ============================================================================
+            // PORTRAITS — Sistema de retratos de combate com triplo fallback
+            // ============================================================================
+
+            const Portraits = {
+              MAP: { player: '01', feiticeiro: '02', aguia: '03', bombardeador: '04', bruxa: '05', demonio: '06', coruja: '07', cachorro: '08', vendedor: '09' },
+
+              normalize: function(name) {
+                if (!name) return 'neutro';
+                return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+              },
+
+              buildUrl: function(charId, moveName) {
+                var prefix = this.MAP[charId] || '00';
+                var move = this.normalize(moveName);
+                return 'portraits/' + prefix + '_' + charId + '_' + move + '.webp';
+              },
+
+              createEl: function(charId, moveName) {
+                var self = this;
+                var div = document.createElement('div');
+                div.className = 'combat-portrait';
+                var specificUrl = this.buildUrl(charId, moveName);
+                var neutralUrl = this.buildUrl(charId, 'neutro');
+                var img = document.createElement('img');
+                img.src = specificUrl;
+                img.alt = charId;
+                img.onerror = function() {
+                  if (this.src.indexOf('_neutro.webp') === -1) {
+                    this.src = neutralUrl;
+                  } else {
+                    this.onerror = null;
+                    div.innerHTML = '<div class="combat-portrait-placeholder">?</div>';
+                  }
+                };
+                div.appendChild(img);
+                return div;
+              }
+            };
+
+            // ============================================================================
 
             const CombatModal = {
               isOpen: false,
@@ -6964,8 +7029,11 @@
                 }
                 defenderLines.push({ text: 'TOTAL: ' + def.totalDefense, cls: 'combat-total' });
 
-                // Render attacker card
+                // Render attacker card with portrait
                 var atkCard = document.getElementById('combat-card-attacker');
+                var atkCharId = this.pendingCombat.result.attackerId || 'player';
+                var atkMoveName = atk.moveName || null;
+                atkCard.appendChild(Portraits.createEl(atkCharId, atkMoveName));
                 attackerLines.forEach(function(line) {
                   var div = document.createElement('div');
                   if (line.cls === 'combat-card-title') {
@@ -6977,8 +7045,11 @@
                   atkCard.appendChild(div);
                 });
 
-                // Render defender card
+                // Render defender card with portrait
                 var defCard = document.getElementById('combat-card-defender');
+                var defCharId = this.pendingCombat.result.targetId || 'player';
+                var defMoveName = def.moveName || null;
+                defCard.appendChild(Portraits.createEl(defCharId, defMoveName));
                 defenderLines.forEach(function(line) {
                   var div = document.createElement('div');
                   if (line.cls === 'combat-card-title') {

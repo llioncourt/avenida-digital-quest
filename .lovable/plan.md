@@ -1,81 +1,63 @@
 
 
-## Portraits de Combate — Sistema com Triplo Fallback
 
-### Conceito
-Cada combat card ganha um retrato do personagem no topo. A imagem é carregada dinamicamente com base no personagem + golpe usado. Sistema funciona offline sem quebrar nada.
+## Refatoração Completa (Fases 1-4)
 
-### Convenção de nomes dos arquivos
-```text
-portraits/XX_charId_moveName.webp
-Exemplo: 02_feiticeiro_feitico-obscuro.webp
-         01_player_neutro.webp
-```
-O move name é normalizado: lowercase, espaços→hífens, acentos removidos.
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-### Triplo Fallback (via `<img>` com `onerror` encadeado)
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-1. **Imagem específica**: `portraits/XX_charId_moveName.webp` — personagem + golpe exato
-2. **Versão neutra**: `portraits/XX_charId_neutro.webp` — personagem em pose padrão
-3. **Placeholder misterioso**: Silhueta CSS pura (gradiente escuro + ícone `?`) — nunca quebra, sem dependência de arquivo
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-Se offline e nenhuma imagem cacheada, o `onerror` dispara e cai direto no placeholder CSS. Zero impacto.
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-### Mapeamento de IDs → prefixo numérico
+### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-```javascript
-const PORTRAIT_MAP = {
-  player: '01', feiticeiro: '02', aguia: '03',
-  bombardeador: '04', bruxa: '05', demonio: '06',
-  coruja: '07', cachorro: '08', vendedor: '09'
-};
-```
-
-### Namespace `Portraits` (~40 linhas)
-
-- `normalizeMoveName(name)` — remove acentos, lowercase, espaços→hífens
-- `getCharIdFromName(displayName)` — extrai o char ID do `combatResult.attackerId` / `targetId`
-- `buildUrl(charId, moveName)` — monta URL `portraits/XX_charId_moveName.webp`
-- `createPortraitElement(charId, moveName)` — retorna um `<div>` com `<img>` e fallbacks encadeados via `onerror`, placeholder final é CSS puro
-
-### Integração no `CombatModal.showStats()`
-
-No render de cada card (attacker e defender), antes das linhas de stats, inserir o portrait no topo:
-- Extrair `charId` do `combatResult.attackerId` / `combatResult.targetId`
-- Extrair `moveName` do `attackerData.moveName` (ataque) ou `defenderData.moveName` (defesa)
-- Player quando ataca não tem `moveName` → usa `neutro`
-- Chamar `Portraits.createPortraitElement()` e inserir como primeiro filho do card
-
-### CSS (~25 linhas)
-
-```css
-.combat-portrait {
-  width: 100%; height: 160px;
-  border-radius: 8px 8px 0 0;
-  margin: -1.5rem -1.5rem 1rem -1.5rem;
-  width: calc(100% + 3rem);
-  overflow: hidden; position: relative;
-}
-.combat-portrait img {
-  width: 100%; height: 100%;
-  object-fit: cover; object-position: top center;
-}
-.combat-portrait-placeholder {
-  width: 100%; height: 100%;
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 3rem; opacity: 0.5;
-}
-```
-
-Portrait aparece com fade-in sutil quando carrega. Cards ganham visual moderno tipo "card de personagem de RPG".
-
-### Animação de entrada
-O portrait faz um leve `scale(1.05)→scale(1)` ao aparecer, dando sensação cinematográfica.
-
-### Escopo
-- ~70 linhas JS + ~25 linhas CSS
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
 - Tudo autocontido no HTML
-- Não quebra nada offline — fallback gracioso
-- Apenas 2 imagens existem hoje na pasta, o resto cairá no placeholder misterioso até serem adicionadas
 
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+
+### ✅ Fase 7 — Buff do Café Paulistano
+
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
+- Flash dourado ao consumir café
