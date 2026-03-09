@@ -1,70 +1,18 @@
 
 
+## Ajuste: Espaçamento nome/descrição + nomes grandes
 
-## Refatoração Completa (Fases 1-4)
+### Mudanças em `public/avenida-paulista.html`
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+**CSS (linhas 1436-1464)**:
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+1. **Mais espaço entre nome e descrição**: Aumentar `bottom` do `.char-name-overlay` de `52px` para `62px`
+2. **Nomes grandes cabem sem ellipsis e sem quebra**: Reduzir `font-size` dinamicamente com `font-size: clamp(0.9rem, 3.5vw, 1.4rem)` e adicionar `white-space: nowrap; overflow: hidden; text-overflow: clip; font-size-adjust: auto;` — usar `fit-content` approach com CSS `scale` via `width: 100%; display: block; overflow: visible; white-space: nowrap;` e aplicar um truque de auto-scale usando `transform: scaleX()` via JS inline no template, ou mais simplesmente usar `font-size: min(1.4rem, calc(16px * 12 / var(--name-len)))` — a abordagem mais limpa é usar `container` query ou simplesmente um `font-size` menor com `clamp`
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+Abordagem final mais simples e robusta: usar `white-space: nowrap` + reduzir font-size para caber via CSS `clamp` baseado na largura do container.
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+**Alterações concretas**:
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+- `.char-name-overlay`: `bottom: 62px`, `font-size: clamp(0.85rem, 4cqw, 1.4rem)`, `white-space: nowrap`, `overflow: hidden`, `text-overflow: clip`, e adicionar `container-type: inline-size` no `.char-card-portrait`
+- `.char-card-desc`: manter `bottom: 8px` (o gap aumenta pelo nome subir)
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
-
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
-
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
-
-### ✅ Fase 7 — Buff do Café Paulistano
-
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
-
-### ✅ Fase 8 — Portrait com Degradê Full-Card
-
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
