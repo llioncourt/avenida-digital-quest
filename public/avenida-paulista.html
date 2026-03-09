@@ -2171,6 +2171,43 @@
               border: 1px solid var(--border-color);
               margin-bottom: 0.4rem;
             }
+
+            /* ========== HALLUCINATIONS SYSTEM ========== */
+            .hallucination-text {
+              animation: hallucinate-wobble 3s ease-in-out infinite;
+              filter: blur(0.3px);
+              opacity: 0.85;
+              font-style: italic;
+              color: var(--accent-purple);
+            }
+
+            .hallucination-flash {
+              animation: hallucinate-flash 0.8s ease-out forwards;
+            }
+
+            @keyframes hallucinate-wobble {
+              0%, 100% { transform: translateX(0); filter: blur(0.3px); }
+              25% { transform: translateX(1px); filter: blur(0.5px); }
+              50% { transform: translateX(-1px); filter: blur(0.8px); }
+              75% { transform: translateX(0.5px); filter: blur(0.4px); }
+            }
+
+            @keyframes hallucinate-flash {
+              0% { box-shadow: inset 0 0 30px rgba(128, 64, 160, 0.4); }
+              100% { box-shadow: inset 0 0 0 transparent; }
+            }
+
+            .btn-item.phantom-item {
+              border-color: rgba(128, 64, 160, 0.3);
+              color: rgba(128, 64, 160, 0.7);
+              animation: hallucinate-wobble 2s ease-in-out infinite;
+            }
+
+            .btn-character.phantom-npc {
+              border-color: rgba(128, 64, 160, 0.3);
+              color: rgba(128, 64, 160, 0.7);
+              animation: hallucinate-wobble 2.5s ease-in-out infinite;
+            }
     </style>
   </head>
   <body>
@@ -6363,6 +6400,12 @@
               /** Move o jogador para uma sala adjacente. */
               moveTo: function(roomId) {
                 if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+
+                // Alucinações: saída fantasma
+                if (Hallucinations.isPhantom(roomId)) {
+                  return { success: false, message: '🌫️ Você caminha em direção à passagem... e bate numa parede. Não há saída alguma.' };
+                }
+
                 const currentRoom = GameState.rooms[GameState.playerLocation];
                 const targetRoom = GameState.rooms[roomId];
                 if (!targetRoom) return { success: false, message: 'Sala não encontrada!' };
@@ -6386,6 +6429,11 @@
               // Pegar item
               pickupItem: function(itemId) {
                 if (GameState.gameOver) return { success: false, message: 'O jogo acabou!' };
+
+                // Alucinações: item fantasma
+                if (Hallucinations.isPhantom(itemId)) {
+                  return { success: false, message: '🌫️ Você estica a mão... e ela atravessa o objeto. Era só uma miragem.' };
+                }
 
                 const item = GameState.items[itemId];
                 if (!item) {
@@ -6533,7 +6581,11 @@
                   return { success: false, message: 'Este item não tem efeito definido!' };
                 }
 
+                // Alucinações: capturar nível antes de usar item (cura pode reduzir)
+                var _hallucinLevelBefore = Hallucinations.getLevel();
                 const result = handler(targetItemId);
+                // Alucinações: notificar cura se nível mudou
+                if (result.success) Hallucinations.notifyCure(_hallucinLevelBefore);
 
                 // Se consumed for true, remover do inventário
                 if (result.consumed) {
@@ -7287,6 +7339,9 @@
 
                 // WORLD SANITY: validar novamente após eventos (double-check)
                 WorldSanity.enforce();
+
+                // Alucinações: chance de log falso
+                Hallucinations.maybeFakeLog();
               },
 
               // Processar timer da bomba
@@ -8236,7 +8291,35 @@
                   desc += ' 🎨 [Armadilha de grafite ativa nesta sala]';
                 }
 
+                // Alucinações: distorcer descrição
+                desc = Hallucinations.distortDescription(desc);
+
                 this.dom.locationDescription.textContent = desc;
+
+                // Indicador visual de alucinação
+                if (Hallucinations.isHallucinating()) {
+                  this.dom.locationDescription.classList.add('hallucination-text');
+                } else {
+                  this.dom.locationDescription.classList.remove('hallucination-text');
+                }
+
+                // Alucinações: saídas fantasmas (nível 3) — exibir como botões
+                var oldPhantomExits = document.querySelectorAll('.phantom-exit-btn');
+                oldPhantomExits.forEach(function(el) { el.remove(); });
+                var phantomExits = Hallucinations.getPhantomExits();
+                if (phantomExits.length > 0) {
+                  var descEl = this.dom.locationDescription;
+                  phantomExits.forEach(function(pe) {
+                    var btn = document.createElement('button');
+                    btn.className = 'btn btn-item phantom-item phantom-exit-btn';
+                    btn.style.marginTop = '0.5rem';
+                    btn.style.display = 'block';
+                    btn.textContent = '🚪 ' + pe.name;
+                    btn.title = 'Uma passagem que você não notou antes...';
+                    btn.onclick = function() { Game.move(pe.id); };
+                    descEl.parentElement.appendChild(btn);
+                  });
+                }
               },
 
               updateItems: function() {
@@ -8264,7 +8347,7 @@
                 );
 
                 // Assinatura: garante que alterações em nome/descricao/peso refletem no UI
-                const sig = roomId + '|' + items.map(i => `${i.id}:${i.name}:${i.weight}:${i.description}`).join('|');
+                const sig = roomId + '|h' + Hallucinations.getLevel() + '|' + items.map(i => `${i.id}:${i.name}:${i.weight}:${i.description}`).join('|');
                 if (this._renderSig.items === sig) return;
                 this._renderSig.items = sig;
 
@@ -8312,6 +8395,20 @@
 
                 container.replaceChildren(frag);
                 this._nodeCache.items = nextCache;
+
+                // Alucinações: injetar itens fantasmas
+                var phantomItems = Hallucinations.getPhantomItems();
+                for (var pi = 0; pi < phantomItems.length; pi++) {
+                  var pItem = phantomItems[pi];
+                  var pBtn = document.createElement('button');
+                  pBtn.className = 'btn btn-item phantom-item stagger-in';
+                  pBtn.dataset.action = 'pickup';
+                  pBtn.dataset.itemId = pItem.id;
+                  pBtn.textContent = pItem.name;
+                  pBtn.title = pItem.desc + ' (' + pItem.weight + 'kg)';
+                  pBtn.style.animationDelay = ((items.length + pi) * 50) + 'ms';
+                  container.appendChild(pBtn);
+                }
               },
 
               updateCharacters: function() {
@@ -8327,7 +8424,7 @@
 
                 // Assinatura inclui campos exibidos para refletir status (hp, efeitos, etc.)
                 const hasLanterna = Rules.hasEffect('revealAdjacent');
-                const sig = roomId + '|' + chars.map(c => {
+                const sig = roomId + '|h' + Hallucinations.getLevel() + '|' + chars.map(c => {
                   const statusA = (c.pacifiedTurns && c.pacifiedTurns > 0) ? 1 : 0;
                   const statusB = (c.paralyzedTurns && c.paralyzedTurns > 0) ? 1 : 0;
                   const hpTextKey = hasLanterna && !c.isAlly ? `${c.hp}/${c.maxHp}` : `${c.hp}`;
@@ -8400,6 +8497,20 @@
 
                 container.replaceChildren(frag);
                 this._nodeCache.chars = nextCache;
+
+                // Alucinações: injetar NPCs fantasmas
+                var phantomNpcs = Hallucinations.getPhantomNPCs();
+                for (var pn = 0; pn < phantomNpcs.length; pn++) {
+                  var pNpc = phantomNpcs[pn];
+                  var pBtn = document.createElement('button');
+                  pBtn.className = 'btn btn-character phantom-npc stagger-in';
+                  pBtn.dataset.action = 'showCharacter';
+                  pBtn.dataset.charId = pNpc.id;
+                  pBtn.title = pNpc.desc;
+                  pBtn.textContent = pNpc.icon + ' ' + pNpc.name;
+                  pBtn.style.animationDelay = ((chars.length + pn) * 50) + 'ms';
+                  container.appendChild(pBtn);
+                }
               },
 
               updateInventory: function() {
@@ -9805,6 +9916,12 @@
               },
 
               showCharacter: function(charId) {
+                // Alucinações: NPC fantasma
+                if (Hallucinations.isPhantom(charId)) {
+                  Log.add('🌫️ A figura se dissolve no ar quando você tenta se aproximar... não havia ninguém ali.', 'warning');
+                  Render.update();
+                  return;
+                }
                 Modals.showCharacter(charId);
               },
 
@@ -10180,6 +10297,184 @@
                   // ERRO: bomba no céu! Desarmar
                   Log.add(`⚠️ A bomba armada caiu do céu e foi desarmada!`, 'warning');
                   GameState.armedBomb = null;
+                }
+              }
+            };
+
+            // ============================================================================
+            // HALLUCINATIONS - Sistema de Alucinações da Paulista
+            // ============================================================================
+
+            /**
+             * @namespace Hallucinations
+             * @description Quando HP ou Energy estão criticamente baixos, o jogo começa a
+             * mentir para o jogador: descrições distorcidas, NPCs/itens fantasmas, saídas
+             * falsas e mensagens de log inventadas. 3 níveis de intensidade.
+             */
+            const Hallucinations = {
+
+              /** Phantom IDs ativos neste render (limpos a cada Render.update) */
+              _phantomItemIds: [],
+              _phantomNpcIds: [],
+              _phantomExitIds: [],
+
+              /** Frases surreais para distorção de descrição (nível 1+) */
+              _surreal: [
+                'As paredes parecem respirar.',
+                'Tem certeza que o chão é sólido?',
+                'Você ouve alguém chamando seu nome... de dentro das paredes.',
+                'As sombras se movem sozinhas.',
+                'O ar cheira a memórias que você nunca teve.',
+                'O tempo parece ter parado... ou acelerado?',
+                'Você sente olhos te observando de todos os ângulos.',
+                'A Avenida Paulista sussurra segredos inconfessáveis.',
+                'As luzes piscam num ritmo que quase parece... uma mensagem.',
+                'Você jura ter visto seu próprio reflexo andando na direção oposta.'
+              ],
+
+              /** NPCs fantasmas possíveis (nível 2+) */
+              _phantomNPCNames: [
+                { name: 'Homem de Terno', icon: '🌫️', desc: 'Uma figura sombria te observa do canto.' },
+                { name: 'Criança Perdida', icon: '👻', desc: 'Uma criança translúcida brinca sozinha.' },
+                { name: 'Músico Fantasma', icon: '🎵', desc: 'Um músico toca uma melodia que só você ouve.' },
+                { name: 'Sombra Familiar', icon: '🌑', desc: 'Alguém que você conhece... ou acha que conhece.' },
+                { name: 'Vendedora de Flores', icon: '🌸', desc: 'Ela oferece flores que não existem.' }
+              ],
+
+              /** Itens fantasmas possíveis (nível 2+) */
+              _phantomItemNames: [
+                { name: 'Chave Dourada', weight: 0.5, desc: 'Uma chave reluzente... será real?' },
+                { name: 'Amuleto Brilhante', weight: 0.3, desc: 'Emana uma luz pulsante.' },
+                { name: 'Mapa Misterioso', weight: 0.2, desc: 'As linhas parecem se mover.' },
+                { name: 'Frasco Luminoso', weight: 0.4, desc: 'O líquido dentro brilha sozinho.' }
+              ],
+
+              /** Saídas fantasmas possíveis (nível 3) */
+              _phantomExitNames: [
+                'Portão Secreto', 'Escada Oculta', 'Passagem Subterrânea', 'Portal Cintilante'
+              ],
+
+              /** Mensagens fake de log (nível 3) */
+              _fakeLogs: [
+                { msg: '🗡️ Algo te atacou nas sombras! -0 HP', type: 'danger' },
+                { msg: '💀 Você ouve passos se aproximando rapidamente...', type: 'warning' },
+                { msg: '🔮 A Bruxa sussurra uma palavra de poder ao longe...', type: 'magic' },
+                { msg: '💣 Você ouve um tique-taque distante...', type: 'warning' },
+                { msg: '🌑 As luzes da Paulista se apagam por um instante.', type: 'info' },
+                { msg: '👁️ Alguém está te seguindo.', type: 'danger' }
+              ],
+
+              /**
+               * Retorna o nível de alucinação (0-3).
+               */
+              getLevel: function() {
+                if (GameState.gameOver) return 0;
+                var player = GameState.characters.player;
+                if (!player || !player.isAlive) return 0;
+                var hpPerc = (player.hp / player.maxHp) * 100;
+                var energy = GameState.energy != null ? GameState.energy : 100;
+
+                if (hpPerc < 10 && energy < 10) return 3;
+                if (hpPerc < 20 && energy < 15) return 2;
+                if (hpPerc < 30 || energy < 20) return 1;
+                return 0;
+              },
+
+              isHallucinating: function() {
+                return this.getLevel() > 0;
+              },
+
+              /**
+               * Distorce a descrição da sala (nível 1+).
+               */
+              distortDescription: function(desc) {
+                var level = this.getLevel();
+                if (level === 0) return desc;
+                var phrase = this._surreal[Math.floor(Utils.random() * this._surreal.length)];
+                if (level >= 2) {
+                  var phrase2 = this._surreal[Math.floor(Utils.random() * this._surreal.length)];
+                  return desc + ' ' + phrase + ' ' + phrase2;
+                }
+                return desc + ' ' + phrase;
+              },
+
+              /**
+               * Retorna NPCs fantasmas para a sala (nível 2+). Max 2.
+               */
+              getPhantomNPCs: function() {
+                this._phantomNpcIds = [];
+                var level = this.getLevel();
+                if (level < 2) return [];
+                var count = level >= 3 ? 2 : 1;
+                var pool = this._phantomNPCNames.slice();
+                var result = [];
+                for (var i = 0; i < count && pool.length > 0; i++) {
+                  var idx = Math.floor(Utils.random() * pool.length);
+                  var npc = pool.splice(idx, 1)[0];
+                  var phantomId = '_phantom_npc_' + i;
+                  this._phantomNpcIds.push(phantomId);
+                  result.push({ id: phantomId, name: npc.name, icon: npc.icon, desc: npc.desc });
+                }
+                return result;
+              },
+
+              /**
+               * Retorna itens fantasmas para a sala (nível 2+). Max 1.
+               */
+              getPhantomItems: function() {
+                this._phantomItemIds = [];
+                var level = this.getLevel();
+                if (level < 2) return [];
+                var pick = this._phantomItemNames[Math.floor(Utils.random() * this._phantomItemNames.length)];
+                var phantomId = '_phantom_item_0';
+                this._phantomItemIds.push(phantomId);
+                return [{ id: phantomId, name: pick.name, weight: pick.weight, desc: pick.desc }];
+              },
+
+              /**
+               * Retorna saídas fantasmas (nível 3). Max 1.
+               */
+              getPhantomExits: function() {
+                this._phantomExitIds = [];
+                var level = this.getLevel();
+                if (level < 3) return [];
+                var name = this._phantomExitNames[Math.floor(Utils.random() * this._phantomExitNames.length)];
+                var phantomId = '_phantom_exit_0';
+                this._phantomExitIds.push(phantomId);
+                return [{ id: phantomId, name: name }];
+              },
+
+              /**
+               * Verifica se um ID é fantasma.
+               */
+              isPhantom: function(id) {
+                return typeof id === 'string' && id.startsWith('_phantom_');
+              },
+
+              /**
+               * 15% chance de injetar mensagem falsa no log (nível 3).
+               */
+              maybeFakeLog: function() {
+                if (this.getLevel() < 3) return;
+                if (Utils.random() > 0.15) return;
+                var fake = this._fakeLogs[Math.floor(Utils.random() * this._fakeLogs.length)];
+                Log.add(fake.msg, fake.type);
+              },
+
+              /**
+               * Mensagem de cura mental ao comer/curar.
+               */
+              notifyCure: function(prevLevel) {
+                var newLevel = this.getLevel();
+                if (prevLevel > 0 && newLevel < prevLevel) {
+                  Log.add('🧠 Sua mente clareia... as sombras recuam.', 'success');
+                  // Flash visual de cura
+                  var panel = document.getElementById('location-panel');
+                  if (panel) {
+                    panel.classList.remove('hallucination-flash');
+                    void panel.offsetWidth;
+                    panel.classList.add('hallucination-flash');
+                  }
                 }
               }
             };
