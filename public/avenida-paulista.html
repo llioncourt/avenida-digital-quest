@@ -11022,22 +11022,26 @@
                 crawl.style.animation = 'star-wars-crawl 340s linear forwards';
 
                 // Tocar música da intro (nova track)
-                (async () => {
-                  console.log('[IntroSystem] Loading intro music...');
-                  // Check síncrono primeiro (preserva user gesture se já cacheado)
-                  let blobUrl = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
-                  if (!blobUrl) {
-                    blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
-                  }
-                  console.log('[IntroSystem] blobUrl:', blobUrl);
-                  if (blobUrl) {
-                    IntroSystem._introAudio = new Audio(blobUrl);
-                    IntroSystem._introAudio.volume = 0.8;
-                    IntroSystem._introAudio.play().catch(e => console.error('[IntroSystem] Play error:', e));
-                  } else {
-                    console.warn('[IntroSystem] Failed to load intro music');
-                  }
-                })();
+                console.log('[IntroSystem] Loading intro music...');
+                var introBlob = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
+                console.log('[IntroSystem] blobUrl:', introBlob);
+                if (introBlob) {
+                  IntroSystem._introAudio = new Audio(introBlob);
+                  IntroSystem._introAudio.volume = 0.8;
+                  IntroSystem._introAudio.play().catch(function(e) {
+                    console.error('[IntroSystem] Play error:', e);
+                  });
+                } else {
+                  Mp3Cache.load(MP3_TRACKS.introCrawl).then(function(b) {
+                    if (b) {
+                      IntroSystem._introAudio = new Audio(b);
+                      IntroSystem._introAudio.volume = 0.8;
+                      IntroSystem._introAudio.play().catch(function(e) {
+                        console.error('[IntroSystem] Fallback play error:', e);
+                      });
+                    }
+                  });
+                }
 
                 // Fade-out automático da música ~10s antes do crawl terminar
                 this._fadeTimeout = setTimeout(() => {
