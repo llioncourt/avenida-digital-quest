@@ -1,70 +1,69 @@
 
 
+## Análise: A risada da bruxa NÃO será afetada
 
-## Refatoração Completa (Fases 1-4)
+A risada da bruxa (linhas 9689-9698) e os outros efeitos da bruxa (chanting, summon) usam `Mp3Cache.load()` **diretamente** — são chamadas async independentes dentro de `setTimeout` ou IIFEs. Eles **não passam** pelo `player.start` do `_addMp3Layer`.
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+O plano de remover `async` do `player.start` afeta **apenas** os players de música (exploration, combat, gameover, etc.) que passam pelo `_addMp3Layer`. Os efeitos da bruxa continuam funcionando exatamente como antes porque:
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+1. `witchWin` — está dentro de um `setTimeout` (já não tem user gesture de qualquer forma)
+2. `witchChanting` — async IIFE standalone
+3. `witchSummon` — async IIFE standalone
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+**Nenhum deles usa `player.start`.** São todos `new Audio(blobUrl).play()` direto.
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+## Plano ajustado
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+**Arquivo:** `public/avenida-paulista.html`
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+**Única mudança** — linhas 5575-5621, função `player.start` dentro de `_addMp3Layer`:
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+```js
+player.start = function() {
+  if (audio && !audio.paused && player._mp3Active) return;
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+  // Busca síncrona do cache em memória (Map interno do Mp3Cache)
+  if (!blobUrl) {
+    blobUrl = Mp3Cache._cache ? Mp3Cache._cache.get(url) : null;
+  }
 
-### ✅ Fase 7 — Buff do Café Paulistano
+  if (blobUrl) {
+    if (!audio) {
+      audio = new Audio(blobUrl);
+      audio.loop = loop;
+    }
+    if (MusicSystem.musicGain) {
+      audio.volume = MusicSystem.musicGain.gain.value;
+    } else {
+      audio.volume = MusicSystem.volume || 1.0;
+    }
+    if (stoppedManually || audio.ended) audio.currentTime = 0;
+    stoppedManually = false;
+    player._mp3Active = true;
+    player.isPlaying = true;
+    audio.play().then(() => {
+      console.log('[Mp3Layer] ▶ Playback started:', trackKey);
+      if (player.updateButton) player.updateButton();
+    }).catch(err => {
+      console.warn('[Mp3Layer] Fallback MIDI:', err);
+      player._mp3Active = false;
+      originalStart();
+    });
+  } else {
+    // MP3 não carregou ainda → MIDI agora, carrega em background
+    player._mp3Active = false;
+    Mp3Cache.load(url).then(b => { blobUrl = b; });
+    originalStart();
+  }
+};
+```
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
+**Também necessário:** expor o Map interno do `Mp3Cache` como `Mp3Cache._cache` (se ainda não exposto) para que a busca síncrona funcione.
 
-### ✅ Fase 8 — Portrait com Degradê Full-Card
+### O que NÃO muda
+- `witchWin`, `witchChanting`, `witchSummon` — intocados
+- `preloadAll()` — intocado
+- `stop()`, `pause()` — intocados
+- `Mp3Cache.load()` — intocado (continua async para quem precisa)
+- Paths dos MP3s — intocados
 
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
