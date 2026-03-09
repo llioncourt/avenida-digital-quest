@@ -25,7 +25,7 @@
 - `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
 - JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
 - Objeto `MP3_TRACKS` mapeando estados → URLs locais:
   - `exploration: 'AVP Theme.mp3'`
