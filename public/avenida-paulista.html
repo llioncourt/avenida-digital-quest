@@ -5273,6 +5273,8 @@
             _addMp3Layer(MusicSystem, 'exploration', { loop: true });
             _addMp3Layer(GameOverMusicSystem, 'gameover', { loop: false });
             _addMp3Layer(CombatMusicSystem, 'combat', { loop: false });
+            _addMp3Layer(DefeatMusicSystem, 'defeat', { loop: false });
+            _addMp3Layer(VictoryMusicSystem, 'victory', { loop: false });
 
             // Pré-carregar MP3s ao iniciar (opcional, melhora UX)
             if ('caches' in window) {
