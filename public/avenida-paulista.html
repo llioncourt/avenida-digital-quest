@@ -5293,6 +5293,21 @@
               Mp3Cache.preloadAll();
             }
 
+            // Indicador online no título (roxo = online, amarelo = offline)
+            function updateTitleOnlineStatus() {
+              const title = document.querySelector('.modern-pulse-title');
+              if (title) {
+                if (navigator.onLine) {
+                  title.classList.add('online');
+                } else {
+                  title.classList.remove('online');
+                }
+              }
+            }
+            updateTitleOnlineStatus();
+            window.addEventListener('online', updateTitleOnlineStatus);
+            window.addEventListener('offline', updateTitleOnlineStatus);
+
             // ============================================================================
             // GAME STATE
             // ============================================================================
