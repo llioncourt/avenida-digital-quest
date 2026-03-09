@@ -1377,18 +1377,207 @@
               margin: 0.5rem;
             }
 
-            /* ========== CHARACTER MODAL ========== */
+            /* ========== CHARACTER MODAL (Modern Card) ========== */
             #character-modal-content {
               text-align: left;
+              position: relative;
             }
 
-            #character-modal-content .character-stats {
-              background: var(--bg-tertiary);
-              padding: 1rem;
-              border-radius: var(--radius);
-              margin: 1rem 0;
+            #character-modal-content .char-card {
+              position: relative;
+              border-radius: 12px;
+              overflow: hidden;
+              background: linear-gradient(145deg, rgba(20,15,8,0.95), rgba(30,22,10,0.9));
+              border: 1px solid rgba(212,168,70,0.2);
+              box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,168,70,0.1);
+            }
+
+            #character-modal-content .char-card-portrait {
+              position: relative;
+              height: 220px;
+              overflow: hidden;
+              background: linear-gradient(135deg, #0a0806, #1a150c);
+            }
+
+            #character-modal-content .char-card-portrait img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              object-position: top center;
+              opacity: 0.85;
+              animation: char-portrait-reveal 0.6s ease-out;
+            }
+
+            @keyframes char-portrait-reveal {
+              from { opacity: 0; transform: scale(1.08); }
+              to { opacity: 0.85; transform: scale(1); }
+            }
+
+            #character-modal-content .char-card-portrait::after {
+              content: '';
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(to bottom,
+                transparent 30%,
+                rgba(20,15,8,0.4) 55%,
+                rgba(20,15,8,0.95) 90%,
+                rgba(20,15,8,1) 100%
+              );
+              pointer-events: none;
+            }
+
+            #character-modal-content .char-card-portrait .char-name-overlay {
+              position: absolute;
+              bottom: 12px;
+              left: 16px;
+              z-index: 2;
               font-family: var(--font-mono);
+              font-size: 1.6rem;
+              font-weight: 700;
+              color: var(--accent-gold);
+              text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+              letter-spacing: 0.08em;
+            }
+
+            #character-modal-content .char-card-portrait .char-status-badge {
+              position: absolute;
+              top: 12px;
+              right: 12px;
+              z-index: 2;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-family: var(--font-mono);
+              font-size: 0.7rem;
+              font-weight: 600;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              backdrop-filter: blur(8px);
+              animation: char-portrait-reveal 0.4s ease-out 0.2s both;
+            }
+
+            .char-status-badge.hostile {
+              background: rgba(201,64,64,0.25);
+              color: #ff6b6b;
+              border: 1px solid rgba(201,64,64,0.4);
+              box-shadow: 0 0 12px rgba(201,64,64,0.2);
+            }
+
+            .char-status-badge.ally {
+              background: rgba(64,160,96,0.25);
+              color: #6bffaa;
+              border: 1px solid rgba(64,160,96,0.4);
+              box-shadow: 0 0 12px rgba(64,160,96,0.2);
+            }
+
+            .char-status-badge.neutral {
+              background: rgba(212,168,70,0.2);
+              color: var(--accent-gold);
+              border: 1px solid rgba(212,168,70,0.3);
+            }
+
+            #character-modal-content .char-card-body {
+              padding: 16px 20px 20px;
+            }
+
+            #character-modal-content .char-card-desc {
+              color: var(--text-secondary);
               font-size: 0.9rem;
+              line-height: 1.6;
+              margin-bottom: 16px;
+              opacity: 0.9;
+            }
+
+            #character-modal-content .char-stats-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 8px;
+              margin-bottom: 20px;
+            }
+
+            #character-modal-content .char-stat {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 10px 12px;
+              border-radius: 8px;
+              background: rgba(255,255,255,0.03);
+              border: 1px solid rgba(255,255,255,0.06);
+              transition: background 0.2s;
+            }
+
+            #character-modal-content .char-stat:hover {
+              background: rgba(255,255,255,0.06);
+            }
+
+            #character-modal-content .char-stat .stat-icon {
+              font-size: 1.1rem;
+              width: 24px;
+              text-align: center;
+              flex-shrink: 0;
+            }
+
+            #character-modal-content .char-stat .stat-info {
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+            }
+
+            #character-modal-content .char-stat .stat-label {
+              font-size: 0.65rem;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              color: rgba(255,255,255,0.35);
+              font-family: var(--font-mono);
+            }
+
+            #character-modal-content .char-stat .stat-value {
+              font-family: var(--font-mono);
+              font-size: 0.95rem;
+              font-weight: 600;
+              color: var(--text-primary);
+            }
+
+            /* HP bar mini */
+            #character-modal-content .hp-bar-container {
+              width: 100%;
+              height: 4px;
+              background: rgba(255,255,255,0.08);
+              border-radius: 2px;
+              margin-top: 4px;
+              overflow: hidden;
+            }
+
+            #character-modal-content .hp-bar-fill {
+              height: 100%;
+              border-radius: 2px;
+              transition: width 0.6s ease;
+            }
+
+            #character-modal-content .char-card-actions {
+              display: flex;
+              gap: 8px;
+              justify-content: center;
+              flex-wrap: wrap;
+            }
+
+            #character-modal-content .char-card-actions .btn {
+              margin: 0;
+              border-radius: 8px;
+              padding: 8px 20px;
+              font-size: 0.85rem;
+              backdrop-filter: blur(4px);
+            }
+
+            /* No-portrait fallback gradient */
+            .char-portrait-fallback {
+              width: 100%;
+              height: 100%;
+              background: linear-gradient(135deg, #1a150c 0%, #2a1f0e 50%, #0a0806 100%);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 3rem;
+              opacity: 0.4;
             }
 
             /* ========== RESPONSIVE ========== */
@@ -1671,19 +1860,36 @@
               top: 2rem;
               right: 2rem;
               z-index: 10001;
-              background: transparent;
-              border: 1px solid var(--accent-gold);
+              background: rgba(212,168,70,0.08);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
+              border: 1px solid rgba(212,168,70,0.3);
               color: var(--accent-gold);
-              padding: 0.5rem 1rem;
+              padding: 10px 24px;
               cursor: pointer;
               font-family: var(--font-mono);
-              font-size: 0.9rem;
-              transition: all 0.2s ease;
+              font-size: 0.8rem;
+              font-weight: 600;
+              letter-spacing: 0.15em;
+              text-transform: uppercase;
+              border-radius: 8px;
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              gap: 8px;
             }
 
             #intro-skip:hover {
-              background: var(--accent-gold);
-              color: black;
+              background: rgba(212,168,70,0.15);
+              border-color: rgba(212,168,70,0.6);
+              box-shadow: 0 4px 24px rgba(212,168,70,0.2);
+              transform: translateY(-1px);
+            }
+
+            #intro-skip:active {
+              transform: translateY(0);
+              background: rgba(212,168,70,0.25);
             }
 
             #intro-crawl {
@@ -2258,7 +2464,7 @@
 
     <div id="intro-container">
       <div id="intro-stars"></div>
-      <button id="intro-skip" onclick="IntroSystem.skip()">PULAR ▶</button>
+      <button id="intro-skip" onclick="IntroSystem.skip()">PULAR <span style="font-size:0.7em;opacity:0.7;">▸▸</span></button>
       <div id="intro-crawl"></div>
     </div>
 
@@ -9458,9 +9664,20 @@
 
               showCharacter: function(charId) {
                 const char = GameState.characters[charId];
-                const allyText = char.isAlly ? '(Aliado)' : '(Hostil)';
+                const isAlly = char.isAlly;
+                const isNeutral = char.isNeutral;
+                const statusText = isAlly ? 'Aliado' : (isNeutral ? 'Neutro' : 'Hostil');
+                const statusClass = isAlly ? 'ally' : (isNeutral ? 'neutral' : 'hostile');
 
-                // Botão de converter para o demônio (se leu o livro e ainda é hostil)
+                // Portrait URL
+                const prefix = Portraits.MAP[charId] || '00';
+                const portraitUrl = 'portraits/' + prefix + '_' + charId + '_neutro.webp';
+
+                // HP percentage and color
+                const hpPct = Math.round((char.hp / char.maxHp) * 100);
+                const hpColor = hpPct > 60 ? '#6bffaa' : (hpPct > 30 ? '#ffd66b' : '#ff6b6b');
+
+                // Botão de converter para o demônio
                 let convertButton = '';
                 if (charId === 'demonio' && GameState.hasReadMagicBook && !char.isAlly && char.isAlive) {
                   convertButton = `<button class="btn btn-spectral" onclick="Game.speak('${GameState.demonMagicWord}'); Modals.hide();">✨ Converter</button>`;
@@ -9468,22 +9685,51 @@
 
                 const content = `
                   <div id="character-modal-content">
-                    <p>${char.description}</p>
-                    <div class="character-stats">
-                      <div>❤️ HP: ${char.hp}/${char.maxHp}</div>
-                      <div>⚔️ Ataque: ${char.attackPower}</div>
-                      <div>🛡️ Defesa: ${char.defensePower}</div>
-                      <div>Status: ${allyText}</div>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
-                      ${charId === 'vendedor' && char.isNeutral && char.isAlive ? `<button class="btn" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="Modals.hide(); VendorTrade.openTradeModal();">🛒 Trocar</button>` : ''}
-                      ${char.isAlly ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'ally')">⚠️ Atacar</button>` : (char.isNeutral ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'neutral')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
-                      ${convertButton}
-                      <button class="btn" onclick="Modals.hide()">Fechar</button>
+                    <div class="char-card">
+                      <div class="char-card-portrait">
+                        <img src="${portraitUrl}" alt="${char.name}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'char-portrait-fallback\\'>${charId === 'feiticeiro' ? '🧙' : charId === 'aguia' ? '🦅' : charId === 'bombardeador' ? '💣' : charId === 'bruxa' ? '🧹' : charId === 'demonio' ? '👹' : charId === 'vendedor' ? '🛒' : '❓'}</div><span class=\\'char-name-overlay\\'>${char.name}</span><span class=\\'char-status-badge ${statusClass}\\'>${statusText}</span>';">
+                        <span class="char-name-overlay">${char.name}</span>
+                        <span class="char-status-badge ${statusClass}">${statusText}</span>
+                      </div>
+                      <div class="char-card-body">
+                        <p class="char-card-desc">${char.description}</p>
+                        <div class="char-stats-grid">
+                          <div class="char-stat" style="grid-column: 1 / -1;">
+                            <span class="stat-icon">❤️</span>
+                            <div class="stat-info" style="flex:1;">
+                              <span class="stat-label">Vida</span>
+                              <span class="stat-value" style="color:${hpColor};">${char.hp} / ${char.maxHp}</span>
+                              <div class="hp-bar-container">
+                                <div class="hp-bar-fill" style="width:${hpPct}%;background:${hpColor};"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="char-stat">
+                            <span class="stat-icon">⚔️</span>
+                            <div class="stat-info">
+                              <span class="stat-label">Ataque</span>
+                              <span class="stat-value">${char.attackPower}</span>
+                            </div>
+                          </div>
+                          <div class="char-stat">
+                            <span class="stat-icon">🛡️</span>
+                            <div class="stat-info">
+                              <span class="stat-label">Defesa</span>
+                              <span class="stat-value">${char.defensePower}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="char-card-actions">
+                          ${charId === 'vendedor' && char.isNeutral && char.isAlive ? `<button class="btn" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="Modals.hide(); VendorTrade.openTradeModal();">🛒 Trocar</button>` : ''}
+                          ${isAlly ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'ally')">⚠️ Atacar</button>` : (isNeutral ? `<button class="btn btn-danger-warn" onclick="Modals.confirmAttackAlly('${char.id}', 'neutral')">⚠️ Atacar</button>` : `<button class="btn btn-danger" onclick="Game.attackAndClose('${char.id}')">Atacar</button>`)}
+                          ${convertButton}
+                          <button class="btn" onclick="Modals.hide()">Fechar</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 `;
-                this.show(char.name, content);
+                this.show('', content);
               }
             };
 
