@@ -5624,6 +5624,9 @@
                 if (audio && player._mp3Active) {
                   audio.pause();
                   // NÃO reseta currentTime — permite retomar
+                } else {
+                  // MIDI fallback: MIDI não tem pause, então stop
+                  originalStop();
                 }
                 player.isPlaying = false;
               };
