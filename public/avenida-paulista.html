@@ -6828,6 +6828,46 @@
             // ============================================================================
             // COMBAT MODAL - Modal cinematográfico de combate
             // ============================================================================
+            // PORTRAITS — Sistema de retratos de combate com triplo fallback
+            // ============================================================================
+
+            const Portraits = {
+              MAP: { player: '01', feiticeiro: '02', aguia: '03', bombardeador: '04', bruxa: '05', demonio: '06', coruja: '07', cachorro: '08', vendedor: '09' },
+
+              normalize: function(name) {
+                if (!name) return 'neutro';
+                return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+              },
+
+              buildUrl: function(charId, moveName) {
+                var prefix = this.MAP[charId] || '00';
+                var move = this.normalize(moveName);
+                return 'portraits/' + prefix + '_' + charId + '_' + move + '.webp';
+              },
+
+              createEl: function(charId, moveName) {
+                var self = this;
+                var div = document.createElement('div');
+                div.className = 'combat-portrait';
+                var specificUrl = this.buildUrl(charId, moveName);
+                var neutralUrl = this.buildUrl(charId, 'neutro');
+                var img = document.createElement('img');
+                img.src = specificUrl;
+                img.alt = charId;
+                img.onerror = function() {
+                  if (this.src.indexOf('_neutro.webp') === -1) {
+                    this.src = neutralUrl;
+                  } else {
+                    this.onerror = null;
+                    div.innerHTML = '<div class="combat-portrait-placeholder">?</div>';
+                  }
+                };
+                div.appendChild(img);
+                return div;
+              }
+            };
+
+            // ============================================================================
 
             const CombatModal = {
               isOpen: false,
