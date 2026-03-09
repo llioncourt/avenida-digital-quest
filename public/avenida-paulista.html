@@ -10380,6 +10380,8 @@
                */
               getLevel: function() {
                 if (GameState.gameOver) return 0;
+                // Cafeína bloqueia alucinações
+                if (GameState.caffeinatedTurns > 0) return 0;
                 var player = GameState.characters.player;
                 if (!player || !player.isAlive) return 0;
                 var hpPerc = (player.hp / player.maxHp) * 100;
