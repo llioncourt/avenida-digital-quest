@@ -10287,13 +10287,13 @@
                 // Listener para fim da animação (once: true evita múltiplas execuções)
                 crawl.addEventListener('animationend', () => this.complete(), { once: true });
 
-                // Timer de segurança: se animação não terminar em 65s, forçar conclusão
+                // Timer de segurança: se animação não terminar em 350s, forçar conclusão
                 this.safetyTimeout = setTimeout(() => {
                   if (!this.isComplete) {
                     console.warn('IntroSystem: safety timeout triggered');
                     this.complete();
                   }
-                }, 90000);
+                }, 350000); // 350s (10s após os 340s do crawl)
               },
 
               skip: function() {
