@@ -6285,12 +6285,13 @@
                 var oldHp = player.hp;
                 player.hp = Math.min(player.maxHp, player.hp + GAME_CONSTANTS.ENERGETICO_HEAL);
                 var healed = player.hp - oldHp;
-                GameState.skipNextTimeAdvance = true;
+                // Energético também ativa efeito cafeinado (1 turno)
+                if (GameState.caffeinatedTurns < 1) GameState.caffeinatedTurns = 1;
                 SoundSystem.playHeal();
                 ScreenEffects.flash('rgba(0, 255, 100, 0.4)');
                 return {
                   success: true,
-                  message: '⚡ Você bebeu o ENERGÉTICO PAULISTA! +' + healed + ' HP! Sua próxima ação não avança o tempo!',
+                  message: '⚡ Você bebeu o ENERGÉTICO PAULISTA! +' + healed + ' HP! O tempo não avançará neste turno!',
                   consumed: true
                 };
               }
