@@ -2177,6 +2177,11 @@
     <div id="fog-overlay"></div>
     <div id="whisper-overlay"></div>
 
+    <div id="start-screen" style="position:fixed; inset:0; z-index:10000; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" onclick="StartScreen.start()">
+      <h1 style="color:#FFD700; font-family:'Press Start 2P',monospace; font-size:2rem; text-shadow:0 0 20px #FFD700;">AVENIDA PAULISTA</h1>
+      <p style="color:#aaa; margin-top:2rem; font-size:1.2rem; animation:pulse 2s infinite;">▶ CLIQUE PARA INICIAR</p>
+    </div>
+
     <div id="intro-container">
       <div id="intro-stars"></div>
       <button id="intro-skip" onclick="IntroSystem.skip()">PULAR ▶</button>
@@ -5125,7 +5130,8 @@
               victory: 'AVP-Combat-Victory.mp3',
               witchChanting: 'AVP-Witch-Chanting.mp3',
               witchSummon: 'AVP-Witch-Summon.mp3',
-              witchWin: 'AVP-Witch-Win.mp3'
+              witchWin: 'AVP-Witch-Win.mp3',
+              introCrawl: 'AVP-Intro.mp3'
             };
 
             const MP3_CACHE_NAME = 'avp-music-v1';
@@ -10241,9 +10247,15 @@
                 // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
                 crawl.style.animation = 'star-wars-crawl 168s linear forwards';
 
-                // Iniciar música em velocidade lenta
-                MusicSystem.init();
-                MusicSystem.setSpeed(0.7);
+                // Tocar música da intro (nova track)
+                (async () => {
+                  const blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
+                  if (blobUrl) {
+                    IntroSystem._introAudio = new Audio(blobUrl);
+                    IntroSystem._introAudio.volume = 0.8;
+                    IntroSystem._introAudio.play().catch(() => {});
+                  }
+                })();
 
                 // Listener para fim da animação (once: true evita múltiplas execuções)
                 crawl.addEventListener('animationend', () => this.complete(), { once: true });
@@ -10266,6 +10278,12 @@
                 if (this.isComplete) return;
                 this.isComplete = true;
 
+                // Parar música da intro
+                if (this._introAudio) {
+                  this._introAudio.pause();
+                  this._introAudio = null;
+                }
+
                 // Limpar timer de segurança
                 if (this.safetyTimeout) {
                   clearTimeout(this.safetyTimeout);
@@ -10279,8 +10297,8 @@
                 // Mostrar jogo
                 document.body.classList.remove('intro-active');
 
-                // Restaurar velocidade da música
-                MusicSystem.setSpeed(1.0);
+                // Iniciar música do jogo
+                MusicSystem.init();
 
                 // Iniciar jogo
                 Game.init();
@@ -10291,8 +10309,16 @@
             // INICIALIZAÇÃO
             // ============================================================================
 
+            // StartScreen object — captura interação do usuário antes do crawl
+            const StartScreen = {
+              start: function() {
+                document.getElementById('start-screen').remove();
+                IntroSystem.init();
+              }
+            };
+
             document.addEventListener('DOMContentLoaded', function() {
-              IntroSystem.init();
+              // Aguarda clique no StartScreen — não inicia IntroSystem automaticamente
 
               // Fechar sliders de volume ao clicar fora
               document.addEventListener('click', function(e) {
