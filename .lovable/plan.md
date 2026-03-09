@@ -1,47 +1,38 @@
 
 
-## Problema
+## Refatoração Completa (Fases 1-4)
 
-Na linha 8309, quando o vendedor é neutro (`char.isNeutral && char.id === 'vendedor'`), o botão é configurado apenas como `vendorTrade` e faz `continue`, pulando completamente o caminho `showCharacter`. Isso significa que o jogador nunca vê o modal com o botão "⚠️ Atacar".
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-## Solução
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-Modificar o botão do vendedor para ter **duas ações**: trocar e atacar. Duas abordagens possíveis:
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-**Abordagem escolhida**: Ao clicar no vendedor, abrir o `showCharacter` normal (que já tem o botão de ataque para neutros na linha 9190), mas **adicionar um botão de troca** ao modal do personagem.
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-### Alterações
+### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-**1. `showCharacter` (linha ~9170-9197)**: Adicionar botão de troca quando `charId === 'vendedor'` e o vendedor ainda é neutro:
-
-```js
-// Dentro do content, antes do botão Fechar:
-let tradeButton = '';
-if (charId === 'vendedor' && char.isNeutral && char.isAlive) {
-  tradeButton = `<button class="btn" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="Modals.hide(); VendorTrade.openTradeModal();">🛒 Trocar</button>`;
-}
-```
-
-**2. Botão na UI (linhas 8308-8318)**: Remover o `continue` e deixar o vendedor usar a mesma lógica de `showCharacter` dos outros personagens, mas mantendo o ícone/estilo especial:
-
-```js
-if (char.isNeutral && char.id === 'vendedor') {
-  btn.dataset.action = 'showCharacter';  // abre modal com ataque
-  btn.dataset.charId = char.id;
-  btn.className = 'btn btn-character stagger-in';
-  btn.style.borderColor = 'var(--accent-gold)';
-  btn.style.color = 'var(--accent-gold)';
-  btn.title = char.description || '';
-  btn.textContent = '🛒 ' + char.name;
-  frag.appendChild(btn);
-  nextCache.set(char.id, btn);
-  continue;
-}
-```
-
-### Arquivo
-
-`public/avenida-paulista.html`:
-- Linhas 8308-8318: Mudar `vendorTrade` → `showCharacter`
-- Linhas 9170-9197: Adicionar botão de troca no modal do vendedor
-
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
