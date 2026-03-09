@@ -5187,8 +5187,12 @@
               const originalStop = player.stop.bind(player);
 
               player._mp3Active = false;
+              let stoppedManually = false;
 
               player.start = async function() {
+                // Se já está tocando, não faz nada
+                if (audio && !audio.paused && player._mp3Active) return;
+
                 // Tentar carregar MP3
                 if (!blobUrl) {
                   blobUrl = await Mp3Cache.load(url);
@@ -5208,9 +5212,14 @@
                     audio.volume = MusicSystem.volume || 1.0;
                   }
 
+                  // Só reinicia do zero se foi parado manualmente ou se já terminou
+                  if (stoppedManually || audio.ended) {
+                    audio.currentTime = 0;
+                  }
+                  stoppedManually = false;
+
                   player._mp3Active = true;
                   player.isPlaying = true;
-                  audio.currentTime = 0;
                   audio.play().catch(err => {
                     console.warn('[Mp3Layer] Playback error, falling back to MIDI:', err);
                     player._mp3Active = false;
@@ -5227,6 +5236,7 @@
 
               player.stop = function() {
                 if (audio && player._mp3Active) {
+                  stoppedManually = true;
                   audio.pause();
                   audio.currentTime = 0;
                 }
