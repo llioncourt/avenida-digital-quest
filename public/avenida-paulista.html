@@ -10309,8 +10309,16 @@
             // INICIALIZAÇÃO
             // ============================================================================
 
+            // StartScreen object — captura interação do usuário antes do crawl
+            const StartScreen = {
+              start: function() {
+                document.getElementById('start-screen').remove();
+                IntroSystem.init();
+              }
+            };
+
             document.addEventListener('DOMContentLoaded', function() {
-              IntroSystem.init();
+              // Aguarda clique no StartScreen — não inicia IntroSystem automaticamente
 
               // Fechar sliders de volume ao clicar fora
               document.addEventListener('click', function(e) {
