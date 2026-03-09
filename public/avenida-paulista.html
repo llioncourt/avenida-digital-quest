@@ -5671,13 +5671,15 @@
               };
 
               // Atualizar volume do audio quando musicGain mudar
-              const originalSetVolume = MusicSystem.setVolume;
-              MusicSystem.setVolume = function(val) {
-                originalSetVolume.call(this, val);
-                if (audio && player._mp3Active) {
-                  audio.volume = val;
-                }
-              };
+              const originalSetVolume = player.setVolume;
+              if (originalSetVolume) {
+                player.setVolume = function(val) {
+                  originalSetVolume.call(player, val);
+                  if (audio && player._mp3Active) {
+                    audio.volume = val;
+                  }
+                };
+              }
             }
 
             // Aplicar camada MP3 aos players existentes
