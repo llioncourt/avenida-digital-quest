@@ -5572,13 +5572,13 @@
               player._mp3Active = false;
               let stoppedManually = false;
 
-              player.start = async function() {
+              player.start = function() {
                 // Se já está tocando, não faz nada
                 if (audio && !audio.paused && player._mp3Active) return;
 
-                // Tentar carregar MP3
+                // Busca síncrona do cache em memória
                 if (!blobUrl) {
-                  blobUrl = await Mp3Cache.load(url);
+                  blobUrl = _mp3BlobCache.get(url) || null;
                 }
 
                 if (blobUrl) {
@@ -5607,15 +5607,15 @@
                     console.log('[Mp3Layer] ▶ Playback started:', trackKey);
                     if (player.updateButton) player.updateButton();
                   }).catch(err => {
-                    console.warn('[Mp3Layer] Playback error, falling back to MIDI:', err);
+                    console.warn('[Mp3Layer] Fallback MIDI:', err);
                     player._mp3Active = false;
                     originalStart();
                   });
-                  console.log('[Mp3Layer] Playing MP3:', trackKey);
                 } else {
-                  // Fallback para MIDI
+                  // MP3 não carregou ainda → MIDI agora, carrega em background
                   player._mp3Active = false;
-                  console.log('[Mp3Layer] No MP3 available, using MIDI:', trackKey);
+                  console.log('[Mp3Layer] Not preloaded yet, using MIDI:', trackKey);
+                  Mp3Cache.load(url).then(b => { blobUrl = b; });
                   originalStart();
                 }
               };
