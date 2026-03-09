@@ -7324,6 +7324,9 @@
 
                 // WORLD SANITY: validar novamente após eventos (double-check)
                 WorldSanity.enforce();
+
+                // Alucinações: chance de log falso
+                Hallucinations.maybeFakeLog();
               },
 
               // Processar timer da bomba
