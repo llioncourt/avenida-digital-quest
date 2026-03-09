@@ -2213,7 +2213,8 @@
             }
 
             #combat-confirm-btn {
-              display: none;
+              visibility: hidden;
+              opacity: 0;
               font-family: var(--font-mono);
               font-size: 1.1rem;
               font-weight: bold;
@@ -7295,7 +7296,8 @@
                 // Clear cards
                 document.getElementById('combat-card-attacker').innerHTML = '';
                 document.getElementById('combat-card-defender').innerHTML = '';
-                document.getElementById('combat-confirm-btn').style.display = 'none';
+                document.getElementById('combat-confirm-btn').style.visibility = 'hidden';
+                document.getElementById('combat-confirm-btn').style.opacity = '0';
                 document.getElementById('combat-modal-overlay').classList.add('active');
 
                 this.showStats();
@@ -7435,7 +7437,8 @@
                   self.phase = 1;
                   var btn = document.getElementById('combat-confirm-btn');
                   btn.textContent = '⚔️ CONFIRMAR';
-                  btn.style.display = 'inline-block';
+                  btn.style.visibility = 'visible';
+                  btn.style.opacity = '1';
                 }, delay));
               },
 
@@ -7451,8 +7454,9 @@
                     DefeatMusicSystem.start();
                   }
                   // Hide confirm button
-                  document.getElementById('combat-confirm-btn').style.display = 'none';
-                  this.phase = 2;
+                  document.getElementById('combat-confirm-btn').style.visibility = 'hidden';
+                  document.getElementById('combat-confirm-btn').style.opacity = '0';
+                   this.phase = 2;
                   // Apply the combat
                   if (this.pendingCombat.applyCallback) {
                     this.pendingCombat.applyCallback(this.pendingCombat.result);
@@ -7539,7 +7543,8 @@
                   self.phase = 3;
                   var btn = document.getElementById('combat-confirm-btn');
                   btn.textContent = '✓ CONFIRMAR';
-                  btn.style.display = 'inline-block';
+                  btn.style.visibility = 'visible';
+                  btn.style.opacity = '1';
                 }, delay + lineDelay));
               },
 
@@ -7551,7 +7556,8 @@
                  this.isOpen = false;
                  this.phase = 0;
                 document.getElementById('combat-modal-overlay').classList.remove('active');
-                document.getElementById('combat-confirm-btn').style.display = 'none';
+                document.getElementById('combat-confirm-btn').style.visibility = 'hidden';
+                document.getElementById('combat-confirm-btn').style.opacity = '0';
                 this.typeTimers.forEach(function(t) { clearTimeout(t); });
                 this.typeTimers = [];
 
@@ -7584,7 +7590,8 @@
                 this.typeTimers.forEach(function(t) { clearTimeout(t); });
                 this.typeTimers = [];
                 document.getElementById('combat-modal-overlay').classList.remove('active');
-                document.getElementById('combat-confirm-btn').style.display = 'none';
+                document.getElementById('combat-confirm-btn').style.visibility = 'hidden';
+                document.getElementById('combat-confirm-btn').style.opacity = '0';
               }
             };
 
