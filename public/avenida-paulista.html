@@ -6649,7 +6649,16 @@
                     const demon = GameState.characters.demonio;
                     demon.location = t.location;
                     demon.isSummoned = true;
-                    SoundSystem.playDemonSummon();
+                    (async () => {
+                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchSummon);
+                      if (blobUrl) {
+                        const a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(() => SoundSystem.playDemonSummon());
+                      } else {
+                        SoundSystem.playDemonSummon();
+                      }
+                    })();
                     ScreenEffects.flash('rgba(139, 0, 0, 0.6)'); // Flash vermelho escuro
                     Log.add('🔥 A Bruxa invoca o DEMÔNIO! O chão treme e chamas brotam das sombras!', 'danger');
                   }
