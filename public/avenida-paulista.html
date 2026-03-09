@@ -552,6 +552,15 @@
               text-shadow: 0 0 15px rgba(212, 168, 70, 0.2);
             }
 
+            .modern-pulse-title.online {
+              background: linear-gradient(270deg, #9b59b6, #fff, #9b59b6, #6c3483);
+              background-size: 300% 300%;
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              text-shadow: 0 0 15px rgba(155, 89, 182, 0.2);
+            }
+
             .button-group {
               display: flex;
               flex-wrap: wrap;
@@ -5283,6 +5292,21 @@
             if ('caches' in window) {
               Mp3Cache.preloadAll();
             }
+
+            // Indicador online no título (roxo = online, amarelo = offline)
+            function updateTitleOnlineStatus() {
+              const title = document.querySelector('.modern-pulse-title');
+              if (title) {
+                if (navigator.onLine) {
+                  title.classList.add('online');
+                } else {
+                  title.classList.remove('online');
+                }
+              }
+            }
+            updateTitleOnlineStatus();
+            window.addEventListener('online', updateTitleOnlineStatus);
+            window.addEventListener('offline', updateTitleOnlineStatus);
 
             // ============================================================================
             // GAME STATE

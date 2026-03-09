@@ -1,42 +1,38 @@
 
 
-## Título roxo quando online
+## Refatoração Completa (Fases 1-4)
 
-Alterar a animação do título "Avenida Paulista" (`.modern-pulse-title`) para usar roxo/branco quando online, mantendo amarelo/branco quando offline.
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-### Alterações em `public/avenida-paulista.html`
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-**1. Adicionar classe CSS `.modern-pulse-title.online` (~linha 553, após o bloco `.modern-pulse-title`)**
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-```css
-.modern-pulse-title.online {
-  background: linear-gradient(270deg, #9b59b6, #fff, #9b59b6, #6c3483);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 15px rgba(155, 89, 182, 0.2);
-}
-```
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-**2. No início do jogo (após `Mp3Cache.preloadAll()` ou no init), adicionar detecção online/offline (~linha 5285)**
+### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-```js
-// Indicador online no título
-function updateTitleOnlineStatus() {
-  const title = document.querySelector('.modern-pulse-title');
-  if (title) {
-    if (navigator.onLine) {
-      title.classList.add('online');
-    } else {
-      title.classList.remove('online');
-    }
-  }
-}
-updateTitleOnlineStatus();
-window.addEventListener('online', updateTitleOnlineStatus);
-window.addEventListener('offline', updateTitleOnlineStatus);
-```
-
-Isso detecta automaticamente mudanças de conectividade e alterna as cores em tempo real.
-
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
