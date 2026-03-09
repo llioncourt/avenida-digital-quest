@@ -8273,7 +8273,17 @@
                   desc += ' 🎨 [Armadilha de grafite ativa nesta sala]';
                 }
 
+                // Alucinações: distorcer descrição
+                desc = Hallucinations.distortDescription(desc);
+
                 this.dom.locationDescription.textContent = desc;
+
+                // Indicador visual de alucinação
+                if (Hallucinations.isHallucinating()) {
+                  this.dom.locationDescription.classList.add('hallucination-text');
+                } else {
+                  this.dom.locationDescription.classList.remove('hallucination-text');
+                }
               },
 
               updateItems: function() {
