@@ -2177,6 +2177,11 @@
     <div id="fog-overlay"></div>
     <div id="whisper-overlay"></div>
 
+    <div id="start-screen" style="position:fixed; inset:0; z-index:10000; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" onclick="StartScreen.start()">
+      <h1 style="color:#FFD700; font-family:'Press Start 2P',monospace; font-size:2rem; text-shadow:0 0 20px #FFD700;">AVENIDA PAULISTA</h1>
+      <p style="color:#aaa; margin-top:2rem; font-size:1.2rem; animation:pulse 2s infinite;">▶ CLIQUE PARA INICIAR</p>
+    </div>
+
     <div id="intro-container">
       <div id="intro-stars"></div>
       <button id="intro-skip" onclick="IntroSystem.skip()">PULAR ▶</button>
