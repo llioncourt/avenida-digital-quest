@@ -1,38 +1,38 @@
 
 
-## Problema: MP3s com espaços no nome retornam 404 no site publicado
+## Refatoração Completa (Fases 1-4)
 
-O servidor do Lovable não consegue servir arquivos estáticos com espaços no nome. `favicon.ico` e `placeholder.svg` funcionam, mas `AVP Theme.mp3` retorna 404.
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-## Solução: Renomear todos os MP3s para usar hífens
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-### 1. Renomear arquivos em `public/`
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-| Atual | Novo |
-|-------|------|
-| `AVP Combat Defeat.mp3` | `AVP-Combat-Defeat.mp3` |
-| `AVP Combat Victory.mp3` | `AVP-Combat-Victory.mp3` |
-| `AVP Combat.mp3` | `AVP-Combat.mp3` |
-| `AVP Game Over.mp3` | `AVP-Game-Over.mp3` |
-| `AVP Theme.mp3` | `AVP-Theme.mp3` |
-| `AVP Witch Chanting.mp3` | `AVP-Witch-Chanting.mp3` |
-| `AVP Witch Summon.mp3` | `AVP-Witch-Summon.mp3` |
-| `AVP Witch Win.mp3` | `AVP-Witch-Win.mp3` |
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-### 2. Atualizar `MP3_TRACKS` em `public/avenida-paulista.html` (~linha 5120)
+### 🔧 Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-```js
-const MP3_TRACKS = {
-  exploration: 'AVP-Theme.mp3',
-  gameover: 'AVP-Game-Over.mp3',
-  combat: 'AVP-Combat.mp3',
-  defeat: 'AVP-Combat-Defeat.mp3',
-  victory: 'AVP-Combat-Victory.mp3',
-  witchChanting: 'AVP-Witch-Chanting.mp3',
-  witchSummon: 'AVP-Witch-Summon.mp3',
-  witchWin: 'AVP-Witch-Win.mp3'
-};
-```
-
-Nenhuma outra alteração necessária — todas as referências aos MP3s passam por `MP3_TRACKS`.
-
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
