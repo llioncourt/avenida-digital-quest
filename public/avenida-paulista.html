@@ -6791,10 +6791,14 @@
                 this.phase = 0;
                 this.pendingCombat = { attacker: attackerData, defender: defenderData, result: combatResult, applyCallback: applyCallback };
 
-                // Pause music
+                // Pause music (use pause() to preserve playback position)
                 if (MusicSystem.isPlaying) {
                   this.musicWasPlaying = true;
-                  MusicSystem.stop();
+                  if (MusicSystem.pause) {
+                    MusicSystem.pause();
+                  } else {
+                    MusicSystem.stop();
+                  }
                 }
 
                 // Pause ambient sounds during combat
