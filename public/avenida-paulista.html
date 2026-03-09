@@ -10222,6 +10222,184 @@
             };
 
             // ============================================================================
+            // HALLUCINATIONS - Sistema de Alucinações da Paulista
+            // ============================================================================
+
+            /**
+             * @namespace Hallucinations
+             * @description Quando HP ou Energy estão criticamente baixos, o jogo começa a
+             * mentir para o jogador: descrições distorcidas, NPCs/itens fantasmas, saídas
+             * falsas e mensagens de log inventadas. 3 níveis de intensidade.
+             */
+            const Hallucinations = {
+
+              /** Phantom IDs ativos neste render (limpos a cada Render.update) */
+              _phantomItemIds: [],
+              _phantomNpcIds: [],
+              _phantomExitIds: [],
+
+              /** Frases surreais para distorção de descrição (nível 1+) */
+              _surreal: [
+                'As paredes parecem respirar.',
+                'Tem certeza que o chão é sólido?',
+                'Você ouve alguém chamando seu nome... de dentro das paredes.',
+                'As sombras se movem sozinhas.',
+                'O ar cheira a memórias que você nunca teve.',
+                'O tempo parece ter parado... ou acelerado?',
+                'Você sente olhos te observando de todos os ângulos.',
+                'A Avenida Paulista sussurra segredos inconfessáveis.',
+                'As luzes piscam num ritmo que quase parece... uma mensagem.',
+                'Você jura ter visto seu próprio reflexo andando na direção oposta.'
+              ],
+
+              /** NPCs fantasmas possíveis (nível 2+) */
+              _phantomNPCNames: [
+                { name: 'Homem de Terno', icon: '🌫️', desc: 'Uma figura sombria te observa do canto.' },
+                { name: 'Criança Perdida', icon: '👻', desc: 'Uma criança translúcida brinca sozinha.' },
+                { name: 'Músico Fantasma', icon: '🎵', desc: 'Um músico toca uma melodia que só você ouve.' },
+                { name: 'Sombra Familiar', icon: '🌑', desc: 'Alguém que você conhece... ou acha que conhece.' },
+                { name: 'Vendedora de Flores', icon: '🌸', desc: 'Ela oferece flores que não existem.' }
+              ],
+
+              /** Itens fantasmas possíveis (nível 2+) */
+              _phantomItemNames: [
+                { name: 'Chave Dourada', weight: 0.5, desc: 'Uma chave reluzente... será real?' },
+                { name: 'Amuleto Brilhante', weight: 0.3, desc: 'Emana uma luz pulsante.' },
+                { name: 'Mapa Misterioso', weight: 0.2, desc: 'As linhas parecem se mover.' },
+                { name: 'Frasco Luminoso', weight: 0.4, desc: 'O líquido dentro brilha sozinho.' }
+              ],
+
+              /** Saídas fantasmas possíveis (nível 3) */
+              _phantomExitNames: [
+                'Portão Secreto', 'Escada Oculta', 'Passagem Subterrânea', 'Portal Cintilante'
+              ],
+
+              /** Mensagens fake de log (nível 3) */
+              _fakeLogs: [
+                { msg: '🗡️ Algo te atacou nas sombras! -0 HP', type: 'danger' },
+                { msg: '💀 Você ouve passos se aproximando rapidamente...', type: 'warning' },
+                { msg: '🔮 A Bruxa sussurra uma palavra de poder ao longe...', type: 'magic' },
+                { msg: '💣 Você ouve um tique-taque distante...', type: 'warning' },
+                { msg: '🌑 As luzes da Paulista se apagam por um instante.', type: 'info' },
+                { msg: '👁️ Alguém está te seguindo.', type: 'danger' }
+              ],
+
+              /**
+               * Retorna o nível de alucinação (0-3).
+               */
+              getLevel: function() {
+                if (GameState.gameOver) return 0;
+                var player = GameState.characters.player;
+                if (!player || !player.isAlive) return 0;
+                var hpPerc = (player.hp / player.maxHp) * 100;
+                var energy = GameState.energy != null ? GameState.energy : 100;
+
+                if (hpPerc < 10 && energy < 10) return 3;
+                if (hpPerc < 20 && energy < 15) return 2;
+                if (hpPerc < 30 || energy < 20) return 1;
+                return 0;
+              },
+
+              isHallucinating: function() {
+                return this.getLevel() > 0;
+              },
+
+              /**
+               * Distorce a descrição da sala (nível 1+).
+               */
+              distortDescription: function(desc) {
+                var level = this.getLevel();
+                if (level === 0) return desc;
+                var phrase = this._surreal[Math.floor(Utils.random() * this._surreal.length)];
+                if (level >= 2) {
+                  var phrase2 = this._surreal[Math.floor(Utils.random() * this._surreal.length)];
+                  return desc + ' ' + phrase + ' ' + phrase2;
+                }
+                return desc + ' ' + phrase;
+              },
+
+              /**
+               * Retorna NPCs fantasmas para a sala (nível 2+). Max 2.
+               */
+              getPhantomNPCs: function() {
+                this._phantomNpcIds = [];
+                var level = this.getLevel();
+                if (level < 2) return [];
+                var count = level >= 3 ? 2 : 1;
+                var pool = this._phantomNPCNames.slice();
+                var result = [];
+                for (var i = 0; i < count && pool.length > 0; i++) {
+                  var idx = Math.floor(Utils.random() * pool.length);
+                  var npc = pool.splice(idx, 1)[0];
+                  var phantomId = '_phantom_npc_' + i;
+                  this._phantomNpcIds.push(phantomId);
+                  result.push({ id: phantomId, name: npc.name, icon: npc.icon, desc: npc.desc });
+                }
+                return result;
+              },
+
+              /**
+               * Retorna itens fantasmas para a sala (nível 2+). Max 1.
+               */
+              getPhantomItems: function() {
+                this._phantomItemIds = [];
+                var level = this.getLevel();
+                if (level < 2) return [];
+                var pick = this._phantomItemNames[Math.floor(Utils.random() * this._phantomItemNames.length)];
+                var phantomId = '_phantom_item_0';
+                this._phantomItemIds.push(phantomId);
+                return [{ id: phantomId, name: pick.name, weight: pick.weight, desc: pick.desc }];
+              },
+
+              /**
+               * Retorna saídas fantasmas (nível 3). Max 1.
+               */
+              getPhantomExits: function() {
+                this._phantomExitIds = [];
+                var level = this.getLevel();
+                if (level < 3) return [];
+                var name = this._phantomExitNames[Math.floor(Utils.random() * this._phantomExitNames.length)];
+                var phantomId = '_phantom_exit_0';
+                this._phantomExitIds.push(phantomId);
+                return [{ id: phantomId, name: name }];
+              },
+
+              /**
+               * Verifica se um ID é fantasma.
+               */
+              isPhantom: function(id) {
+                return typeof id === 'string' && id.startsWith('_phantom_');
+              },
+
+              /**
+               * 15% chance de injetar mensagem falsa no log (nível 3).
+               */
+              maybeFakeLog: function() {
+                if (this.getLevel() < 3) return;
+                if (Utils.random() > 0.15) return;
+                var fake = this._fakeLogs[Math.floor(Utils.random() * this._fakeLogs.length)];
+                Log.add(fake.msg, fake.type);
+              },
+
+              /**
+               * Mensagem de cura mental ao comer/curar.
+               */
+              notifyCure: function(prevLevel) {
+                var newLevel = this.getLevel();
+                if (prevLevel > 0 && newLevel < prevLevel) {
+                  Log.add('🧠 Sua mente clareia... as sombras recuam.', 'success');
+                  // Flash visual de cura
+                  var panel = document.getElementById('location-panel');
+                  if (panel) {
+                    panel.classList.remove('hallucination-flash');
+                    void panel.offsetWidth;
+                    panel.classList.add('hallucination-flash');
+                  }
+                }
+              }
+            };
+
+            // ============================================================================
             // INTRO SYSTEM - Animação estilo Star Wars (DETERMINÍSTICO)
             // ============================================================================
 
