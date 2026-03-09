@@ -11020,7 +11020,11 @@
                 // Tocar música da intro (nova track)
                 (async () => {
                   console.log('[IntroSystem] Loading intro music...');
-                  const blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
+                  // Check síncrono primeiro (preserva user gesture se já cacheado)
+                  let blobUrl = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
+                  if (!blobUrl) {
+                    blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
+                  }
                   console.log('[IntroSystem] blobUrl:', blobUrl);
                   if (blobUrl) {
                     IntroSystem._introAudio = new Audio(blobUrl);
