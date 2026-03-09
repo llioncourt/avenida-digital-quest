@@ -10278,6 +10278,12 @@
                 if (this.isComplete) return;
                 this.isComplete = true;
 
+                // Parar música da intro
+                if (this._introAudio) {
+                  this._introAudio.pause();
+                  this._introAudio = null;
+                }
+
                 // Limpar timer de segurança
                 if (this.safetyTimeout) {
                   clearTimeout(this.safetyTimeout);
