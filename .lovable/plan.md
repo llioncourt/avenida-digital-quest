@@ -1,66 +1,70 @@
 
 
-## Fix: MP3s Falling Back to MIDI
 
-### Root Cause
+## Refatoração Completa (Fases 1-4)
 
-`Mp3Cache.load()` wraps everything in `caches.open()` (Cache API). If `caches` is unavailable (iframe restrictions, privacy settings, certain browsers), the entire load fails silently and falls back to MIDI. The current code has no direct-fetch fallback path when Cache API is unavailable.
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-### Solution
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-Replace the Cache API approach with a simpler in-memory cache using a plain `Map`. Fetch MP3s directly via `fetch()` → `blob()` → `URL.createObjectURL()`, storing the blob URLs in memory. This removes the Cache API dependency entirely while keeping the same interface.
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-### Changes in `public/avenida-paulista.html`
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-**1. Replace `Mp3Cache` implementation (~lines 5211-5264)**
+### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-```javascript
-const _mp3BlobCache = new Map();
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
 
-const Mp3Cache = {
-  async load(url) {
-    if (!url) return null;
-    if (_mp3BlobCache.has(url)) return _mp3BlobCache.get(url);
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.warn('[Mp3Cache] Fetch failed:', url, response.status);
-        return null;
-      }
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      _mp3BlobCache.set(url, blobUrl);
-      console.log('[Mp3Cache] Loaded:', url);
-      return blobUrl;
-    } catch (err) {
-      console.warn('[Mp3Cache] Error:', url, err);
-      return null;
-    }
-  },
-  async preloadAll() {
-    const urls = Object.values(MP3_TRACKS).filter(u => u);
-    await Promise.all(urls.map(u => this.load(u)));
-    console.log('[Mp3Cache] Preload complete');
-  }
-};
-```
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
 
-**2. Remove `MP3_CACHE_NAME` constant** (line 5211) — no longer needed.
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
 
-**3. Simplify preload call (~line 5372)** — Remove the `if ('caches' in window)` guard since we no longer use Cache API:
+### ✅ Fase 7 — Buff do Café Paulistano
 
-```javascript
-Mp3Cache.preloadAll();
-```
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
 
-### Why This Fixes It
-- No dependency on `caches` API — works in all browser contexts
-- `fetch()` works universally (same-origin, no CORS issues)
-- In-memory cache avoids repeated fetches within the same session
-- Parallel preload with `Promise.all` is faster than sequential
+### ✅ Fase 8 — Portrait com Degradê Full-Card
 
-### Scope
-- ~20 lines changed in Mp3Cache
-- 1 line removed (MP3_CACHE_NAME)
-- 1 line simplified (preload guard)
-
+- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
+- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
+- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
+- Placeholder agora é gradiente sutil sem texto/ícone
+- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico

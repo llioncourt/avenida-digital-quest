@@ -5208,45 +5208,34 @@
               introCrawl: 'music/AVP-Intro.mp3'
             };
 
-            const MP3_CACHE_NAME = 'avp-music-v3';
+            const _mp3BlobCache = new Map();
 
             /**
              * @namespace Mp3Cache
-             * @description Gerencia cache de MP3s usando Cache API do navegador.
-             * Permite reprodução offline após primeiro carregamento.
+             * @description Gerencia cache de MP3s em memória via fetch + blob URLs.
              */
             const Mp3Cache = {
               /**
-               * Carrega MP3 do cache ou rede, salvando no cache se necessário.
+               * Carrega MP3 via fetch, retorna blob URL em memória.
                * @param {string} url - URL relativa do MP3
                * @returns {Promise<string|null>} Blob URL para reprodução ou null se falhar
                */
               async load(url) {
                 if (!url) return null;
+                if (_mp3BlobCache.has(url)) return _mp3BlobCache.get(url);
                 try {
-                  const cache = await caches.open(MP3_CACHE_NAME);
-                  let response = await cache.match(url);
-                  
-                  if (!response) {
-                    // Não está no cache, buscar da rede
-                    console.log('[Mp3Cache] Fetching from network:', url);
-                    response = await fetch(url);
-                    if (response.ok) {
-                      // Salvar no cache para uso offline
-                      await cache.put(url, response.clone());
-                      console.log('[Mp3Cache] Cached:', url);
-                    } else {
-                      console.warn('[Mp3Cache] Network fetch failed:', url);
-                      return null;
-                    }
-                  } else {
-                    console.log('[Mp3Cache] Loaded from cache:', url);
+                  const response = await fetch(url);
+                  if (!response.ok) {
+                    console.warn('[Mp3Cache] Fetch failed:', url, response.status);
+                    return null;
                   }
-                  
                   const blob = await response.blob();
-                  return URL.createObjectURL(blob);
+                  const blobUrl = URL.createObjectURL(blob);
+                  _mp3BlobCache.set(url, blobUrl);
+                  console.log('[Mp3Cache] Loaded:', url);
+                  return blobUrl;
                 } catch (err) {
-                  console.warn('[Mp3Cache] Error loading MP3:', url, err);
+                  console.warn('[Mp3Cache] Error:', url, err);
                   return null;
                 }
               },
@@ -5256,9 +5245,7 @@
                */
               async preloadAll() {
                 const urls = Object.values(MP3_TRACKS).filter(u => u);
-                for (const url of urls) {
-                  await this.load(url);
-                }
+                await Promise.all(urls.map(u => this.load(u)));
                 console.log('[Mp3Cache] Preload complete');
               }
             };
@@ -5368,10 +5355,8 @@
             _addMp3Layer(DefeatMusicSystem, 'defeat', { loop: false });
             _addMp3Layer(VictoryMusicSystem, 'victory', { loop: false });
 
-            // Pré-carregar MP3s ao iniciar (opcional, melhora UX)
-            if ('caches' in window) {
-              Mp3Cache.preloadAll();
-            }
+            // Pré-carregar MP3s ao iniciar
+            Mp3Cache.preloadAll();
 
             // Indicador online no título (roxo = online, amarelo = offline)
             function updateTitleOnlineStatus() {
