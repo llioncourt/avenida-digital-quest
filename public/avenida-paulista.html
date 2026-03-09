@@ -8359,6 +8359,20 @@
 
                 container.replaceChildren(frag);
                 this._nodeCache.items = nextCache;
+
+                // Alucinações: injetar itens fantasmas
+                var phantomItems = Hallucinations.getPhantomItems();
+                for (var pi = 0; pi < phantomItems.length; pi++) {
+                  var pItem = phantomItems[pi];
+                  var pBtn = document.createElement('button');
+                  pBtn.className = 'btn btn-item phantom-item stagger-in';
+                  pBtn.dataset.action = 'pickup';
+                  pBtn.dataset.itemId = pItem.id;
+                  pBtn.textContent = pItem.name;
+                  pBtn.title = pItem.desc + ' (' + pItem.weight + 'kg)';
+                  pBtn.style.animationDelay = ((items.length + pi) * 50) + 'ms';
+                  container.appendChild(pBtn);
+                }
               },
 
               updateCharacters: function() {
