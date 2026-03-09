@@ -5533,10 +5533,24 @@
                 const urls = Object.values(MP3_TRACKS).filter(u => u);
                 const results = await Promise.all(urls.map(u => this.load(u)));
                 const loaded = results.filter(r => r !== null).length;
-                const failed = results.length - loaded;
                 console.log(`[Mp3Cache] Preload complete: ${loaded}/${results.length} OK`);
+
+                // Pré-criar Audio elements para playback síncrono
+                for (const [key, trackUrl] of Object.entries(MP3_TRACKS)) {
+                  if (!trackUrl) continue;
+                  const blob = _mp3BlobCache.get(trackUrl);
+                  if (blob) {
+                    const a = new Audio(blob);
+                    a.preload = 'auto';
+                    _mp3AudioElements.set(key, a);
+                  }
+                }
+                console.log(`[Mp3Cache] Pre-created ${_mp3AudioElements.size} Audio elements`);
               }
             };
+
+            /** Map de Audio elements pré-criados por trackKey */
+            const _mp3AudioElements = new Map();
 
             /**
              * @function _addMp3Layer
