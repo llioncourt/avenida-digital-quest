@@ -1,70 +1,94 @@
 
 
+## Diagnóstico
 
-## Refatoração Completa (Fases 1-4)
+Após análise extensiva do código e testes no browser:
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+1. **Todos os 9 MP3s carregam com sucesso** (9/9 OK no preloadAll). O problema NÃO é de carregamento, é de **playback**.
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+2. **Problema da Exploração**: O `player.start()` (mp3 wrapper) não chama `SoundSystem.resume()` antes de `audio.play()`. O `start()` original do MIDI chamava `SoundSystem.resume()` (linha 5401), mas o wrapper do `_addMp3Layer` pula isso. Sem o `resume()`, o AudioContext pode estar suspenso e o browser pode recusar o play.
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+3. **Problema da Intro**: O async IIFE `(async () => { ... })()` na intro cria uma microtask boundary mesmo sem `await`. Embora o JS execute síncrono até o primeiro `await`, o wrapping em `async` pode causar problemas sutis com a detecção de user gesture em alguns browsers.
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+4. **`MusicSystem.init()` é `async` desnecessariamente** — não tem nenhum `await` dentro, mas o `async` pode confundir a cadeia de user gesture.
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+5. **Bug no `setVolume`**: Dentro de `_addMp3Layer`, o override de `setVolume` sempre modifica `MusicSystem.setVolume` (hardcoded), independente de qual player foi passado. Isso não é o problema principal, mas é um bug.
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+## Plano — arquivo `public/avenida-paulista.html`
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+### Mudança 1: Adicionar `SoundSystem.resume()` no wrapper mp3 (linha 5575)
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+O wrapper `player.start` precisa chamar `SoundSystem.resume()` no início, como o `start()` original fazia:
 
-### ✅ Fase 7 — Buff do Café Paulistano
+```js
+player.start = function() {
+  if (audio && !audio.paused && player._mp3Active) return;
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
+  SoundSystem.resume(); // <-- ADICIONAR: desbloqueia AudioContext
 
-### ✅ Fase 8 — Portrait com Degradê Full-Card
+  // Busca síncrona do cache em memória
+  if (!blobUrl) {
+    blobUrl = _mp3BlobCache.get(url) || null;
+  }
+  // ... resto igual
+```
 
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
+### Mudança 2: Remover `async` do `MusicSystem.init()` (linha 5375)
+
+```js
+init: function() {
+  if (!this.isLoaded) _musicBase.init.call(this);
+  this.start();
+},
+```
+
+### Mudança 3: Intro — remover async IIFE, usar play direto (linhas 11021-11036)
+
+```js
+// Tocar música da intro (nova track)
+console.log('[IntroSystem] Loading intro music...');
+var introBlob = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
+console.log('[IntroSystem] blobUrl:', introBlob);
+if (introBlob) {
+  IntroSystem._introAudio = new Audio(introBlob);
+  IntroSystem._introAudio.volume = 0.8;
+  IntroSystem._introAudio.play().catch(function(e) {
+    console.error('[IntroSystem] Play error:', e);
+  });
+} else {
+  // Fallback: carregar async (pode falhar por user gesture)
+  Mp3Cache.load(MP3_TRACKS.introCrawl).then(function(b) {
+    if (b) {
+      IntroSystem._introAudio = new Audio(b);
+      IntroSystem._introAudio.volume = 0.8;
+      IntroSystem._introAudio.play().catch(function(e) {
+        console.error('[IntroSystem] Fallback play error:', e);
+      });
+    }
+  });
+}
+```
+
+### Mudança 4: Fix `setVolume` dentro de `_addMp3Layer` (linha 5672)
+
+Mudar de `MusicSystem.setVolume` para `player.setVolume`:
+
+```js
+const originalSetVolume = player.setVolume;
+if (originalSetVolume) {
+  player.setVolume = function(val) {
+    originalSetVolume.call(player, val);
+    if (audio && player._mp3Active) {
+      audio.volume = val;
+    }
+  };
+}
+```
+
+### O que NÃO muda
+- `preloadAll()`, `Mp3Cache.load()` — intocados
+- `stop()`, `pause()` — intocados
+- Efeitos da bruxa — intocados
+- Auto-switch MIDI→MP3 — intocado
+- Paths dos MP3s — intocados
+
