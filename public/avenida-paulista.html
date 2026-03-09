@@ -10265,6 +10265,25 @@
                   }
                 })();
 
+                // Fade-out automático da música ~10s antes do crawl terminar
+                this._fadeTimeout = setTimeout(() => {
+                  if (this._introAudio && !this.isComplete) {
+                    const audio = this._introAudio;
+                    const fadeSteps = 40;
+                    const fadeInterval = 250; // 10s total
+                    const volStep = audio.volume / fadeSteps;
+                    let step = 0;
+                    this._fadeInterval = setInterval(() => {
+                      step++;
+                      audio.volume = Math.max(0, audio.volume - volStep);
+                      if (step >= fadeSteps) {
+                        clearInterval(this._fadeInterval);
+                        this._fadeInterval = null;
+                      }
+                    }, fadeInterval);
+                  }
+                }, 330000); // 340s - 10s = 330s
+
                 // Listener para fim da animação (once: true evita múltiplas execuções)
                 crawl.addEventListener('animationend', () => this.complete(), { once: true });
 
