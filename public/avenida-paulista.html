@@ -5075,7 +5075,11 @@
                 if (this.musicGain) this.musicGain.gain.value = val;
                 var btn = document.getElementById('music-toggle');
                 if (val === 0) {
-                  if (this.isPlaying) this.stop();
+                  if (this.isPlaying && this.pause) {
+                    this.pause();
+                  } else if (this.isPlaying) {
+                    this.stop();
+                  }
                   if (btn) btn.textContent = '🔕';
                 } else {
                   if (!this.isPlaying) { SoundSystem.resume(); this.start(); }
@@ -5220,7 +5224,9 @@
 
                   player._mp3Active = true;
                   player.isPlaying = true;
-                  audio.play().catch(err => {
+                  audio.play().then(() => {
+                    if (player.updateButton) player.updateButton();
+                  }).catch(err => {
                     console.warn('[Mp3Layer] Playback error, falling back to MIDI:', err);
                     player._mp3Active = false;
                     originalStart();
@@ -5232,6 +5238,14 @@
                   console.log('[Mp3Layer] No MP3 available, using MIDI:', trackKey);
                   originalStart();
                 }
+              };
+
+              player.pause = function() {
+                if (audio && player._mp3Active) {
+                  audio.pause();
+                  // NÃO reseta currentTime — permite retomar
+                }
+                player.isPlaying = false;
               };
 
               player.stop = function() {
