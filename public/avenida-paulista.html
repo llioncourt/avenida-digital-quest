@@ -5135,7 +5135,7 @@
               introCrawl: 'AVP-Intro.mp3'
             };
 
-            const MP3_CACHE_NAME = 'avp-music-v1';
+            const MP3_CACHE_NAME = 'avp-music-v2';
 
             /**
              * @namespace Mp3Cache
@@ -10253,11 +10253,15 @@
 
                 // Tocar música da intro (nova track)
                 (async () => {
+                  console.log('[IntroSystem] Loading intro music...');
                   const blobUrl = await Mp3Cache.load(MP3_TRACKS.introCrawl);
+                  console.log('[IntroSystem] blobUrl:', blobUrl);
                   if (blobUrl) {
                     IntroSystem._introAudio = new Audio(blobUrl);
                     IntroSystem._introAudio.volume = 0.8;
-                    IntroSystem._introAudio.play().catch(() => {});
+                    IntroSystem._introAudio.play().catch(e => console.error('[IntroSystem] Play error:', e));
+                  } else {
+                    console.warn('[IntroSystem] Failed to load intro music');
                   }
                 })();
 
