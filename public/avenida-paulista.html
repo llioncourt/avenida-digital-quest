@@ -10075,6 +10075,79 @@
             // GAME - Controlador principal
             // ============================================================================
 
+            // ==================== ROOM TRANSITION SYSTEM ====================
+            const RoomTransition = {
+              _duration: 800,
+
+              play: function(fromRoomId, toRoomId, callback) {
+                var fromUrl = 'rooms/' + fromRoomId + '.webp';
+                var toUrl = 'rooms/' + toRoomId + '.webp';
+                var fromImg = new Image();
+                var toImg = new Image();
+                var fromLoaded = false, toLoaded = false;
+                var fromOk = false, toOk = false;
+                var settled = 0;
+
+                function checkReady() {
+                  settled++;
+                  if (settled < 2) return;
+                  // If neither image loaded, skip animation
+                  if (!fromOk && !toOk) {
+                    callback();
+                    return;
+                  }
+                  RoomTransition._animate(fromOk ? fromUrl : null, toOk ? toUrl : null, callback);
+                }
+
+                fromImg.onload = function() { fromOk = true; checkReady(); };
+                fromImg.onerror = function() { fromOk = false; checkReady(); };
+                toImg.onload = function() { toOk = true; checkReady(); };
+                toImg.onerror = function() { toOk = false; checkReady(); };
+
+                fromImg.src = fromUrl;
+                toImg.src = toUrl;
+
+                // Safety timeout — never hang the game
+                setTimeout(function() {
+                  if (settled < 2) {
+                    settled = 2;
+                    callback();
+                  }
+                }, 2000);
+              },
+
+              _animate: function(fromUrl, toUrl, callback) {
+                var overlay = document.createElement('div');
+                overlay.className = 'room-travel-overlay';
+
+                var fromDiv = document.createElement('div');
+                fromDiv.className = 'travel-from';
+                if (fromUrl) fromDiv.style.backgroundImage = 'url(' + fromUrl + ')';
+
+                var toDiv = document.createElement('div');
+                toDiv.className = 'travel-to';
+                if (toUrl) toDiv.style.backgroundImage = 'url(' + toUrl + ')';
+
+                overlay.appendChild(fromDiv);
+                overlay.appendChild(toDiv);
+                document.body.appendChild(overlay);
+
+                // Force reflow then activate
+                void overlay.offsetWidth;
+                overlay.classList.add('active');
+
+                // Fire callback at midpoint (when "from" has faded and "to" starts appearing)
+                setTimeout(function() {
+                  callback();
+                }, RoomTransition._duration * 0.5);
+
+                // Cleanup after animation completes
+                setTimeout(function() {
+                  overlay.remove();
+                }, RoomTransition._duration + 50);
+              }
+            };
+
             const Game = {
               // Inicializar jogo
               init: function() {
