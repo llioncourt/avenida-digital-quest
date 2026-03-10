@@ -303,16 +303,16 @@
               position: absolute;
               inset: 0;
               background-size: cover;
-              background-position: center;
+              background-position: center top;
               opacity: 0;
-              mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 85%);
-              -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 85%);
+              mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.7) 60%, transparent 95%);
+              -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.7) 60%, transparent 95%);
               pointer-events: none;
               transition: opacity 0.5s ease;
               z-index: 0;
             }
             .room-bg.loaded {
-              opacity: 0.15;
+              opacity: 0.35;
             }
             #location-panel > *:not(.room-bg):not(.lanterna-indicator) {
               position: relative;
