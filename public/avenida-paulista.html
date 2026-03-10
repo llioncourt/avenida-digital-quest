@@ -10967,18 +10967,16 @@
                 // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
                 crawl.style.animation = 'star-wars-crawl 340s linear forwards';
 
-                // Tocar música da intro — track já garantida pelo StartScreen se online
-                if (navigator.onLine) {
-                  Mp3Cache.ensureTrack('introCrawl').then(function(blobUrl) {
-                    if (IntroSystem.isComplete) return;
-                    if (blobUrl) {
-                      IntroSystem._introAudio = new Audio(blobUrl);
-                      IntroSystem._introAudio.volume = 0.8;
-                      IntroSystem._introAudio.play().catch(function(e) {
-                        console.error('[IntroSystem] Play error:', e);
-                      });
-                    }
-                  });
+                // Tocar música da intro — já carregada no boot se online
+                if (window._useMP3) {
+                  var introBlobUrl = Mp3Cache.get('introCrawl');
+                  if (introBlobUrl && !IntroSystem.isComplete) {
+                    IntroSystem._introAudio = new Audio(introBlobUrl);
+                    IntroSystem._introAudio.volume = 0.8;
+                    IntroSystem._introAudio.play().catch(function(e) {
+                      console.error('[IntroSystem] Play error:', e);
+                    });
+                  }
                 }
 
                 // Fade-out automático da música ~10s antes do crawl terminar
