@@ -1,36 +1,75 @@
 
 
-## Loading screen durante carregamento dos MP3s
+### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
 
-### Problema
-Ao clicar no título, a `start-screen` é removida imediatamente e o `await Mp3Cache.ensureAllCritical()` roda com a UI principal vazia visível ao fundo.
+- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
+- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
+- `originalStop()` chamado antes de `audio.play()` para parar MIDI
+- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
+## Refatoração Completa (Fases 1-4)
 
-### Fix
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-**Arquivo:** `public/avenida-paulista.html`
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-**1. Não remover start-screen imediatamente** — trocar o conteúdo dela para uma tela preta com spinner:
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-```js
-start: async function() {
-  var screen = document.getElementById('start-screen');
-  // Troca conteúdo por loading spinner
-  screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">' +
-    '<div style="width:48px;height:48px;border:4px solid #FFD70044;border-top-color:#FFD700;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
-    '<p style="color:#FFD700;font-family:\'Press Start 2P\',monospace;font-size:0.8rem;">Carregando...</p></div>';
-  
-  if (navigator.onLine) {
-    await Mp3Cache.ensureAllCritical();
-  }
-  screen.remove(); // Remove só depois de carregar
-  IntroSystem.init();
-}
-```
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-**2. CSS** — adicionar `@keyframes spin` (se não existir):
-```css
-@keyframes spin { to { transform: rotate(360deg); } }
-```
+### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-A tela preta do `start-screen` já tem `position:fixed; inset:0; z-index:10000; background:#000`, então cobre tudo perfeitamente. Só trocamos o `<h1>` por um spinner e movemos o `screen.remove()` para depois do await.
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
 
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+
+### ✅ Fase 7 — Buff do Café Paulistano
+
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
+
+### ✅ Fase 8 — Portrait com Degradê Full-Card
+
+- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
+- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
+- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
+- Placeholder agora é gradiente sutil sem texto/ícone
+- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
