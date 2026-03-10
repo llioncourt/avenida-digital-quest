@@ -894,6 +894,22 @@
               overflow: hidden;
               display: flex;
               flex-direction: column;
+              position: relative;
+            }
+            #inventory-panel::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+              background: url('textures/bg_inv.webp') center / cover no-repeat;
+              opacity: 0.35;
+              mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+              -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+              pointer-events: none;
+              z-index: 0;
+            }
+            #inventory-panel > * {
+              position: relative;
+              z-index: 1;
             }
 
             #inventory-panel .section-title {
