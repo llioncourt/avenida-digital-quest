@@ -7941,26 +7941,33 @@
                   ? `<p><strong>👥 Personagens atingidos:</strong> ${charsInRoom.join(', ')}</p>`
                   : '';
 
-                let modalContent = `<p>A bomba explodiu em <strong>${roomName}</strong>!</p>`;
-                if (childRoomNames.length > 0) {
-                  modalContent += `<p>🏚️ <strong>Áreas colapsadas:</strong> ${childRoomNames.join(', ')} também foram destruídas!</p>`;
-                }
+                let modalContent = '';
 
                 if (playerInRoom) {
-                  modalContent = '<p style="color:#ff4444;font-size:1.2rem;font-weight:bold;">💀 VOCÊ FOI ATINGIDO PELA EXPLOSÃO!</p>' + modalContent;
+                  modalContent += '<p class="explosion-death-text">💀 VOCÊ FOI ATINGIDO PELA EXPLOSÃO!</p>';
                 }
 
-                modalContent += itemsList + charsList;
+                modalContent += `<p>A bomba explodiu em <strong style="color:#ff6b35">${roomName}</strong>!</p>`;
+
+                if (childRoomNames.length > 0) {
+                  modalContent += `<p class="explosion-collapsed">🏚️ Áreas colapsadas: ${childRoomNames.join(', ')} também foram destruídas!</p>`;
+                }
+
+                if (itemsInRoom.length > 0 || charsInRoom.length > 0) {
+                  modalContent += '<div class="explosion-victims">';
+                  modalContent += itemsList + charsList;
+                  modalContent += '</div>';
+                }
 
                 const playerDied = playerInRoom && !GameState.characters.player.isAlive;
-                modalContent += '<button class="btn" onclick="Game.closeExplosionModal(' + playerDied + ')">Continuar</button>';
+                modalContent += '<button class="btn" onclick="Game.closeExplosionModal(' + playerDied + ')" style="margin-top:1rem;">Continuar</button>';
 
                 // Marcar flag para evitar checkGameOver automático durante explosão
                 GameState._explosionInProgress = true;
 
                 // Mostrar após um pequeno delay para o flash
                 setTimeout(() => {
-                  Modals.show('💥 EXPLOSÃO!', modalContent);
+                  Modals.showExplosion(bombLocation, '💥 EXPLOSÃO!', modalContent);
                 }, 200);
               },
 
