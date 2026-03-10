@@ -2910,6 +2910,7 @@
                 description: 'O Museu de Arte de São Paulo, com sua arquitetura suspensa icônica. Os pilares vermelhos sustentam a estrutura sobre o vão livre. Você sente uma energia estranha vindo do teto.',
                 exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Avenida Paulista Oeste': 'avenida_paulista_oeste', 'Nove de Julho Norte': 'nove_julho_norte', 'Teto do MASP': 'teto_masp', 'Subsolo do MASP': 'subsolo_masp' },
                 requiresFlight: false,
+                childRooms: ['teto_masp', 'subsolo_masp'],
                 ruinName: 'Ruínas do MASP',
                 ruinDescription: 'Os icônicos pilares vermelhos estão retorcidos e a estrutura suspensa desabou parcialmente. Obras de arte destroçadas jazem entre os escombros do vão livre.'
               },
@@ -2928,6 +2929,7 @@
                 description: 'O topo do MASP. Daqui você tem uma vista panorâmica de toda a Avenida Paulista. O vento é forte e você sente uma presença maligna. Símbolos arcanos estão desenhados no chão.',
                 exits: {},
                 requiresFlight: false,
+                parentRoom: 'masp',
                 ruinName: 'Teto Colapsado do MASP',
                 ruinDescription: 'O teto do MASP está parcialmente destruído. Os símbolos arcanos foram apagados pela explosão. Buracos enormes revelam o interior devastado do museu abaixo.'
               },
@@ -2937,6 +2939,7 @@
                 description: 'Um antigo colégio tradicional. Os corredores vazios ecoam com memórias de estudantes. Uma escada leva a uma antena no topo.',
                 exits: { 'Avenida Paulista Leste': 'avenida_paulista_leste', 'Antena': 'antena' },
                 requiresFlight: false,
+                childRooms: ['antena'],
                 ruinName: 'Colégio em Ruínas',
                 ruinDescription: 'As paredes do colégio desmoronaram, expondo salas de aula destruídas. Carteiras e quadros-negros quebrados se misturam aos escombros. A escada para a antena está danificada.'
               },
@@ -2956,6 +2959,7 @@
                 exits: { 'Colégio': 'colegio', 'Pular para o Céu': 'ceu_cidade' },
                 requiresFlight: false,
                 hasDeadlyJump: true,
+                parentRoom: 'colegio',
                 ruinName: 'Antena Retorcida',
                 ruinDescription: 'A torre de antena foi entortada pela explosão, pendendo perigosamente para o lado. A estrutura range e balança com o vento. Pular daqui seria ainda mais suicida.'
               },
@@ -2984,6 +2988,7 @@
                 description: 'Um porão secreto sob o MASP, repleto de artefatos esquecidos e runas antigas. O ar é denso com energia mística. Pinturas ancestrais adornam as paredes de pedra.',
                 exits: { 'MASP': 'masp' },
                 requiresFlight: false,
+                parentRoom: 'masp',
                 ruinName: 'Subsolo Colapsado',
                 ruinDescription: 'O subsolo desabou parcialmente. Artefatos antigos estão enterrados sob camadas de concreto e poeira.'
               }
@@ -7749,30 +7754,37 @@
 
                 // EXPLOSÃO!
                 const bombLocation = GameState.armedBomb.location;
-                const roomName = GameState.rooms[bombLocation].name;
+                const bombRoom = GameState.rooms[bombLocation];
+                const roomName = bombRoom.name;
 
-                // COLETAR o que havia na sala ANTES de destruir
+                // Determinar todas as salas afetadas (pai → filhas)
+                const affectedRooms = [bombLocation];
+                if (bombRoom.childRooms) {
+                  bombRoom.childRooms.forEach(childId => affectedRooms.push(childId));
+                }
+
+                // COLETAR o que havia nas salas afetadas ANTES de destruir
                 const itemsInRoom = Object.values(GameState.items)
-                  .filter(item => item.location === bombLocation && !item.isDestroyed)
+                  .filter(item => affectedRooms.includes(item.location) && !item.isDestroyed)
                   .map(item => item.name);
 
                 const charsInRoom = Object.values(GameState.characters)
-                  .filter(char => char.location === bombLocation && char.isAlive && char.id !== 'player')
+                  .filter(char => affectedRooms.includes(char.location) && char.isAlive && char.id !== 'player')
                   .map(char => char.name);
 
                 const victims = [];
-                const playerInBombRoom = GameState.playerLocation === bombLocation;
+                const playerInBombRoom = affectedRooms.includes(GameState.playerLocation);
 
-                // Matar TODOS os personagens no local (incluindo player e aliados)
+                // Matar TODOS os personagens nas salas afetadas (incluindo player e aliados)
                 Object.values(GameState.characters).forEach(char => {
-                  if (char.location === bombLocation && char.isAlive) {
+                  if (affectedRooms.includes(char.location) && char.isAlive) {
                     char.hp = 0;
                     char.isAlive = false;
                     victims.push(char.name);
                   }
                 });
 
-                // Proteção extra: garantir que o player morra se estiver na sala
+                // Proteção extra: garantir que o player morra se estiver numa sala afetada
                 if (playerInBombRoom && GameState.characters.player.isAlive) {
                   GameState.characters.player.hp = 0;
                   GameState.characters.player.isAlive = false;
@@ -7781,21 +7793,23 @@
                   }
                 }
 
-                // Destruir TODOS os itens no local
+                // Destruir TODOS os itens nas salas afetadas
                 Object.values(GameState.items).forEach(item => {
-                  if (item.location === bombLocation && item.id !== 'bomba') {
+                  if (affectedRooms.includes(item.location) && item.id !== 'bomba') {
                     item.location = null;
                     item.isDestroyed = true;
                   }
                 });
 
-                // Transformar sala em ruína
-                const room = GameState.rooms[bombLocation];
-                if (room.ruinName) {
-                  room.name = room.ruinName;
-                  room.description = room.ruinDescription;
-                  room.isRuined = true;
-                }
+                // Transformar todas as salas afetadas em ruína
+                affectedRooms.forEach(roomId => {
+                  const r = GameState.rooms[roomId];
+                  if (r && r.ruinName) {
+                    r.name = r.ruinName;
+                    r.description = r.ruinDescription;
+                    r.isRuined = true;
+                  }
+                });
 
                 GameState.armedBomb = null;
                 GameState.items.bomba.location = null;
@@ -7812,6 +7826,9 @@
                   Log.add(`💥 BOOM!!! A bomba explodiu em ${roomName}! A área foi completamente destruída!`, 'danger');
                 }
 
+                // Nomes das salas filhas destruídas
+                const childRoomNames = affectedRooms.slice(1).map(id => GameState.rooms[id].ruinName || GameState.rooms[id].name);
+
                 // Modal de resumo do que foi destruído
                 const itemsList = itemsInRoom.length > 0
                   ? `<p><strong>📦 Itens destruídos:</strong> ${itemsInRoom.join(', ')}</p>`
@@ -7821,6 +7838,9 @@
                   : '';
 
                 let modalContent = `<p>A bomba explodiu em <strong>${roomName}</strong>!</p>`;
+                if (childRoomNames.length > 0) {
+                  modalContent += `<p>🏚️ <strong>Áreas colapsadas:</strong> ${childRoomNames.join(', ')} também foram destruídas!</p>`;
+                }
 
                 if (playerInRoom) {
                   modalContent = '<p style="color:#ff4444;font-size:1.2rem;font-weight:bold;">💀 VOCÊ FOI ATINGIDO PELA EXPLOSÃO!</p>' + modalContent;
