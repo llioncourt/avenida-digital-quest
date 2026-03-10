@@ -11910,6 +11910,11 @@
                 const action = el.dataset.action;
                 const itemId = el.dataset.itemId || (el.closest('[data-item-id]') ? el.closest('[data-item-id]').dataset.itemId : null);
 
+                if (action === 'info' && itemId) {
+                  e.preventDefault();
+                  Modals.showItem(itemId);
+                  return;
+                }
                 if (action === 'use' && itemId) {
                   e.preventDefault();
                   Game.use(itemId);
