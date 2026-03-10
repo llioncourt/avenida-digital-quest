@@ -10063,6 +10063,11 @@
                   }
 
                   setTimeout(function() {
+                    // Se o jogador já se moveu durante a animação, cancelar
+                    if (GameState.playerLocation !== prevRoom) {
+                      panel.classList.remove('room-transition-out');
+                      return;
+                    }
                     self.processAction(Actions.moveTo(roomId));
 
                     // NPCs na nova sala falam ao encontrar o jogador
