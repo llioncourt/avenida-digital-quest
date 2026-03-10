@@ -5561,7 +5561,8 @@
             /**
              * @function _addMp3Layer
              * @description Adiciona camada MP3 a um player MIDI existente.
-             * Online → carrega/usa MP3 do cache. Offline → MIDI direto.
+             * window._useMP3=true → MP3 exclusivo (MIDI nunca toca).
+             * window._useMP3=false → MIDI exclusivo (MP3 ignorado).
              * @param {object} player - Player MIDI criado por createMidiPlayer
              * @param {string} trackKey - Chave em MP3_TRACKS
              * @param {object} options - { loop: boolean }
@@ -5576,97 +5577,52 @@
               const originalStart = player.start.bind(player);
               const originalStop = player.stop.bind(player);
 
-              player._mp3Active = false;
-              player._stopped = false;
-
               player.start = function() {
-                // Parar audio anterior antes de tudo
-                if (audio) {
-                  audio.pause();
-                  audio.currentTime = 0;
-                }
-                player._mp3Active = false;
-                player._stopped = false;
-
-                if (audio && !audio.paused && player._mp3Active) return;
-
-                SoundSystem.resume();
-
-                // Offline → MIDI direto, sem tentar MP3
-                if (!navigator.onLine) {
-                  player._mp3Active = false;
+                if (!window._useMP3) {
+                  // MIDI mode — ignora MP3 completamente
                   originalStart();
                   return;
                 }
 
-                // Online → garantir track no cache e tocar
-                // Iniciar MIDI como fallback imediato enquanto carrega
-                originalStart();
+                // MP3 mode — ignora MIDI completamente
+                SoundSystem.resume();
+                if (audio) { audio.pause(); audio.currentTime = 0; }
 
-                Mp3Cache.ensureTrack(trackKey).then(function(blobUrl) {
-                  if (!blobUrl) return; // Falhou, fica no MIDI
-                  if (!player.isPlaying || player._stopped) return; // Foi parado enquanto carregava
+                var blobUrl = _blobUrlMap.get(trackKey);
+                if (!blobUrl) { originalStart(); return; } // safety fallback
 
-                  // Parar audio anterior de novo (safety)
-                  if (audio) {
-                    audio.pause();
-                    audio.currentTime = 0;
-                  }
-
-                  audio = new Audio(blobUrl);
-                  audio.loop = loop;
-                  audio.preload = 'auto';
-
-                  if (MusicSystem.musicGain) {
-                    audio.volume = MusicSystem.musicGain.gain.value;
-                  } else {
-                    audio.volume = MusicSystem.volume || 1.0;
-                  }
-
-                  // Parar MIDI e trocar para MP3
-                  originalStop();
-                  player._mp3Active = true;
-                  player.isPlaying = true;
-                  audio.play().then(function() {
-                    console.log('[Mp3Layer] ▶ Playing MP3:', trackKey);
-                    if (player.updateButton) player.updateButton();
-                  }).catch(function(err) {
-                    console.warn('[Mp3Layer] MP3 play failed, keeping MIDI:', err);
-                    player._mp3Active = false;
-                    originalStart();
-                  });
+                audio = new Audio(blobUrl);
+                audio.loop = loop;
+                audio.volume = MusicSystem.musicGain
+                  ? MusicSystem.musicGain.gain.value
+                  : (MusicSystem.volume || 1.0);
+                player.isPlaying = true;
+                audio.play().then(function() {
+                  console.log('[Mp3Layer] ▶ MP3:', trackKey);
+                  if (player.updateButton) player.updateButton();
+                }).catch(function(err) {
+                  console.warn('[Mp3Layer] MP3 play failed, fallback MIDI:', err);
+                  originalStart();
                 });
               };
 
               player.pause = function() {
-                player._stopped = true;
-                if (audio) {
-                  audio.pause();
-                }
-                // Sempre parar MIDI também
+                if (audio) { audio.pause(); }
                 originalStop();
-                player._mp3Active = false;
                 player.isPlaying = false;
               };
 
               player.stop = function() {
-                player._stopped = true;
-                if (audio) {
-                  audio.pause();
-                  audio.currentTime = 0;
-                }
-                player._mp3Active = false;
-                player.isPlaying = false;
+                if (audio) { audio.pause(); audio.currentTime = 0; }
                 originalStop();
+                player.isPlaying = false;
               };
 
               const originalSetVolume = player.setVolume;
               if (originalSetVolume) {
                 player.setVolume = function(val) {
                   originalSetVolume.call(player, val);
-                  if (audio && player._mp3Active) {
-                    audio.volume = val;
-                  }
+                  if (audio) audio.volume = val;
                 };
               }
             }
