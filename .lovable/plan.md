@@ -1,122 +1,75 @@
 
 
-## Separação completa MIDI vs MP3 — decisão no boot
+### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
 
-### Conceito
+- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
+- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
+- `originalStop()` chamado antes de `audio.play()` para parar MIDI
+- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
+## Refatoração Completa (Fases 1-4)
 
-Em vez do sistema híbrido atual (que tenta misturar MIDI e MP3 por player), a decisão é **binária e feita uma vez só** no `StartScreen.start()`:
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-- **Online** → engine MP3 exclusivo. MIDI nunca toca.
-- **Offline** → engine MIDI exclusivo. MP3 nunca tenta carregar.
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-### Mudanças em `public/avenida-paulista.html`
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-**1. Flag global `window._useMP3`** (definida no StartScreen):
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-```js
-window._useMP3 = false; // default MIDI
-```
+### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-**2. `StartScreen.start()` reescrito:**
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
 
-```js
-start: async function() {
-  var screen = document.getElementById('start-screen');
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
 
-  if (navigator.onLine) {
-    // Mostrar spinner e carregar TODAS as MP3s
-    screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">' +
-      '<div style="width:48px;height:48px;border:4px solid #FFD70044;border-top-color:#FFD700;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
-      '<p style="color:#FFD700;font-family:\'Press Start 2P\',monospace;font-size:0.8rem;">Carregando...</p></div>';
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
 
-    await Mp3Cache.ensureAll(); // Carrega TODAS (não só critical)
-    window._useMP3 = true;
-  }
-  // Offline: não mostra spinner, segue direto com MIDI
+### ✅ Fase 7 — Buff do Café Paulistano
 
-  screen.remove();
-  IntroSystem.init();
-}
-```
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
 
-**3. Novo método `Mp3Cache.ensureAll()`** — carrega todas as tracks e guarda blob URLs num Map reutilizável:
+### ✅ Fase 8 — Portrait com Degradê Full-Card
 
-```js
-// Map persistente: trackKey → blobUrl
-const _blobUrlMap = new Map();
-
-ensureAll: async function() {
-  const keys = Object.keys(MP3_TRACKS);
-  await Promise.all(keys.map(async (key) => {
-    const blobUrl = await this.load(MP3_TRACKS[key]);
-    if (blobUrl) {
-      _blobUrlMap.set(key, blobUrl);
-      _cachedTrackKeys.add(key);
-    }
-  }));
-  console.log('[Mp3Cache] All tracks loaded:', [..._blobUrlMap.keys()]);
-}
-```
-
-**4. `_addMp3Layer` simplificado** — sem async, sem fallback, sem flags complexas:
-
-```js
-function _addMp3Layer(player, trackKey, options = {}) {
-  const loop = options.loop !== false;
-  let audio = null;
-  const originalStart = player.start.bind(player);
-  const originalStop = player.stop.bind(player);
-
-  player.start = function() {
-    if (!window._useMP3) {
-      // MIDI mode — ignora MP3 completamente
-      originalStart();
-      return;
-    }
-
-    // MP3 mode — ignora MIDI completamente
-    SoundSystem.resume();
-    if (audio) { audio.pause(); audio.currentTime = 0; }
-
-    var blobUrl = _blobUrlMap.get(trackKey);
-    if (!blobUrl) { originalStart(); return; } // safety fallback
-
-    audio = new Audio(blobUrl);
-    audio.loop = loop;
-    audio.volume = MusicSystem.musicGain
-      ? MusicSystem.musicGain.gain.value
-      : (MusicSystem.volume || 1.0);
-    player.isPlaying = true;
-    audio.play().catch(function() { originalStart(); });
-  };
-
-  player.pause = function() {
-    if (audio) { audio.pause(); }
-    originalStop();
-    player.isPlaying = false;
-  };
-
-  player.stop = function() {
-    if (audio) { audio.pause(); audio.currentTime = 0; }
-    originalStop();
-    player.isPlaying = false;
-  };
-
-  // Volume sync
-  const originalSetVolume = player.setVolume;
-  if (originalSetVolume) {
-    player.setVolume = function(val) {
-      originalSetVolume.call(player, val);
-      if (audio) audio.volume = val;
-    };
-  }
-}
-```
-
-### Resultado
-
-- Zero flags `_mp3Active`, `_stopped`, zero `.then()` dentro de `start()`
-- MIDI e MP3 nunca tocam juntos — decisão feita uma vez no boot
-- Todas as MP3s carregadas antes do jogo começar (spinner na tela preta)
-- Offline: experiência idêntica à anterior (MIDI puro)
-
+- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
+- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
+- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
+- Placeholder agora é gradiente sutil sem texto/ícone
+- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
