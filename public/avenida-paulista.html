@@ -7836,17 +7836,13 @@
 
                   // Tentar MP3, fallback para efeito synth (silencia na 4ª palavra — game over cuida do áudio)
                   if (GameState.witchWords < 4) {
-                    (async () => {
-                      try {
-                        const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchChanting);
-                        if (blobUrl) {
-                          const a = new Audio(blobUrl);
-                          if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-                          a.play().catch(() => SoundSystem.playDarkMagic());
-                        } else {
-                          SoundSystem.playDarkMagic();
-                        }
-                      } catch(e) {
+                    (function() {
+                      var blobUrl = window._useMP3 ? Mp3Cache.get('witchChanting') : null;
+                      if (blobUrl) {
+                        var a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(function() { SoundSystem.playDarkMagic(); });
+                      } else {
                         SoundSystem.playDarkMagic();
                       }
                     })();
