@@ -10804,9 +10804,9 @@
                 var hpPerc = (player.hp / player.maxHp) * 100;
                 var energy = GameState.energy != null ? GameState.energy : 100;
 
-                if (hpPerc < 10 && energy < 10) return 3;
-                if (hpPerc < 20 && energy < 15) return 2;
-                if (hpPerc < 30 || energy < 20) return 1;
+                if (hpPerc < 15 || energy < 8)  return 3;
+                if (hpPerc < 25 || energy < 15) return 2;
+                if (hpPerc < 40 || energy < 25) return 1;
                 return 0;
               },
 
