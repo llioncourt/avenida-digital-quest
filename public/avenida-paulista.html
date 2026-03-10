@@ -9465,6 +9465,50 @@
                   container.appendChild(roomEl);
                 });
 
+                // Alucinações nível 3: saídas fantasmas no minimapa
+                var phantomExits = Hallucinations.getPhantomExits();
+                if (phantomExits.length > 0) {
+                  var currentPos = roomPositions[GameState.playerLocation];
+                  if (MinimapController.customPositions[GameState.playerLocation]) {
+                    var cp = MinimapController.customPositions[GameState.playerLocation];
+                    currentPos = { x: cp.x * (width / 100), y: cp.y * (height / 100) };
+                  }
+                  if (currentPos) {
+                    phantomExits.forEach(function(pe, idx) {
+                      // Posição aleatória adjacente à sala atual
+                      var angle = (Math.PI * 2 * Utils.random());
+                      var dist = 35 + Utils.random() * 15;
+                      var px = currentPos.x + Math.cos(angle) * dist;
+                      var py = currentPos.y + Math.sin(angle) * dist;
+                      // Clamp dentro do viewport
+                      px = Math.max(20, Math.min(width - 20, px));
+                      py = Math.max(10, Math.min(height - 10, py));
+
+                      // Conexão fantasma
+                      var conn = document.createElement('div');
+                      conn.className = 'map-connection phantom-connection';
+                      var cx1 = currentPos.x, cy1 = currentPos.y;
+                      var cLen = Math.sqrt(Math.pow(px - cx1, 2) + Math.pow(py - cy1, 2));
+                      var cAngle = Math.atan2(py - cy1, px - cx1) * 180 / Math.PI;
+                      conn.style.left = cx1 + 'px';
+                      conn.style.top = cy1 + 'px';
+                      conn.style.width = cLen + 'px';
+                      conn.style.transform = 'rotate(' + cAngle + 'deg)';
+                      container.appendChild(conn);
+
+                      // Sala fantasma
+                      var phantomEl = document.createElement('div');
+                      phantomEl.className = 'map-room phantom-room';
+                      phantomEl.style.left = px + 'px';
+                      phantomEl.style.top = py + 'px';
+                      phantomEl.textContent = '🚪 ' + pe.name.split(' ')[0];
+                      phantomEl.title = pe.name + ' — uma passagem que você não notou antes...';
+                      phantomEl.onclick = function() { Game.move(pe.id); };
+                      container.appendChild(phantomEl);
+                    });
+                  }
+                }
+
                 // Aplicar transformação do MinimapController
                 MinimapController.applyTransform();
               },
