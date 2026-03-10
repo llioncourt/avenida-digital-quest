@@ -1911,35 +1911,56 @@
               top: 2rem;
               right: 2rem;
               z-index: 10001;
-              background: rgba(212,168,70,0.08);
-              backdrop-filter: blur(12px);
-              -webkit-backdrop-filter: blur(12px);
+              background: transparent;
               border: none;
               color: var(--accent-gold);
-              padding: 10px 24px;
+              padding: 10px 14px;
               cursor: pointer;
-              font-family: var(--font-mono);
-              font-size: 0.8rem;
-              font-weight: 600;
-              letter-spacing: 0.15em;
-              text-transform: uppercase;
+              font-size: 1.6rem;
               border-radius: 8px;
               transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
               animation: skip-glow 2.5s ease-in-out infinite;
               display: flex;
               align-items: center;
-              gap: 8px;
             }
 
             #intro-skip:hover {
-              background: rgba(212,168,70,0.15);
-              box-shadow: 0 4px 24px rgba(212,168,70,0.2);
               transform: translateY(-1px);
             }
 
             #intro-skip:active {
               transform: translateY(0);
-              background: rgba(212,168,70,0.25);
+            }
+
+            /* Tooltip */
+            #intro-skip::after {
+              content: 'Pular Intro';
+              position: absolute;
+              right: calc(100% + 10px);
+              top: 50%;
+              transform: translateY(-50%) scale(0.9);
+              background: rgba(15,12,8,0.92);
+              backdrop-filter: blur(10px);
+              -webkit-backdrop-filter: blur(10px);
+              color: var(--accent-gold);
+              font-family: var(--font-mono);
+              font-size: 0.7rem;
+              font-weight: 600;
+              letter-spacing: 0.12em;
+              text-transform: uppercase;
+              padding: 6px 14px;
+              border-radius: 6px;
+              white-space: nowrap;
+              opacity: 0;
+              pointer-events: none;
+              transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 12px rgba(212,168,70,0.15);
+              border: 1px solid rgba(212,168,70,0.2);
+            }
+
+            #intro-skip:hover::after {
+              opacity: 1;
+              transform: translateY(-50%) scale(1);
             }
 
             #intro-crawl {
@@ -2524,7 +2545,7 @@
     <div id="intro-container">
       <div id="intro-stars"></div>
       <button id="intro-skip" onclick="IntroSystem.skip()">
-        PULAR <span style="font-size:2em;display:inline-block;animation:skip-arrows 1.5s ease-in-out infinite;">▸▸</span>
+        <span style="display:inline-block;animation:skip-arrows 1.5s ease-in-out infinite;">▸▸</span>
       </button>
       <div id="intro-crawl"></div>
     </div>
