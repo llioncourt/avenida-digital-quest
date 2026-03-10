@@ -9883,6 +9883,9 @@
                  ClickMusicSystem.init();
                  GameOverMusicSystem.init();
 
+                 // Carregar tracks secundárias em background (combat, witch, etc.)
+                 if (navigator.onLine) Mp3Cache.preloadRemaining();
+
                  // Inicializar controlador do minimapa
                 MinimapController.init();
 
