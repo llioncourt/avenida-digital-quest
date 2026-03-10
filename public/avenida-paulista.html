@@ -9201,6 +9201,18 @@
                   const item = GameState.items[itemId];
                   if (!item) continue;
 
+                  // Helper: ícone por categoria de item
+                  function getItemIcon(it) {
+                    if (it.attackPower > 0 && it.defensePower > 0) return '⚔️';
+                    if (it.attackPower > 0) return '🗡️';
+                    if (it.defensePower > 0) return '🛡️';
+                    if (it.canFly) return '🪂';
+                    if (it.isUsable && it.singleUse) return '💫';
+                    if (it.isUsable) return '🔧';
+                    if (it.passiveEffects && it.passiveEffects.length) return '✨';
+                    return '📦';
+                  }
+
                   let row = cache.get(itemId);
                   if (!row) {
                     row = document.createElement('div');
@@ -9213,11 +9225,11 @@
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'inventory-item-name';
 
-                    const weightSpan = document.createElement('span');
-                    weightSpan.className = 'inventory-item-weight';
+                    const statsDiv = document.createElement('div');
+                    statsDiv.className = 'inventory-item-stats';
 
                     left.appendChild(nameSpan);
-                    left.appendChild(weightSpan);
+                    left.appendChild(statsDiv);
 
                     const actions = document.createElement('div');
                     actions.className = 'inventory-actions';
@@ -9226,11 +9238,52 @@
                     row.appendChild(actions);
                   }
 
-                  // atualizar texto
+                  // atualizar texto e stats
+                  row.title = item.description || item.name;
                   const nameSpan = row.querySelector('.inventory-item-name');
-                  const weightSpan = row.querySelector('.inventory-item-weight');
-                  if (nameSpan) nameSpan.textContent = item.name;
-                  if (weightSpan) weightSpan.textContent = `(${item.weight}kg)`;
+                  if (nameSpan) nameSpan.textContent = getItemIcon(item) + ' ' + item.name;
+
+                  const statsDiv = row.querySelector('.inventory-item-stats');
+                  if (statsDiv) {
+                    statsDiv.textContent = '';
+                    if (item.attackPower > 0) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-atk';
+                      t.textContent = '⚔️+' + item.attackPower;
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.defensePower > 0) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-def';
+                      t.textContent = '🛡️+' + item.defensePower;
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.canFly) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-fly';
+                      t.textContent = '✈️ Voo';
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.singleUse) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-single';
+                      t.textContent = '1x';
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.passiveEffects && item.passiveEffects.length) {
+                      item.passiveEffects.forEach(function(eff) {
+                        var t = document.createElement('span');
+                        t.className = 'inv-tag inv-tag-passive';
+                        t.textContent = '✨ ' + (eff.type || eff);
+                        statsDiv.appendChild(t);
+                      });
+                    }
+                    // peso sempre por último
+                    var wt = document.createElement('span');
+                    wt.className = 'inv-tag inv-tag-weight';
+                    wt.textContent = '⚖️' + item.weight + 'kg';
+                    statsDiv.appendChild(wt);
+                  }
 
                   const actions = row.querySelector('.inventory-actions');
                   if (actions) actions.textContent = '';
