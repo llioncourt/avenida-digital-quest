@@ -248,11 +248,9 @@
               ALTERAÇÃO: Aumentar largura do inventário horizontalmente
             */
             #left-bottom #inventory-panel {
-              flex: 0 0 340px;
+              flex: 0 0 340px; /* Aumentado de 220px para 340px */
               max-height: none;
               overflow-y: auto;
-              background: linear-gradient(180deg, #1a1510, #141210) !important;
-              border: 1px solid var(--accent-gold-dim) !important;
             }
 
             /* ========== RIGHT SIDEBAR (mapa + inventário) ========== */
@@ -892,25 +890,10 @@
             }
 
             #inventory-panel {
-              position: relative;
               flex-shrink: 0;
               overflow: hidden;
               display: flex;
               flex-direction: column;
-            }
-            .inv-bg {
-              position: absolute;
-              inset: 0;
-              background: url('/rooms/bg_inv.webp') center top / cover no-repeat;
-              opacity: 0.35;
-              mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.7) 60%, transparent 95%);
-              -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.7) 60%, transparent 95%);
-              pointer-events: none;
-              z-index: 0;
-            }
-            #inventory-panel > *:not(.inv-bg) {
-              position: relative;
-              z-index: 1;
             }
 
             #inventory-panel .section-title {
@@ -957,18 +940,13 @@
             .inventory-item {
               display: flex;
               justify-content: space-between;
-              align-items: center;
-              padding: 0.5rem 0.6rem;
-              background: rgba(0,0,0,0.4);
+              align-items: center; /* Alinha o botão de ação verticalmente */
+              padding: 0.6rem 0.5rem; /* Um pouco mais de padding vertical */
+              background: var(--bg-tertiary);
               border-radius: var(--radius);
-              border: 1px solid var(--accent-gold-dim);
+              border: 1px solid var(--border-color);
               overflow: hidden;
               min-width: 0;
-              transition: border-color 0.2s, box-shadow 0.2s;
-            }
-            .inventory-item:hover {
-              border-color: var(--accent-gold);
-              box-shadow: 0 0 6px rgba(212, 168, 70, 0.2);
             }
 
             .inventory-item > div:first-child {
@@ -976,8 +954,11 @@
               overflow: hidden;
             }
 
+            /*
+              ALTERAÇÃO: Formatação dos itens do inventário
+            */
             .inventory-item-name {
-              display: block;
+              display: block; /* Força quebra de linha */
               font-family: var(--font-mono);
               font-size: 0.9rem;
               color: var(--accent-gold);
@@ -987,26 +968,11 @@
               text-overflow: ellipsis;
             }
 
-            .inventory-item-stats {
-              display: flex;
-              gap: 0.4rem;
-              margin-top: 2px;
-              flex-wrap: wrap;
+            .inventory-item-weight {
+              display: block; /* Força quebra de linha (abaixo do nome) */
+              font-size: 0.75rem;
+              color: var(--text-muted);
             }
-
-            .inv-tag {
-              font-size: 0.65rem;
-              font-family: var(--font-mono);
-              padding: 1px 4px;
-              border-radius: 3px;
-              opacity: 0.85;
-            }
-            .inv-tag-atk { color: #ff6b6b; background: rgba(255,107,107,0.1); }
-            .inv-tag-def { color: #6baaff; background: rgba(107,170,255,0.1); }
-            .inv-tag-weight { color: var(--text-muted); }
-            .inv-tag-fly { color: #6bffdb; background: rgba(107,255,219,0.1); }
-            .inv-tag-single { color: #ffdb6b; background: rgba(255,219,107,0.1); }
-            .inv-tag-passive { color: #c080ff; background: rgba(192,128,255,0.1); }
 
             .inventory-actions {
               display: flex;
@@ -2856,7 +2822,6 @@
             </div>
 
             <div class="panel" id="inventory-panel">
-              <div class="inv-bg"></div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                 <h3 class="section-title" style="margin-bottom: 0;">🎒 Inventário</h3>
                 <button
@@ -9219,18 +9184,6 @@
                   const item = GameState.items[itemId];
                   if (!item) continue;
 
-                  // Helper: ícone por categoria de item
-                  function getItemIcon(it) {
-                    if (it.attackPower > 0 && it.defensePower > 0) return '⚔️';
-                    if (it.attackPower > 0) return '🗡️';
-                    if (it.defensePower > 0) return '🛡️';
-                    if (it.canFly) return '🪂';
-                    if (it.isUsable && it.singleUse) return '💫';
-                    if (it.isUsable) return '🔧';
-                    if (it.passiveEffects && it.passiveEffects.length) return '✨';
-                    return '📦';
-                  }
-
                   let row = cache.get(itemId);
                   if (!row) {
                     row = document.createElement('div');
@@ -9243,11 +9196,11 @@
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'inventory-item-name';
 
-                    const statsDiv = document.createElement('div');
-                    statsDiv.className = 'inventory-item-stats';
+                    const weightSpan = document.createElement('span');
+                    weightSpan.className = 'inventory-item-weight';
 
                     left.appendChild(nameSpan);
-                    left.appendChild(statsDiv);
+                    left.appendChild(weightSpan);
 
                     const actions = document.createElement('div');
                     actions.className = 'inventory-actions';
@@ -9256,68 +9209,11 @@
                     row.appendChild(actions);
                   }
 
-                  // atualizar texto e stats
-                  row.title = item.description || item.name;
+                  // atualizar texto
                   const nameSpan = row.querySelector('.inventory-item-name');
-                  if (nameSpan) nameSpan.textContent = getItemIcon(item) + ' ' + item.name;
-
-                  const statsDiv = row.querySelector('.inventory-item-stats');
-                  if (statsDiv) {
-                    statsDiv.textContent = '';
-                    if (item.attackPower > 0) {
-                      const t = document.createElement('span');
-                      t.className = 'inv-tag inv-tag-atk';
-                      t.textContent = '⚔️+' + item.attackPower;
-                      statsDiv.appendChild(t);
-                    }
-                    if (item.defensePower > 0) {
-                      const t = document.createElement('span');
-                      t.className = 'inv-tag inv-tag-def';
-                      t.textContent = '🛡️+' + item.defensePower;
-                      statsDiv.appendChild(t);
-                    }
-                    if (item.canFly) {
-                      const t = document.createElement('span');
-                      t.className = 'inv-tag inv-tag-fly';
-                      t.textContent = '✈️ Voo';
-                      statsDiv.appendChild(t);
-                    }
-                    if (item.singleUse) {
-                      const t = document.createElement('span');
-                      t.className = 'inv-tag inv-tag-single';
-                      t.textContent = '1x';
-                      statsDiv.appendChild(t);
-                    }
-                    // Mapa de tradução de efeitos passivos
-                    var passiveLabels = {
-                      flight: null, // já coberto por canFly acima
-                      windVulnerable: '💨 Vento',
-                      rainProtection: '☔ Chuva',
-                      safeJump: '🪂 Queda',
-                      nightVision: '🔦 Visão',
-                      revealAdjacent: '🗺️ Revelar',
-                      revealTraps: '⚠️ Armadilhas',
-                      gasImmunity: '😷 Gás',
-                      weightBonus: '🪶 Leve',
-                      regen: '💚 Regen'
-                    };
-                    if (item.passiveEffects && item.passiveEffects.length) {
-                      item.passiveEffects.forEach(function(eff) {
-                        var key = eff.type || eff;
-                        if (passiveLabels[key] === null) return; // skip (já exibido)
-                        var label = passiveLabels[key] || ('✨ ' + key);
-                        var t = document.createElement('span');
-                        t.className = 'inv-tag inv-tag-passive';
-                        t.textContent = label;
-                        statsDiv.appendChild(t);
-                      });
-                    }
-                    // peso sempre por último
-                    var wt = document.createElement('span');
-                    wt.className = 'inv-tag inv-tag-weight';
-                    wt.textContent = '⚖️' + item.weight + 'kg';
-                    statsDiv.appendChild(wt);
-                  }
+                  const weightSpan = row.querySelector('.inventory-item-weight');
+                  if (nameSpan) nameSpan.textContent = item.name;
+                  if (weightSpan) weightSpan.textContent = `(${item.weight}kg)`;
 
                   const actions = row.querySelector('.inventory-actions');
                   if (actions) actions.textContent = '';
