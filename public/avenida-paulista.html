@@ -10386,12 +10386,11 @@
                 var self = this;
                 if (prevRoom !== roomId) {
                   var isTeto = (roomId === 'teto_masp');
-                  var delay = isTeto ? 300 : 160;
 
                   panel.classList.remove('room-transition-in');
                   panel.classList.add('room-transition-out');
 
-                  // Efeitos especiais do Teto do MASP
+                  // Efeitos especiais do Teto do MASP (antes da transição de viagem)
                   if (isTeto) {
                     var flashEl = document.createElement('div');
                     flashEl.className = 'teto-flash-overlay';
@@ -10403,7 +10402,8 @@
                     }, 500);
                   }
 
-                  setTimeout(function() {
+                  // Transição cinematográfica com imagens de fundo
+                  RoomTransition.play(prevRoom, roomId, function() {
                     // Se o jogador já se moveu durante a animação, cancelar
                     if (GameState.playerLocation !== prevRoom) {
                       panel.classList.remove('room-transition-out');
@@ -10434,7 +10434,7 @@
                     void nameEl.offsetWidth;
                     nameEl.classList.add(glowClass);
                     setTimeout(function() { nameEl.classList.remove(glowClass); }, isTeto ? 1050 : 650);
-                  }, delay);
+                  });
                 } else {
                   // Mesma sala (tentativa inválida)
                   this.processAction(Actions.moveTo(roomId));
