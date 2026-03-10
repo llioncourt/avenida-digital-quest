@@ -1,82 +1,65 @@
 
 
-### ✅ Fase 10 — Sala Pai/Filha + Modal de Explosão Cinematográfico + Room Backgrounds
+## Melhorar Transição entre Salas + Switch de Toggle
 
-- `childRooms` / `parentRoom` nas definições de sala (MASP→Teto/Subsolo, Colégio→Antena)
-- Explosão no pai propaga para filhas (affectedRooms array)
-- `Modals.showExplosion(roomId, title, content)` com imagem de fundo, shake, glow
-- `.room-bg` no `#location-panel` com opacity 0.15, nomenclatura `rooms/{roomId}.webp`
+### Mudanças
 
-### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
+**1. CSS — Animação mais lenta e com mais efeitos (~linhas 317-359)**
 
-- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
-- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
-- `originalStop()` chamado antes de `audio.play()` para parar MIDI
-- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
-## Refatoração Completa (Fases 1-4)
+- Duração de 800ms → **1500ms**
+- Adicionar efeito de **motion blur** via CSS filter no `travel-from`
+- Adicionar **vinheta escura** (radial gradient overlay) para dramatizar
+- Adicionar **scan lines** sutis durante a transição (pseudo-element)
+- `travel-out`: escala maior (1.08) + blur crescente
+- `travel-in`: começa mais ampla (1.15) e fecha com leve overshoot
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+```css
+.room-travel-overlay {
+  /* ...existente... */
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%);
+}
+.room-travel-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  z-index: 2;
+  pointer-events: none;
+}
+/* Duração 1500ms em todas as animations */
+/* travel-out com filter: blur(3px) no final */
+/* travel-in com scale 1.12 → 1 */
+```
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+**2. JS — `RoomTransition._duration` de 800 → 1500 (linha 10080)**
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+Callback no midpoint continua em `_duration * 0.5` = 750ms.
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+**3. JS — Flag `RoomTransition.enabled` + método `toggle()` (dentro do namespace)**
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+```javascript
+RoomTransition.enabled = true;
+RoomTransition.toggle = function() { ... };
+```
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+No `play()`: se `!this.enabled`, chama `callback()` imediatamente.
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+**4. HTML — Botão toggle na barra de controles (~após linha 2769)**
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+Botão estilo idêntico ao `particles-toggle` e `typewriter-toggle`:
 
-### ✅ Fase 7 — Buff do Café Paulistano
+```html
+<button
+  id="travel-toggle"
+  onclick="RoomTransition.toggle(); this.style.opacity = RoomTransition.enabled ? '1' : '0.4';"
+  title="Ligar/Desligar transição de viagem"
+  style="background: none; border: none; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 1rem;"
+>
+  🎬
+</button>
+```
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
+### Arquivo alterado
 
-### ✅ Fase 8 — Portrait com Degradê Full-Card
+Apenas `public/avenida-paulista.html`.
 
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
