@@ -5601,8 +5601,7 @@
                   console.log('[Mp3Layer] ▶ MP3:', trackKey);
                   if (player.updateButton) player.updateButton();
                 }).catch(function(err) {
-                  console.warn('[Mp3Layer] MP3 play failed, fallback MIDI:', err);
-                  originalStart();
+                  console.warn('[Mp3Layer] MP3 play failed:', err);
                 });
               };
 
