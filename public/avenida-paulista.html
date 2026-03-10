@@ -7038,12 +7038,12 @@
                     const demon = GameState.characters.demonio;
                     demon.location = t.location;
                     demon.isSummoned = true;
-                    (async () => {
-                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchSummon);
+                    (function() {
+                      var blobUrl = window._useMP3 ? Mp3Cache.get('witchSummon') : null;
                       if (blobUrl) {
-                        const a = new Audio(blobUrl);
+                        var a = new Audio(blobUrl);
                         if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-                        a.play().catch(() => SoundSystem.playDemonSummon());
+                        a.play().catch(function() { SoundSystem.playDemonSummon(); });
                       } else {
                         SoundSystem.playDemonSummon();
                       }
