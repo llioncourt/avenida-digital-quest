@@ -9503,6 +9503,14 @@
                       actions && actions.appendChild(useBtn);
                     }
 
+                    const infoBtn = document.createElement('button');
+                    infoBtn.className = 'btn btn-small';
+                    infoBtn.title = 'Detalhes';
+                    infoBtn.textContent = '🔍';
+                    infoBtn.dataset.action = 'info';
+                    infoBtn.dataset.itemId = item.id;
+                    actions && actions.appendChild(infoBtn);
+
                     const dropBtn = document.createElement('button');
                     dropBtn.className = 'btn btn-small';
                     dropBtn.title = 'Largar';
