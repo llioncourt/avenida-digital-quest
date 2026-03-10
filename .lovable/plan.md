@@ -1,69 +1,82 @@
 
 
-## Melhorar o modal de explosão + imagens de fundo nos cards de sala
+### ✅ Fase 10 — Sala Pai/Filha + Modal de Explosão Cinematográfico + Room Backgrounds
 
-### 1. Modal de Explosão Cinematográfico
+- `childRooms` / `parentRoom` nas definições de sala (MASP→Teto/Subsolo, Colégio→Antena)
+- Explosão no pai propaga para filhas (affectedRooms array)
+- `Modals.showExplosion(roomId, title, content)` com imagem de fundo, shake, glow
+- `.room-bg` no `#location-panel` com opacity 0.15, nomenclatura `rooms/{roomId}.webp`
 
-O modal atual usa o `Modals.show()` genérico -- texto simples dentro do modal padrão. Vou criar um layout dedicado para explosões, inspirado no combat modal:
+### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
 
-- **Imagem de fundo da sala** que explodiu, usando o mesmo sistema de nomenclatura padronizada (ex: `rooms/masp.webp`)
-- Layout com a imagem ocupando o fundo do modal inteiro com `mask-image` fade (como os retratos de combate)
-- Texto sobreposto com efeitos visuais (glow vermelho/laranja, text-shadow)
-- Animação de shake no modal ao aparecer
-- Lista de vítimas e itens destruídos com estilo temático (ícones, cores)
+- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
+- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
+- `originalStop()` chamado antes de `audio.play()` para parar MIDI
+- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
+## Refatoração Completa (Fases 1-4)
 
-**Nomenclatura das imagens de sala:**
-```
-public/rooms/{roomId}.webp
-```
-Exemplos: `rooms/masp.webp`, `rooms/colegio.webp`, `rooms/rua_augusta.webp`
+### ✅ Fase 1 — Bugs e segurança
+- Fix `delay` não declarada em `showResult`
+- Fix morte por asa delta sem `gameOver = true` + karma
+- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
+- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
+- Checagens defensivas `visitedRooms` removidas
+- 13 propriedades não declaradas adicionadas ao GameState
 
-O sistema terá fallback: tenta carregar a imagem, se não existir mostra um gradiente escuro com efeito de fumaça (CSS).
+### ✅ Fase 2 — Eliminação de duplicação
+- `Actions._setPlayerLocation(roomId)` — centraliza localização
+- `Rules.activateFollow(charId)` — centraliza follow com karma
+- `MusicSystem` refatorado com `createMidiPlayer` como base
 
-**Lógica de explosão (linhas ~7840-7860):** Em vez de `Modals.show('💥 EXPLOSÃO!', modalContent)`, criar uma função `Modals.showExplosion()` dedicada que:
-- Monta HTML com div de imagem de fundo (como `combat-portrait`)
-- Aplica animação de entrada (shake + fade-in)
-- Usa CSS específico para o modal de explosão (borda vermelha/laranja, glow de fogo)
+### ✅ Fase 3 — Organização
+- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
+- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
+- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
 
-### 2. Imagens de Fundo no Card da Sala (location-panel)
+### ✅ Fase 4 — Qualidade de vida
+- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
+- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
 
-Adicionar uma imagem de fundo sutil ao `#location-panel` que muda conforme a sala atual:
+### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
 
-- Usar a mesma nomenclatura `rooms/{roomId}.webp`
-- Aplicar via `background-image` com `mask-image` fade (opacidade baixa ~0.15 para não atrapalhar legibilidade)
-- Atualizar em `updateLocation()` (linha 8661)
-- Fallback: sem imagem, mantém o visual atual (gradiente do `.panel`)
+- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
+  - `exploration: 'AVP Theme.mp3'`
+  - `gameover: 'AVP Game Over.mp3'`
+  - `combat`, `defeat`, `victory`: placeholders vazios
+- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
+- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
+  - MP3 disponível (cache ou rede) → toca via `<audio>`
+  - Sem MP3 → fallback automático para MIDI
+- Integração de volume com `musicGain` existente (sliders continuam funcionando)
+- Tudo autocontido no HTML
 
-**CSS necessário:**
-```css
-#location-panel {
-  position: relative;
-  overflow: hidden;
-}
-#location-panel .room-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.12;
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 85%);
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-```
+### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
 
-**JS em `updateLocation()`:** Criar/atualizar um elemento `.room-bg` com `background-image: url('rooms/' + roomId + '.webp')`.
+- Namespace `Hallucinations` com ~160 linhas
+- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
+- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
+- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
+- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
+- Interceptação em pickupItem, moveTo, showCharacter para phantoms
+- Cura: notificação ao usar item de cura/comida que reduza o nível
+- Invalidação de renderSig inclui nível de alucinação
+- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
 
-### Mudanças no arquivo
+### ✅ Fase 7 — Buff do Café Paulistano
 
-**`public/avenida-paulista.html`:**
+- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
+- Efeitos do estado "Cafeinado":
+  - ⏳ Tempo congelado por 3 turnos
+  - ⚡ +20 energia imediata
+  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
+  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
+- Mensagens de feedback a cada turno e ao expirar
+- Energético Paulista também ativa 1 turno de cafeína
 
-1. **CSS:** Adicionar estilos para `.room-bg` no location-panel e para o modal de explosão customizado (`.explosion-modal`)
-2. **JS - `updateLocation()`** (~linha 8661): Inserir/atualizar div `.room-bg` com a imagem da sala
-3. **JS - `Modals`**: Criar `showExplosion(roomId, content)` que monta o modal com imagem de fundo da sala
-4. **JS - lógica de detonação** (~linha 7840-7860): Trocar `Modals.show()` por `Modals.showExplosion()`
+### ✅ Fase 8 — Portrait com Degradê Full-Card
 
-### Nomenclatura padronizada
-
-As imagens ainda não existem no projeto, mas o sistema estará preparado com fallback. O usuário poderá adicionar imagens em `public/rooms/` seguindo o padrão `{roomId}.webp` (ex: `masp.webp`, `colegio.webp`, `teto_masp.webp`).
-
+- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
+- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
+- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
+- Placeholder agora é gradiente sutil sem texto/ícone
+- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
