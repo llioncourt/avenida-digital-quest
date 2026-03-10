@@ -5589,7 +5589,7 @@
                 if (audio) { audio.pause(); audio.currentTime = 0; }
 
                 var blobUrl = _blobUrlMap.get(trackKey);
-                if (!blobUrl) { originalStart(); return; } // safety fallback
+                if (!blobUrl) { if (!window._useMP3) { originalStart(); } return; }
 
                 audio = new Audio(blobUrl);
                 audio.loop = loop;
