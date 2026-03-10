@@ -1,75 +1,62 @@
 
 
-### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
+## Bug: MIDI e MP3 tocando simultaneamente
 
-- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
-- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
-- `originalStop()` chamado antes de `audio.play()` para parar MIDI
-- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
-## Refatoração Completa (Fases 1-4)
+### Causa raiz encontrada
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+`MusicSystem.init()` é chamado **duas vezes em sequência rápida**:
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+1. Linha 11044: `MusicSystem.init()` → `this.start()` → cria `Audio A`, chama `A.play()` (retorna Promise pendente)
+2. Linha 11047: `Game.init()` → linha 9818: `MusicSystem.stop()` → faz `A.pause()` **antes do Promise resolver**
+3. Linha 9821: `MusicSystem.init()` → `this.start()` → cria `Audio B`, chama `B.play()` → MP3 tocando ✓
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+**O problema:** O `A.play()` Promise **rejeita com AbortError** (audio pausado antes de iniciar). O `.catch()` na linha 5603-5606 dispara:
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+```js
+.catch(function(err) {
+  originalStart();  // ← INICIA MIDI como "fallback"!
+});
+```
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+Resultado: Audio B (MP3) e MIDI (via originalStart) tocam **ao mesmo tempo**.
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+O mesmo padrão pode ocorrer em qualquer transição rápida (exploração → combate).
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+### Fix (3 mudanças cirúrgicas)
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+**1. Remover fallback MIDI do `.catch()`** (linha 5603-5606):
 
-### ✅ Fase 7 — Buff do Café Paulistano
+Quando `window._useMP3` é true, NUNCA iniciar MIDI. Se MP3 falhar, silêncio é melhor que sobreposição.
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
+```js
+.catch(function(err) {
+  console.warn('[Mp3Layer] MP3 play failed:', err);
+  // Sem fallback MIDI — evita sobreposição
+});
+```
 
-### ✅ Fase 8 — Portrait com Degradê Full-Card
+**2. Remover fallback MIDI do blobUrl missing** (linha 5592):
 
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
+Guardar com `if (!window._useMP3)`:
+
+```js
+if (!blobUrl) {
+  if (!window._useMP3) { originalStart(); }
+  return;
+}
+```
+
+**3. Remover `MusicSystem.init()` duplicado** (linha 11044):
+
+`Game.init()` na linha seguinte (11047) já chama `MusicSystem.stop()` + `MusicSystem.init()`. A chamada na linha 11044 é redundante e causa a race condition.
+
+```js
+// Remover linha 11044: MusicSystem.init();
+```
+
+### Resultado
+
+- `.catch()` nunca inicia MIDI quando MP3 está ativo
+- Chamadas rápidas em sequência não causam race condition
+- Transições (exploração ↔ combate) ficam limpas
+
