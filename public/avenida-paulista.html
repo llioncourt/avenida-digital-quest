@@ -9222,6 +9222,7 @@
                     row = document.createElement('div');
                     row.className = 'inventory-item';
                     row.dataset.itemId = itemId;
+                    row.style.setProperty('--item-bg', 'url(textures/bg_' + itemId + '.webp)');
 
                     const left = document.createElement('div');
                     left.className = 'inventory-left';
