@@ -7851,8 +7851,8 @@
 
                 if (GameState.armedBomb.turnsLeft > 0) {
                   SoundSystem.playBombTick();
-                  var bombRoom = GameState.rooms[GameState.armedBomb.location].name;
-                  Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s) para explodir em ${bombRoom}!`, 'warning');
+                   var bombRoomName = GameState.rooms[GameState.armedBomb.location].name;
+                   Log.add(`⏱️ BOMBA: ${GameState.armedBomb.turnsLeft} turno(s) para explodir em ${bombRoomName}!`, 'warning');
                   return;
                 }
 
