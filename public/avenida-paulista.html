@@ -940,13 +940,18 @@
             .inventory-item {
               display: flex;
               justify-content: space-between;
-              align-items: center; /* Alinha o botão de ação verticalmente */
-              padding: 0.6rem 0.5rem; /* Um pouco mais de padding vertical */
-              background: var(--bg-tertiary);
+              align-items: center;
+              padding: 0.5rem 0.6rem;
+              background: linear-gradient(135deg, #2a1a1a, #1a1a0a);
               border-radius: var(--radius);
-              border: 1px solid var(--border-color);
+              border: 1px solid var(--accent-gold-dim);
               overflow: hidden;
               min-width: 0;
+              transition: border-color 0.2s, box-shadow 0.2s;
+            }
+            .inventory-item:hover {
+              border-color: var(--accent-gold);
+              box-shadow: 0 0 6px rgba(212, 168, 70, 0.2);
             }
 
             .inventory-item > div:first-child {
@@ -954,11 +959,8 @@
               overflow: hidden;
             }
 
-            /*
-              ALTERAÇÃO: Formatação dos itens do inventário
-            */
             .inventory-item-name {
-              display: block; /* Força quebra de linha */
+              display: block;
               font-family: var(--font-mono);
               font-size: 0.9rem;
               color: var(--accent-gold);
@@ -968,11 +970,26 @@
               text-overflow: ellipsis;
             }
 
-            .inventory-item-weight {
-              display: block; /* Força quebra de linha (abaixo do nome) */
-              font-size: 0.75rem;
-              color: var(--text-muted);
+            .inventory-item-stats {
+              display: flex;
+              gap: 0.4rem;
+              margin-top: 2px;
+              flex-wrap: wrap;
             }
+
+            .inv-tag {
+              font-size: 0.65rem;
+              font-family: var(--font-mono);
+              padding: 1px 4px;
+              border-radius: 3px;
+              opacity: 0.85;
+            }
+            .inv-tag-atk { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+            .inv-tag-def { color: #6baaff; background: rgba(107,170,255,0.1); }
+            .inv-tag-weight { color: var(--text-muted); }
+            .inv-tag-fly { color: #6bffdb; background: rgba(107,255,219,0.1); }
+            .inv-tag-single { color: #ffdb6b; background: rgba(255,219,107,0.1); }
+            .inv-tag-passive { color: #c080ff; background: rgba(192,128,255,0.1); }
 
             .inventory-actions {
               display: flex;
@@ -9184,6 +9201,18 @@
                   const item = GameState.items[itemId];
                   if (!item) continue;
 
+                  // Helper: ícone por categoria de item
+                  function getItemIcon(it) {
+                    if (it.attackPower > 0 && it.defensePower > 0) return '⚔️';
+                    if (it.attackPower > 0) return '🗡️';
+                    if (it.defensePower > 0) return '🛡️';
+                    if (it.canFly) return '🪂';
+                    if (it.isUsable && it.singleUse) return '💫';
+                    if (it.isUsable) return '🔧';
+                    if (it.passiveEffects && it.passiveEffects.length) return '✨';
+                    return '📦';
+                  }
+
                   let row = cache.get(itemId);
                   if (!row) {
                     row = document.createElement('div');
@@ -9196,11 +9225,11 @@
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'inventory-item-name';
 
-                    const weightSpan = document.createElement('span');
-                    weightSpan.className = 'inventory-item-weight';
+                    const statsDiv = document.createElement('div');
+                    statsDiv.className = 'inventory-item-stats';
 
                     left.appendChild(nameSpan);
-                    left.appendChild(weightSpan);
+                    left.appendChild(statsDiv);
 
                     const actions = document.createElement('div');
                     actions.className = 'inventory-actions';
@@ -9209,11 +9238,52 @@
                     row.appendChild(actions);
                   }
 
-                  // atualizar texto
+                  // atualizar texto e stats
+                  row.title = item.description || item.name;
                   const nameSpan = row.querySelector('.inventory-item-name');
-                  const weightSpan = row.querySelector('.inventory-item-weight');
-                  if (nameSpan) nameSpan.textContent = item.name;
-                  if (weightSpan) weightSpan.textContent = `(${item.weight}kg)`;
+                  if (nameSpan) nameSpan.textContent = getItemIcon(item) + ' ' + item.name;
+
+                  const statsDiv = row.querySelector('.inventory-item-stats');
+                  if (statsDiv) {
+                    statsDiv.textContent = '';
+                    if (item.attackPower > 0) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-atk';
+                      t.textContent = '⚔️+' + item.attackPower;
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.defensePower > 0) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-def';
+                      t.textContent = '🛡️+' + item.defensePower;
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.canFly) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-fly';
+                      t.textContent = '✈️ Voo';
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.singleUse) {
+                      const t = document.createElement('span');
+                      t.className = 'inv-tag inv-tag-single';
+                      t.textContent = '1x';
+                      statsDiv.appendChild(t);
+                    }
+                    if (item.passiveEffects && item.passiveEffects.length) {
+                      item.passiveEffects.forEach(function(eff) {
+                        var t = document.createElement('span');
+                        t.className = 'inv-tag inv-tag-passive';
+                        t.textContent = '✨ ' + (eff.type || eff);
+                        statsDiv.appendChild(t);
+                      });
+                    }
+                    // peso sempre por último
+                    var wt = document.createElement('span');
+                    wt.className = 'inv-tag inv-tag-weight';
+                    wt.textContent = '⚖️' + item.weight + 'kg';
+                    statsDiv.appendChild(wt);
+                  }
 
                   const actions = row.querySelector('.inventory-actions');
                   if (actions) actions.textContent = '';
