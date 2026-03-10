@@ -5589,7 +5589,7 @@
                 if (audio) { audio.pause(); audio.currentTime = 0; }
 
                 var blobUrl = _blobUrlMap.get(trackKey);
-                if (!blobUrl) { originalStart(); return; } // safety fallback
+                if (!blobUrl) { if (!window._useMP3) { originalStart(); } return; }
 
                 audio = new Audio(blobUrl);
                 audio.loop = loop;
@@ -5601,8 +5601,7 @@
                   console.log('[Mp3Layer] ▶ MP3:', trackKey);
                   if (player.updateButton) player.updateButton();
                 }).catch(function(err) {
-                  console.warn('[Mp3Layer] MP3 play failed, fallback MIDI:', err);
-                  originalStart();
+                  console.warn('[Mp3Layer] MP3 play failed:', err);
                 });
               };
 
@@ -11040,8 +11039,7 @@
                 // Mostrar jogo
                 document.body.classList.remove('intro-active');
 
-                // Iniciar música do jogo
-                MusicSystem.init();
+                // MusicSystem.init() removido — Game.init() já chama
 
                 // Iniciar jogo
                 Game.init();
