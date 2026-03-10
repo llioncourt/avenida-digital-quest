@@ -9808,7 +9808,46 @@
               },
 
               hide: function() {
-                document.getElementById('modal-overlay').classList.remove('active', 'mapa-exclusive');
+                document.getElementById('modal-overlay').classList.remove('active', 'mapa-exclusive', 'explosion-mode');
+                // Limpar elementos de explosão
+                var modal = document.getElementById('modal');
+                var expBg = modal.querySelector('.explosion-bg');
+                if (expBg) expBg.remove();
+                var expFallback = modal.querySelector('.explosion-fallback-bg');
+                if (expFallback) expFallback.remove();
+              },
+
+              showExplosion: function(roomId, title, content) {
+                var modal = document.getElementById('modal');
+                var overlay = document.getElementById('modal-overlay');
+
+                // Limpar antigos
+                var old = modal.querySelector('.explosion-bg');
+                if (old) old.remove();
+                var oldFb = modal.querySelector('.explosion-fallback-bg');
+                if (oldFb) oldFb.remove();
+
+                // Fallback gradient sempre presente
+                var fallbackBg = document.createElement('div');
+                fallbackBg.className = 'explosion-fallback-bg';
+                modal.insertBefore(fallbackBg, modal.firstChild);
+
+                // Tentar carregar imagem da sala
+                var imgUrl = 'rooms/' + roomId + '.webp';
+                var bgDiv = document.createElement('div');
+                bgDiv.className = 'explosion-bg';
+                modal.insertBefore(bgDiv, modal.firstChild);
+
+                var testImg = new Image();
+                testImg.onload = function() {
+                  bgDiv.style.backgroundImage = 'url(' + imgUrl + ')';
+                  requestAnimationFrame(function() { bgDiv.classList.add('loaded'); });
+                };
+                testImg.src = imgUrl;
+
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-content').innerHTML = content;
+                overlay.classList.add('active', 'explosion-mode');
               },
 
               confirmAttackAlly: function(charId, type) {
