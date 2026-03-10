@@ -5592,9 +5592,17 @@
               const originalStop = player.stop.bind(player);
 
               player._mp3Active = false;
-              let stoppedManually = false;
+              player._stopped = false;
 
               player.start = function() {
+                // Parar audio anterior antes de tudo
+                if (audio) {
+                  audio.pause();
+                  audio.currentTime = 0;
+                }
+                player._mp3Active = false;
+                player._stopped = false;
+
                 if (audio && !audio.paused && player._mp3Active) return;
 
                 SoundSystem.resume();
@@ -5608,12 +5616,17 @@
 
                 // Online → garantir track no cache e tocar
                 // Iniciar MIDI como fallback imediato enquanto carrega
-                player._mp3Active = false;
                 originalStart();
 
                 Mp3Cache.ensureTrack(trackKey).then(function(blobUrl) {
                   if (!blobUrl) return; // Falhou, fica no MIDI
-                  if (!player.isPlaying) return; // Foi parado enquanto carregava
+                  if (!player.isPlaying || player._stopped) return; // Foi parado enquanto carregava
+
+                  // Parar audio anterior de novo (safety)
+                  if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                  }
 
                   audio = new Audio(blobUrl);
                   audio.loop = loop;
@@ -5624,11 +5637,6 @@
                   } else {
                     audio.volume = MusicSystem.volume || 1.0;
                   }
-
-                  if (stoppedManually || !audio || audio.ended) {
-                    audio.currentTime = 0;
-                  }
-                  stoppedManually = false;
 
                   // Parar MIDI e trocar para MP3
                   originalStop();
@@ -5646,17 +5654,19 @@
               };
 
               player.pause = function() {
-                if (audio && player._mp3Active) {
+                player._stopped = true;
+                if (audio) {
                   audio.pause();
-                } else {
-                  originalStop();
                 }
+                // Sempre parar MIDI também
+                originalStop();
+                player._mp3Active = false;
                 player.isPlaying = false;
               };
 
               player.stop = function() {
-                if (audio && player._mp3Active) {
-                  stoppedManually = true;
+                player._stopped = true;
+                if (audio) {
                   audio.pause();
                   audio.currentTime = 0;
                 }
