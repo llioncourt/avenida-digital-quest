@@ -8766,6 +8766,31 @@
                 const room = GameState.rooms[GameState.playerLocation];
                 this.dom.locationName.textContent = room.name;
 
+                // Room background image
+                var panel = document.getElementById('location-panel');
+                var roomBg = panel.querySelector('.room-bg');
+                if (!roomBg) {
+                  roomBg = document.createElement('div');
+                  roomBg.className = 'room-bg';
+                  panel.insertBefore(roomBg, panel.firstChild);
+                }
+                var roomId = GameState.playerLocation;
+                var imgUrl = 'rooms/' + roomId + '.webp';
+                if (roomBg._currentRoom !== roomId) {
+                  roomBg._currentRoom = roomId;
+                  roomBg.classList.remove('loaded');
+                  var testImg = new Image();
+                  testImg.onload = function() {
+                    roomBg.style.backgroundImage = 'url(' + imgUrl + ')';
+                    requestAnimationFrame(function() { roomBg.classList.add('loaded'); });
+                  };
+                  testImg.onerror = function() {
+                    roomBg.style.backgroundImage = '';
+                    roomBg.classList.remove('loaded');
+                  };
+                  testImg.src = imgUrl;
+                }
+
                 let desc = room.description;
 
                 // Lanterna: ícone com tooltip no canto do painel
