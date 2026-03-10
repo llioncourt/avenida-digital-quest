@@ -10368,6 +10368,10 @@
 
               // Reiniciar jogo
               restart: function() {
+                GameOverMusicSystem.stop();
+                CombatMusicSystem.stop();
+                DefeatMusicSystem.stop();
+                VictoryMusicSystem.stop();
                 MusicSystem.stop();
                 Modals.hide();
                 this.init();
