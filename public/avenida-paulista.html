@@ -351,7 +351,7 @@
             .screen-shake {
               animation: screen-shake 0.4s ease;
             }
-            @keyframes spin { to { transform: rotate(360deg); } }
+
 
             /* ========== VOLUME CONTROLS ========== */
             .volume-control {
@@ -431,6 +431,7 @@
               text-shadow: 0 0 10px rgba(255,60,60,0.8);
               box-shadow: 0 0 22px rgba(255,60,60,0.8), inset 0 0 12px rgba(255,60,60,0.3);
             }
+
 
             .lanterna-indicator {
               position: absolute;
@@ -5494,38 +5495,32 @@
               introCrawl: 'music/AVP-Intro.mp3'
             };
 
-            const CACHE_NAME = 'avp-music-v1';
-            /** Map persistente: trackKey → blobUrl (reusa entre chamadas) */
-            const _blobUrlMap = new Map();
-
-            /** Flag global: true = MP3 exclusivo, false = MIDI exclusivo */
-            window._useMP3 = false;
+            const _mp3BlobCache = new Map();
 
             /**
              * @namespace Mp3Cache
-             * @description Gerencia cache de MP3s. Carrega todas no boot se online.
+             * @description Gerencia cache de MP3s em memória via fetch + blob URLs.
              */
             const Mp3Cache = {
               /**
-               * Carrega MP3 do cache ou da rede, retorna blob URL.
+               * Carrega MP3 via fetch, retorna blob URL em memória.
                * @param {string} url - URL relativa do MP3
-               * @returns {Promise<string|null>} Blob URL ou null
+               * @returns {Promise<string|null>} Blob URL para reprodução ou null se falhar
                */
               async load(url) {
                 if (!url) return null;
+                if (_mp3BlobCache.has(url)) return _mp3BlobCache.get(url);
                 try {
-                  const cache = await caches.open(CACHE_NAME);
-                  let response = await cache.match(url);
-                  if (!response) {
-                    response = await fetch(url);
-                    if (!response.ok) {
-                      console.warn('[Mp3Cache] Fetch failed:', url, response.status);
-                      return null;
-                    }
-                    await cache.put(url, response.clone());
+                  const response = await fetch(url);
+                  if (!response.ok) {
+                    console.warn('[Mp3Cache] Fetch failed:', url, response.status);
+                    return null;
                   }
                   const blob = await response.blob();
-                  return URL.createObjectURL(blob);
+                  const blobUrl = URL.createObjectURL(blob);
+                  _mp3BlobCache.set(url, blobUrl);
+                  console.log('[Mp3Cache] Loaded:', url);
+                  return blobUrl;
                 } catch (err) {
                   console.warn('[Mp3Cache] Error:', url, err);
                   return null;
@@ -5533,95 +5528,133 @@
               },
 
               /**
-               * Carrega TODAS as tracks e guarda blob URLs no _blobUrlMap.
-               * Chamado uma vez no boot. Bloqueia até terminar.
-               * @returns {Promise<void>}
+               * Pré-carrega todos os MP3s definidos em MP3_TRACKS.
                */
-              async ensureAll() {
-                const keys = Object.keys(MP3_TRACKS);
-                await Promise.all(keys.map(async (key) => {
-                  const blobUrl = await this.load(MP3_TRACKS[key]);
-                  if (blobUrl) {
-                    _blobUrlMap.set(key, blobUrl);
-                  }
-                }));
-                console.log('[Mp3Cache] All tracks loaded:', [..._blobUrlMap.keys()]);
-              },
+              async preloadAll() {
+                const urls = Object.values(MP3_TRACKS).filter(u => u);
+                const results = await Promise.all(urls.map(u => this.load(u)));
+                const loaded = results.filter(r => r !== null).length;
+                console.log(`[Mp3Cache] Preload complete: ${loaded}/${results.length} OK`);
 
-              /**
-               * Retorna blob URL de uma track já carregada, ou null.
-               * @param {string} trackKey
-               * @returns {string|null}
-               */
-              get(trackKey) {
-                return _blobUrlMap.get(trackKey) || null;
+                // Pré-criar Audio elements para playback síncrono
+                for (const [key, trackUrl] of Object.entries(MP3_TRACKS)) {
+                  if (!trackUrl) continue;
+                  const blob = _mp3BlobCache.get(trackUrl);
+                  if (blob) {
+                    const a = new Audio(blob);
+                    a.preload = 'auto';
+                    _mp3AudioElements.set(key, a);
+                  }
+                }
+                console.log(`[Mp3Cache] Pre-created ${_mp3AudioElements.size} Audio elements`);
               }
             };
+
+            /** Map de Audio elements pré-criados por trackKey */
+            const _mp3AudioElements = new Map();
 
             /**
              * @function _addMp3Layer
              * @description Adiciona camada MP3 a um player MIDI existente.
-             * window._useMP3=true → MP3 exclusivo (MIDI nunca toca).
-             * window._useMP3=false → MIDI exclusivo (MP3 ignorado).
+             * Sobrescreve start() e stop() para priorizar MP3 com fallback para MIDI.
              * @param {object} player - Player MIDI criado por createMidiPlayer
-             * @param {string} trackKey - Chave em MP3_TRACKS
+             * @param {string} trackKey - Chave em MP3_TRACKS (exploration, combat, etc.)
              * @param {object} options - { loop: boolean }
              */
             function _addMp3Layer(player, trackKey, options = {}) {
               const url = MP3_TRACKS[trackKey];
-              if (!url) return;
+              if (!url) return; // Sem MP3 definido, mantém apenas MIDI
 
               const loop = options.loop !== false;
               let audio = null;
+              let blobUrl = null;
 
               const originalStart = player.start.bind(player);
               const originalStop = player.stop.bind(player);
 
+              player._mp3Active = false;
+              let stoppedManually = false;
+
               player.start = function() {
-                if (!window._useMP3) {
-                  // MIDI mode — ignora MP3 completamente
-                  originalStart();
-                  return;
+                // Se já está tocando MP3, não faz nada
+                if (audio && !audio.paused && player._mp3Active) return;
+
+                SoundSystem.resume(); // Desbloqueia AudioContext
+
+                // Buscar Audio pré-criado (síncrono, sem await)
+                if (!audio) {
+                  const cached = _mp3AudioElements.get(trackKey);
+                  if (cached) {
+                    audio = cached;
+                    audio.loop = loop;
+                  }
                 }
 
-                // MP3 mode — ignora MIDI completamente
-                SoundSystem.resume();
-                if (audio) { audio.pause(); audio.currentTime = 0; }
+                if (audio) {
+                  // PARAR MIDI antes de tocar MP3
+                  originalStop();
 
-                var blobUrl = _blobUrlMap.get(trackKey);
-                if (!blobUrl) { if (!window._useMP3) { originalStart(); } return; }
+                  // Sincronizar volume com musicGain
+                  if (MusicSystem.musicGain) {
+                    audio.volume = MusicSystem.musicGain.gain.value;
+                  } else {
+                    audio.volume = MusicSystem.volume || 1.0;
+                  }
 
-                audio = new Audio(blobUrl);
-                audio.loop = loop;
-                audio.volume = MusicSystem.musicGain
-                  ? MusicSystem.musicGain.gain.value
-                  : (MusicSystem.volume || 1.0);
-                player.isPlaying = true;
-                audio.play().then(function() {
-                  console.log('[Mp3Layer] ▶ MP3:', trackKey);
-                  if (player.updateButton) player.updateButton();
-                }).catch(function(err) {
-                  console.warn('[Mp3Layer] MP3 play failed:', err);
-                });
+                  // Só reinicia do zero se foi parado manualmente ou se já terminou
+                  if (stoppedManually || audio.ended) {
+                    audio.currentTime = 0;
+                  }
+                  stoppedManually = false;
+
+                  player._mp3Active = true;
+                  player.isPlaying = true;
+                  audio.play().then(() => {
+                    console.log('[Mp3Layer] ▶ Playback started:', trackKey);
+                    if (player.updateButton) player.updateButton();
+                  }).catch(err => {
+                    console.warn('[Mp3Layer] Fallback MIDI:', err);
+                    player._mp3Active = false;
+                    originalStart();
+                  });
+                } else {
+                  // Nenhum Audio pré-criado → MIDI direto
+                  player._mp3Active = false;
+                  console.log('[Mp3Layer] No pre-created audio, using MIDI:', trackKey);
+                  originalStart();
+                }
               };
 
               player.pause = function() {
-                if (audio) { audio.pause(); }
-                originalStop();
+                if (audio && player._mp3Active) {
+                  audio.pause();
+                  // NÃO reseta currentTime — permite retomar
+                } else {
+                  // MIDI fallback: MIDI não tem pause, então stop
+                  originalStop();
+                }
                 player.isPlaying = false;
               };
 
               player.stop = function() {
-                if (audio) { audio.pause(); audio.currentTime = 0; }
-                originalStop();
+                if (audio && player._mp3Active) {
+                  stoppedManually = true;
+                  audio.pause();
+                  audio.currentTime = 0;
+                }
+                player._mp3Active = false;
                 player.isPlaying = false;
+                originalStop();
               };
 
+              // Atualizar volume do audio quando musicGain mudar
               const originalSetVolume = player.setVolume;
               if (originalSetVolume) {
                 player.setVolume = function(val) {
                   originalSetVolume.call(player, val);
-                  if (audio) audio.volume = val;
+                  if (audio && player._mp3Active) {
+                    audio.volume = val;
+                  }
                 };
               }
             }
@@ -5632,6 +5665,18 @@
             _addMp3Layer(CombatMusicSystem, 'combat', { loop: false });
             _addMp3Layer(DefeatMusicSystem, 'defeat', { loop: false });
             _addMp3Layer(VictoryMusicSystem, 'victory', { loop: false });
+
+            // Pré-carregar MP3s ao iniciar
+            Mp3Cache.preloadAll();
+
+            // Fallback: se preload falhou, retry no primeiro clique do usuário
+            document.addEventListener('click', function _retryPreload() {
+              if (_mp3AudioElements.size === 0) {
+                console.log('[Mp3Cache] Retry preload on first click');
+                Mp3Cache.preloadAll();
+              }
+              document.removeEventListener('click', _retryPreload);
+            }, { once: true });
 
             // Indicador online no título (roxo = online, amarelo = offline)
             function updateTitleOnlineStatus() {
@@ -7037,12 +7082,12 @@
                     const demon = GameState.characters.demonio;
                     demon.location = t.location;
                     demon.isSummoned = true;
-                    (function() {
-                      var blobUrl = window._useMP3 ? Mp3Cache.get('witchSummon') : null;
+                    (async () => {
+                      const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchSummon);
                       if (blobUrl) {
-                        var a = new Audio(blobUrl);
+                        const a = new Audio(blobUrl);
                         if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-                        a.play().catch(function() { SoundSystem.playDemonSummon(); });
+                        a.play().catch(() => SoundSystem.playDemonSummon());
                       } else {
                         SoundSystem.playDemonSummon();
                       }
@@ -7835,13 +7880,17 @@
 
                   // Tentar MP3, fallback para efeito synth (silencia na 4ª palavra — game over cuida do áudio)
                   if (GameState.witchWords < 4) {
-                    (function() {
-                      var blobUrl = window._useMP3 ? Mp3Cache.get('witchChanting') : null;
-                      if (blobUrl) {
-                        var a = new Audio(blobUrl);
-                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-                        a.play().catch(function() { SoundSystem.playDarkMagic(); });
-                      } else {
+                    (async () => {
+                      try {
+                        const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchChanting);
+                        if (blobUrl) {
+                          const a = new Audio(blobUrl);
+                          if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                          a.play().catch(() => SoundSystem.playDarkMagic());
+                        } else {
+                          SoundSystem.playDarkMagic();
+                        }
+                      } catch(e) {
                         SoundSystem.playDarkMagic();
                       }
                     })();
@@ -9250,7 +9299,7 @@
                   'avenida_paulista_leste':  { x: 90, y: 40 },
 
                   // Nível médio-baixo
-                  'subsolo_masp':            { x: 10,  y: 50 },
+                  'subsolo_masp':            { x: 20,  y: 50 },
                   'livraria':                { x: 70,  y: 50 },
 
                   'nove_julho_norte':        { x: 40,  y: 60 },
@@ -9663,13 +9712,15 @@
                 if (GameState.witchWords >= 4) {
                   const halfDuration = ((GameOverMusicSystem.duration || 10) / 2) * 1000;
                   setTimeout(() => {
-                    (function() {
-                      var blobUrl = window._useMP3 ? Mp3Cache.get('witchWin') : null;
-                      if (blobUrl) {
-                        var a = new Audio(blobUrl);
-                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-                        a.play().catch(function() {});
-                      }
+                    (async () => {
+                      try {
+                        const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchWin);
+                        if (blobUrl) {
+                          const a = new Audio(blobUrl);
+                          if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                          a.play().catch(() => {});
+                        }
+                      } catch(e) {}
                     })();
                   }, halfDuration);
                 }
@@ -9825,8 +9876,6 @@
                  VictoryMusicSystem.init();
                  ClickMusicSystem.init();
                  GameOverMusicSystem.init();
-
-                 // Tracks já carregadas no boot (Mp3Cache.ensureAll)
 
                  // Inicializar controlador do minimapa
                 MinimapController.init();
@@ -10063,11 +10112,6 @@
                   }
 
                   setTimeout(function() {
-                    // Se o jogador já se moveu durante a animação, cancelar
-                    if (GameState.playerLocation !== prevRoom) {
-                      panel.classList.remove('room-transition-out');
-                      return;
-                    }
                     self.processAction(Actions.moveTo(roomId));
 
                     // NPCs na nova sala falam ao encontrar o jogador
@@ -10368,11 +10412,6 @@
 
               // Reiniciar jogo
               restart: function() {
-                GameOverMusicSystem.stop();
-                CombatMusicSystem.stop();
-                DefeatMusicSystem.stop();
-                VictoryMusicSystem.stop();
-                MusicSystem.stop();
                 Modals.hide();
                 this.init();
               }
@@ -10804,9 +10843,9 @@
                 var hpPerc = (player.hp / player.maxHp) * 100;
                 var energy = GameState.energy != null ? GameState.energy : 100;
 
-                if (hpPerc < 15 || energy < 8)  return 3;
-                if (hpPerc < 25 || energy < 15) return 2;
-                if (hpPerc < 40 || energy < 25) return 1;
+                if (hpPerc < 10 && energy < 10) return 3;
+                if (hpPerc < 20 && energy < 15) return 2;
+                if (hpPerc < 30 || energy < 20) return 1;
                 return 0;
               },
 
@@ -10976,16 +11015,27 @@
                 // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
                 crawl.style.animation = 'star-wars-crawl 340s linear forwards';
 
-                // Tocar música da intro — já carregada no boot se online
-                if (window._useMP3) {
-                  var introBlobUrl = Mp3Cache.get('introCrawl');
-                  if (introBlobUrl && !IntroSystem.isComplete) {
-                    IntroSystem._introAudio = new Audio(introBlobUrl);
-                    IntroSystem._introAudio.volume = 0.8;
-                    IntroSystem._introAudio.play().catch(function(e) {
-                      console.error('[IntroSystem] Play error:', e);
-                    });
-                  }
+                // Tocar música da intro (nova track)
+                console.log('[IntroSystem] Loading intro music...');
+                var introBlob = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
+                console.log('[IntroSystem] blobUrl:', introBlob);
+                if (introBlob) {
+                  IntroSystem._introAudio = new Audio(introBlob);
+                  IntroSystem._introAudio.volume = 0.8;
+                  IntroSystem._introAudio.play().catch(function(e) {
+                    console.error('[IntroSystem] Play error:', e);
+                  });
+                } else {
+                  Mp3Cache.load(MP3_TRACKS.introCrawl).then(function(b) {
+                    if (IntroSystem.isComplete) return;
+                    if (b) {
+                      IntroSystem._introAudio = new Audio(b);
+                      IntroSystem._introAudio.volume = 0.8;
+                      IntroSystem._introAudio.play().catch(function(e) {
+                        console.error('[IntroSystem] Fallback play error:', e);
+                      });
+                    }
+                  });
                 }
 
                 // Fade-out automático da música ~10s antes do crawl terminar
@@ -11049,7 +11099,8 @@
                 // Mostrar jogo
                 document.body.classList.remove('intro-active');
 
-                // MusicSystem.init() removido — Game.init() já chama
+                // Iniciar música do jogo
+                MusicSystem.init();
 
                 // Iniciar jogo
                 Game.init();
@@ -11062,23 +11113,8 @@
 
             // StartScreen object — captura interação do usuário antes do crawl
             const StartScreen = {
-              start: async function() {
-                var screen = document.getElementById('start-screen');
-
-                if (navigator.onLine) {
-                  // Mostrar spinner e carregar TODAS as MP3s
-                  screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">' +
-                    '<div style="width:48px;height:48px;border:4px solid #FFD70044;border-top-color:#FFD700;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
-                    '<p style="color:#FFD700;font-family:\'Press Start 2P\',monospace;font-size:0.8rem;">Carregando áudio...</p></div>';
-
-                  await Mp3Cache.ensureAll();
-                  window._useMP3 = true;
-                  console.log('[StartScreen] MP3 engine ativado');
-                } else {
-                  console.log('[StartScreen] Offline — MIDI engine ativado');
-                }
-
-                screen.remove();
+              start: function() {
+                document.getElementById('start-screen').remove();
                 IntroSystem.init();
               }
             };
