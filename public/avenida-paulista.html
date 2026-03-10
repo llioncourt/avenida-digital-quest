@@ -9272,11 +9272,27 @@
                       t.textContent = '1x';
                       statsDiv.appendChild(t);
                     }
+                    // Mapa de tradução de efeitos passivos
+                    var passiveLabels = {
+                      flight: null, // já coberto por canFly acima
+                      windVulnerable: '💨 Vento',
+                      rainProtection: '☔ Chuva',
+                      safeJump: '🪂 Queda',
+                      nightVision: '🔦 Visão',
+                      revealAdjacent: '🗺️ Revelar',
+                      revealTraps: '⚠️ Armadilhas',
+                      gasImmunity: '😷 Gás',
+                      weightBonus: '🪶 Leve',
+                      regen: '💚 Regen'
+                    };
                     if (item.passiveEffects && item.passiveEffects.length) {
                       item.passiveEffects.forEach(function(eff) {
+                        var key = eff.type || eff;
+                        if (passiveLabels[key] === null) return; // skip (já exibido)
+                        var label = passiveLabels[key] || ('✨ ' + key);
                         var t = document.createElement('span');
                         t.className = 'inv-tag inv-tag-passive';
-                        t.textContent = '✨ ' + (eff.type || eff);
+                        t.textContent = label;
                         statsDiv.appendChild(t);
                       });
                     }
