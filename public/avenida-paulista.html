@@ -314,6 +314,49 @@
             .room-bg.loaded {
               opacity: 0.35;
             }
+
+            /* ========== ROOM TRAVEL TRANSITION ========== */
+            .room-travel-overlay {
+              position: fixed;
+              inset: 0;
+              z-index: 9999;
+              pointer-events: none;
+              opacity: 0;
+              background: rgba(0,0,0,0.6);
+            }
+            .room-travel-overlay .travel-from,
+            .room-travel-overlay .travel-to {
+              position: absolute;
+              inset: 0;
+              background-size: cover;
+              background-position: center;
+            }
+            .room-travel-overlay.active {
+              opacity: 1;
+              animation: travel-fade 800ms ease-in-out forwards;
+            }
+            .room-travel-overlay.active .travel-from {
+              animation: travel-out 800ms ease-in-out forwards;
+            }
+            .room-travel-overlay.active .travel-to {
+              animation: travel-in 800ms ease-in-out forwards;
+            }
+            @keyframes travel-fade {
+              0% { opacity: 0; }
+              15% { opacity: 1; }
+              85% { opacity: 1; }
+              100% { opacity: 0; }
+            }
+            @keyframes travel-out {
+              0% { opacity: 0.7; transform: scale(1); }
+              50% { opacity: 0; transform: scale(1.05); }
+              100% { opacity: 0; }
+            }
+            @keyframes travel-in {
+              0% { opacity: 0; transform: scale(1.1); }
+              40% { opacity: 0; }
+              100% { opacity: 0.7; transform: scale(1); }
+            }
             #location-panel > *:not(.room-bg):not(.lanterna-indicator) {
               position: relative;
               z-index: 1;
@@ -10032,6 +10075,79 @@
             // GAME - Controlador principal
             // ============================================================================
 
+            // ==================== ROOM TRANSITION SYSTEM ====================
+            const RoomTransition = {
+              _duration: 800,
+
+              play: function(fromRoomId, toRoomId, callback) {
+                var fromUrl = 'rooms/' + fromRoomId + '.webp';
+                var toUrl = 'rooms/' + toRoomId + '.webp';
+                var fromImg = new Image();
+                var toImg = new Image();
+                var fromLoaded = false, toLoaded = false;
+                var fromOk = false, toOk = false;
+                var settled = 0;
+
+                function checkReady() {
+                  settled++;
+                  if (settled < 2) return;
+                  // If neither image loaded, skip animation
+                  if (!fromOk && !toOk) {
+                    callback();
+                    return;
+                  }
+                  RoomTransition._animate(fromOk ? fromUrl : null, toOk ? toUrl : null, callback);
+                }
+
+                fromImg.onload = function() { fromOk = true; checkReady(); };
+                fromImg.onerror = function() { fromOk = false; checkReady(); };
+                toImg.onload = function() { toOk = true; checkReady(); };
+                toImg.onerror = function() { toOk = false; checkReady(); };
+
+                fromImg.src = fromUrl;
+                toImg.src = toUrl;
+
+                // Safety timeout — never hang the game
+                setTimeout(function() {
+                  if (settled < 2) {
+                    settled = 2;
+                    callback();
+                  }
+                }, 2000);
+              },
+
+              _animate: function(fromUrl, toUrl, callback) {
+                var overlay = document.createElement('div');
+                overlay.className = 'room-travel-overlay';
+
+                var fromDiv = document.createElement('div');
+                fromDiv.className = 'travel-from';
+                if (fromUrl) fromDiv.style.backgroundImage = 'url(' + fromUrl + ')';
+
+                var toDiv = document.createElement('div');
+                toDiv.className = 'travel-to';
+                if (toUrl) toDiv.style.backgroundImage = 'url(' + toUrl + ')';
+
+                overlay.appendChild(fromDiv);
+                overlay.appendChild(toDiv);
+                document.body.appendChild(overlay);
+
+                // Force reflow then activate
+                void overlay.offsetWidth;
+                overlay.classList.add('active');
+
+                // Fire callback at midpoint (when "from" has faded and "to" starts appearing)
+                setTimeout(function() {
+                  callback();
+                }, RoomTransition._duration * 0.5);
+
+                // Cleanup after animation completes
+                setTimeout(function() {
+                  overlay.remove();
+                }, RoomTransition._duration + 50);
+              }
+            };
+
             const Game = {
               // Inicializar jogo
               init: function() {
@@ -10270,12 +10386,11 @@
                 var self = this;
                 if (prevRoom !== roomId) {
                   var isTeto = (roomId === 'teto_masp');
-                  var delay = isTeto ? 300 : 160;
 
                   panel.classList.remove('room-transition-in');
                   panel.classList.add('room-transition-out');
 
-                  // Efeitos especiais do Teto do MASP
+                  // Efeitos especiais do Teto do MASP (antes da transição de viagem)
                   if (isTeto) {
                     var flashEl = document.createElement('div');
                     flashEl.className = 'teto-flash-overlay';
@@ -10287,7 +10402,8 @@
                     }, 500);
                   }
 
-                  setTimeout(function() {
+                  // Transição cinematográfica com imagens de fundo
+                  RoomTransition.play(prevRoom, roomId, function() {
                     // Se o jogador já se moveu durante a animação, cancelar
                     if (GameState.playerLocation !== prevRoom) {
                       panel.classList.remove('room-transition-out');
@@ -10318,7 +10434,7 @@
                     void nameEl.offsetWidth;
                     nameEl.classList.add(glowClass);
                     setTimeout(function() { nameEl.classList.remove(glowClass); }, isTeto ? 1050 : 650);
-                  }, delay);
+                  });
                 } else {
                   // Mesma sala (tentativa inválida)
                   this.processAction(Actions.moveTo(roomId));
