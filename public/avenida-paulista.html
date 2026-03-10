@@ -5491,7 +5491,11 @@
                   osc2.connect(g2);
                   g1.connect(masterGain);
                   g2.connect(masterGain);
-                  masterGain.connect(MusicSystem.musicGain || ctx.destination);
+                  masterGain.connect(
+                    config.isSfx
+                      ? (SoundSystem.masterGain || ctx.destination)
+                      : (MusicSystem.musicGain || ctx.destination)
+                  );
 
                   var now = startTime;
                   masterGain.gain.setValueAtTime(0, now);
