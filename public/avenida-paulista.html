@@ -314,6 +314,49 @@
             .room-bg.loaded {
               opacity: 0.35;
             }
+
+            /* ========== ROOM TRAVEL TRANSITION ========== */
+            .room-travel-overlay {
+              position: fixed;
+              inset: 0;
+              z-index: 9999;
+              pointer-events: none;
+              opacity: 0;
+              background: rgba(0,0,0,0.6);
+            }
+            .room-travel-overlay .travel-from,
+            .room-travel-overlay .travel-to {
+              position: absolute;
+              inset: 0;
+              background-size: cover;
+              background-position: center;
+            }
+            .room-travel-overlay.active {
+              opacity: 1;
+              animation: travel-fade 800ms ease-in-out forwards;
+            }
+            .room-travel-overlay.active .travel-from {
+              animation: travel-out 800ms ease-in-out forwards;
+            }
+            .room-travel-overlay.active .travel-to {
+              animation: travel-in 800ms ease-in-out forwards;
+            }
+            @keyframes travel-fade {
+              0% { opacity: 0; }
+              15% { opacity: 1; }
+              85% { opacity: 1; }
+              100% { opacity: 0; }
+            }
+            @keyframes travel-out {
+              0% { opacity: 0.7; transform: scale(1); }
+              50% { opacity: 0; transform: scale(1.05); }
+              100% { opacity: 0; }
+            }
+            @keyframes travel-in {
+              0% { opacity: 0; transform: scale(1.1); }
+              40% { opacity: 0; }
+              100% { opacity: 0.7; transform: scale(1); }
+            }
             #location-panel > *:not(.room-bg):not(.lanterna-indicator) {
               position: relative;
               z-index: 1;
