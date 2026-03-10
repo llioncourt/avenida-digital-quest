@@ -11114,11 +11114,16 @@
             // StartScreen object — captura interação do usuário antes do crawl
             const StartScreen = {
               start: async function() {
-                document.getElementById('start-screen').remove();
+                var screen = document.getElementById('start-screen');
+                // Troca conteúdo por loading spinner (tela preta cobre tudo)
+                screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">' +
+                  '<div style="width:48px;height:48px;border:4px solid #FFD70044;border-top-color:#FFD700;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
+                  '<p style="color:#FFD700;font-family:\'Press Start 2P\',monospace;font-size:0.8rem;">Carregando...</p></div>';
                 // Se online, segura até tracks críticas estarem no cache
                 if (navigator.onLine) {
                   await Mp3Cache.ensureAllCritical();
                 }
+                screen.remove();
                 IntroSystem.init();
               }
             };
