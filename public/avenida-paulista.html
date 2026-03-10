@@ -5495,14 +5495,15 @@
             };
 
             const CACHE_NAME = 'avp-music-v1';
-            /** Set de trackKeys já confirmados no cache (evita await em checagens rápidas) */
-            const _cachedTrackKeys = new Set();
+            /** Map persistente: trackKey → blobUrl (reusa entre chamadas) */
+            const _blobUrlMap = new Map();
+
+            /** Flag global: true = MP3 exclusivo, false = MIDI exclusivo */
+            window._useMP3 = false;
 
             /**
              * @namespace Mp3Cache
-             * @description Gerencia cache persistente de MP3s via Cache API.
-             * Online → Cache API (persistente entre sessões).
-             * Offline → não tenta carregar, fallback MIDI.
+             * @description Gerencia cache de MP3s. Carrega todas no boot se online.
              */
             const Mp3Cache = {
               /**
@@ -5512,7 +5513,6 @@
                */
               async load(url) {
                 if (!url) return null;
-                if (!navigator.onLine) return null;
                 try {
                   const cache = await caches.open(CACHE_NAME);
                   let response = await cache.match(url);
@@ -5533,43 +5533,28 @@
               },
 
               /**
-               * Garante que uma track específica está no cache.
-               * @param {string} trackKey - Chave em MP3_TRACKS
-               * @returns {Promise<string|null>} Blob URL ou null
-               */
-              async ensureTrack(trackKey) {
-                const url = MP3_TRACKS[trackKey];
-                if (!url) return null;
-                const blobUrl = await this.load(url);
-                if (blobUrl) _cachedTrackKeys.add(trackKey);
-                return blobUrl;
-              },
-
-              /**
-               * Carrega tracks essenciais (exploration + introCrawl). Bloqueia até terminar.
+               * Carrega TODAS as tracks e guarda blob URLs no _blobUrlMap.
+               * Chamado uma vez no boot. Bloqueia até terminar.
                * @returns {Promise<void>}
                */
-              async ensureAllCritical() {
-                console.log('[Mp3Cache] Loading critical tracks...');
-                await Promise.all([
-                  this.ensureTrack('exploration'),
-                  this.ensureTrack('introCrawl')
-                ]);
-                console.log('[Mp3Cache] Critical tracks ready. Cached:', [..._cachedTrackKeys]);
+              async ensureAll() {
+                const keys = Object.keys(MP3_TRACKS);
+                await Promise.all(keys.map(async (key) => {
+                  const blobUrl = await this.load(MP3_TRACKS[key]);
+                  if (blobUrl) {
+                    _blobUrlMap.set(key, blobUrl);
+                  }
+                }));
+                console.log('[Mp3Cache] All tracks loaded:', [..._blobUrlMap.keys()]);
               },
 
               /**
-               * Carrega tracks secundárias em background (não bloqueia).
+               * Retorna blob URL de uma track já carregada, ou null.
+               * @param {string} trackKey
+               * @returns {string|null}
                */
-              preloadRemaining() {
-                const secondary = ['combat', 'defeat', 'victory', 'gameover', 'witchChanting', 'witchSummon', 'witchWin'];
-                secondary.forEach(key => {
-                  if (!_cachedTrackKeys.has(key)) {
-                    this.ensureTrack(key).then(() => {
-                      console.log('[Mp3Cache] Background loaded:', key);
-                    });
-                  }
-                });
+              get(trackKey) {
+                return _blobUrlMap.get(trackKey) || null;
               }
             };
 
