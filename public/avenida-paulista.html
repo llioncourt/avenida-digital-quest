@@ -9664,15 +9664,13 @@
                 if (GameState.witchWords >= 4) {
                   const halfDuration = ((GameOverMusicSystem.duration || 10) / 2) * 1000;
                   setTimeout(() => {
-                    (async () => {
-                      try {
-                        const blobUrl = await Mp3Cache.load(MP3_TRACKS.witchWin);
-                        if (blobUrl) {
-                          const a = new Audio(blobUrl);
-                          if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
-                          a.play().catch(() => {});
-                        }
-                      } catch(e) {}
+                    (function() {
+                      var blobUrl = window._useMP3 ? Mp3Cache.get('witchWin') : null;
+                      if (blobUrl) {
+                        var a = new Audio(blobUrl);
+                        if (MusicSystem.musicGain) a.volume = MusicSystem.musicGain.gain.value;
+                        a.play().catch(function() {});
+                      }
                     })();
                   }, halfDuration);
                 }
