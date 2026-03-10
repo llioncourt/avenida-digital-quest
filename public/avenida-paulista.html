@@ -11021,24 +11021,15 @@
                 // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
                 crawl.style.animation = 'star-wars-crawl 340s linear forwards';
 
-                // Tocar música da intro (nova track)
-                console.log('[IntroSystem] Loading intro music...');
-                var introBlob = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
-                console.log('[IntroSystem] blobUrl:', introBlob);
-                if (introBlob) {
-                  IntroSystem._introAudio = new Audio(introBlob);
-                  IntroSystem._introAudio.volume = 0.8;
-                  IntroSystem._introAudio.play().catch(function(e) {
-                    console.error('[IntroSystem] Play error:', e);
-                  });
-                } else {
-                  Mp3Cache.load(MP3_TRACKS.introCrawl).then(function(b) {
+                // Tocar música da intro — track já garantida pelo StartScreen se online
+                if (navigator.onLine) {
+                  Mp3Cache.ensureTrack('introCrawl').then(function(blobUrl) {
                     if (IntroSystem.isComplete) return;
-                    if (b) {
-                      IntroSystem._introAudio = new Audio(b);
+                    if (blobUrl) {
+                      IntroSystem._introAudio = new Audio(blobUrl);
                       IntroSystem._introAudio.volume = 0.8;
                       IntroSystem._introAudio.play().catch(function(e) {
-                        console.error('[IntroSystem] Fallback play error:', e);
+                        console.error('[IntroSystem] Play error:', e);
                       });
                     }
                   });
