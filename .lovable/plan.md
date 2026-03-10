@@ -1,82 +1,115 @@
 
 
-### ✅ Fase 10 — Sala Pai/Filha + Modal de Explosão Cinematográfico + Room Backgrounds
+## Melhorar o Card de Inventário
 
-- `childRooms` / `parentRoom` nas definições de sala (MASP→Teto/Subsolo, Colégio→Antena)
-- Explosão no pai propaga para filhas (affectedRooms array)
-- `Modals.showExplosion(roomId, title, content)` com imagem de fundo, shake, glow
-- `.room-bg` no `#location-panel` com opacity 0.15, nomenclatura `rooms/{roomId}.webp`
+### Problema
+O card do inventário mostra apenas nome e peso em linhas simples sem graça -- falta informação visual, categorização e refinamento estético comparado aos outros cards do jogo.
 
-### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
+### Solução
 
-- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
-- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
-- `originalStop()` chamado antes de `audio.play()` para parar MIDI
-- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
-## Refatoração Completa (Fases 1-4)
+**Arquivo: `public/avenida-paulista.html`**
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+#### 1. CSS -- Visual mais rico para `.inventory-item`
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+- **Gradiente de fundo** como os `.btn-item` (linear-gradient dark), borda com accent-gold-dim
+- **Ícone por categoria** baseado nas propriedades do item: ⚔️ (attackPower > 0), 🛡️ (defensePower > 0), 💊 (isUsable + singleUse), 🔧 (isUsable + !singleUse), 🎒 (passivo/outros)
+- **Tags visuais** pequenas badges coloridas mostrando stats relevantes:
+  - `⚔️ +15` (ataque, cor vermelha)
+  - `🛡️ +12` (defesa, cor azul)
+  - `✈️` (voo, cor ciano)
+  - `1x` (uso único, cor amarela dim)
+  - Efeitos passivos como mini-badges (ex: "💨 Voo", "🔦 Visão", "☔ Chuva")
+- **Descrição em tooltip** ao fazer hover sobre o item (title attribute com item.description)
+- **Hover effect** com borda dourada e leve glow, similar aos botões de item no chão
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+#### 2. HTML/JS -- `updateInventory` enriquecido (~linha 9188-9258)
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+Modificar a criação do `row` para incluir:
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+```
+┌──────────────────────────────────────┐
+│ 🗡️ ESPADA                    ✋ 📤 │
+│ ⚔️+15  🛡️+2  ⚖️8kg               │
+└──────────────────────────────────────┘
+```
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+- **Linha 1**: Ícone de categoria + nome (dourado, mono) + botões de ação à direita
+- **Linha 2**: Tags de stats em mini-badges + peso
+- O `title` do row recebe `item.description` para tooltip
+- Itens de uso único recebem uma badge `1x` para distinguir dos reutilizáveis
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+Estrutura do DOM atualizada:
+```html
+<div class="inventory-item" title="Uma espada afiada...">
+  <div class="inventory-left">
+    <span class="inventory-item-name">⚔️ ESPADA</span>
+    <div class="inventory-item-stats">
+      <span class="inv-tag inv-tag-atk">⚔️+15</span>
+      <span class="inv-tag inv-tag-def">🛡️+2</span>
+      <span class="inv-tag inv-tag-weight">⚖️8kg</span>
+    </div>
+  </div>
+  <div class="inventory-actions">
+    <button class="btn btn-small">📤</button>
+  </div>
+</div>
+```
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+#### 3. CSS -- Novas classes
 
-### ✅ Fase 7 — Buff do Café Paulistano
+```css
+.inventory-item {
+  background: linear-gradient(135deg, #2a1a1a, #1a1a0a);
+  border: 1px solid var(--accent-gold-dim);
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.inventory-item:hover {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 6px rgba(212, 168, 70, 0.2);
+}
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
+.inventory-item-stats {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
 
-### ✅ Fase 8 — Portrait com Degradê Full-Card
+.inv-tag {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  padding: 1px 4px;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+.inv-tag-atk { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+.inv-tag-def { color: #6baaff; background: rgba(107,170,255,0.1); }
+.inv-tag-weight { color: var(--text-muted); }
+.inv-tag-fly { color: #6bffdb; background: rgba(107,255,219,0.1); }
+.inv-tag-single { color: #ffdb6b; background: rgba(255,219,107,0.1); }
+.inv-tag-passive { color: #c080ff; background: rgba(192,128,255,0.1); }
+```
 
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
+#### 4. JS -- Lógica de ícone por categoria
+
+```javascript
+function getItemIcon(item) {
+  if (item.attackPower > 0 && item.defensePower > 0) return '⚔️';
+  if (item.attackPower > 0) return '🗡️';
+  if (item.defensePower > 0) return '🛡️';
+  if (item.canFly) return '🪂';
+  if (item.isUsable && item.singleUse) return '💫';
+  if (item.isUsable) return '🔧';
+  if (item.passiveEffects && item.passiveEffects.length) return '✨';
+  return '📦';
+}
+```
+
+### Resultado
+- Cada item do inventário mostra stats visuais relevantes (ataque, defesa, passivos) em mini-tags coloridas
+- Hover com glow dourado e tooltip com a descrição completa do item
+- Ícone por tipo de item para identificação rápida
+- Visual alinhado com o resto da interface (gradientes escuros, bordas douradas)
+
