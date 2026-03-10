@@ -956,13 +956,30 @@
             .inventory-item {
               display: flex;
               justify-content: space-between;
-              align-items: center; /* Alinha o botão de ação verticalmente */
-              padding: 0.6rem 0.5rem; /* Um pouco mais de padding vertical */
+              align-items: center;
+              padding: 0.6rem 0.5rem;
               background: var(--bg-tertiary);
               border-radius: var(--radius);
               border: 1px solid var(--border-color);
               overflow: hidden;
               min-width: 0;
+              position: relative;
+            }
+            .inventory-item::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+              background-size: cover;
+              background-position: center;
+              background-repeat: no-repeat;
+              opacity: 0.35;
+              z-index: 0;
+              border-radius: var(--radius);
+              pointer-events: none;
+            }
+            .inventory-item > * {
+              position: relative;
+              z-index: 1;
             }
 
             .inventory-item > div:first-child {
