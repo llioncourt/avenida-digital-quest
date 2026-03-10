@@ -10333,6 +10333,76 @@
                 this.show(title, content);
               },
 
+              showItem: function(itemId) {
+                const item = GameState.items[itemId];
+                if (!item) return;
+
+                const EFFECT_LABELS = {
+                  flight: '🕊️ Voo',
+                  windVulnerable: '🌬️ Vulnerável ao vento',
+                  gasImmunity: '🧪 Imunidade a gás',
+                  nightVision: '🌙 Visão noturna',
+                  revealAdjacent: '🔭 Revelar adjacentes',
+                  revealTraps: '⚠️ Revelar armadilhas',
+                  rainProtection: '☂️ Proteção contra chuva',
+                  safeJump: '🪂 Salto seguro',
+                  weightBonus: '🎒 Bônus de peso',
+                  regen: '💚 Regeneração'
+                };
+
+                const imgUrl = 'textures/bg_' + itemId + '.webp';
+
+                // Type badge
+                let typeBadge = '';
+                let typeClass = '';
+                let typeText = '';
+                if (item.isCrafted) { typeClass = 'crafted'; typeText = 'Fabricado'; }
+                else if (item.singleUse) { typeClass = 'single-use'; typeText = 'Uso único'; }
+                else if (item.isUsable) { typeClass = 'reusable'; typeText = 'Reutilizável'; }
+                else if (item.passiveEffects && item.passiveEffects.length) { typeClass = 'passive'; typeText = 'Passivo'; }
+                if (typeText) typeBadge = '<span class="item-type-badge ' + typeClass + '">' + typeText + '</span>';
+
+                // Stats
+                let statsHtml = '';
+                if (item.attackPower > 0) {
+                  statsHtml += '<div class="item-stat"><span class="stat-icon">⚔️</span><div class="stat-info"><span class="stat-label">Ataque</span><span class="stat-value" style="color:#ff6b6b;">+' + item.attackPower + '</span></div></div>';
+                }
+                if (item.defensePower > 0) {
+                  statsHtml += '<div class="item-stat"><span class="stat-icon">🛡️</span><div class="stat-info"><span class="stat-label">Defesa</span><span class="stat-value" style="color:#6baaff;">+' + item.defensePower + '</span></div></div>';
+                }
+                statsHtml += '<div class="item-stat"><span class="stat-icon">⚖️</span><div class="stat-info"><span class="stat-label">Peso</span><span class="stat-value">' + item.weight + ' kg</span></div></div>';
+
+                // Effects
+                let effectsHtml = '';
+                if (item.passiveEffects && item.passiveEffects.length) {
+                  effectsHtml = '<div class="item-effects-list">';
+                  item.passiveEffects.forEach(function(eff) {
+                    effectsHtml += '<span class="item-effect-badge">' + (EFFECT_LABELS[eff] || eff) + '</span>';
+                  });
+                  effectsHtml += '</div>';
+                }
+
+                const content = '\
+                  <div id="item-modal-content">\
+                    <div class="item-card">\
+                      <div class="item-card-image">\
+                        <img src="' + imgUrl + '" alt="' + item.name + '" onerror="this.style.display=\'none\'">\
+                        ' + typeBadge + '\
+                        <span class="item-name-overlay">' + item.name + '</span>\
+                        <span class="item-desc-overlay">' + item.description + '</span>\
+                      </div>\
+                      <div class="item-card-body">\
+                        <div class="item-stats-grid">' + statsHtml + '</div>\
+                        ' + effectsHtml + '\
+                        <div class="item-card-actions">\
+                          <button class="btn" onclick="Modals.hide()">Fechar</button>\
+                        </div>\
+                      </div>\
+                    </div>\
+                  </div>';
+                this.show('', content);
+              },
+
               showCharacter: function(charId) {
                 const char = GameState.characters[charId];
                 const isAlly = char.isAlly;
