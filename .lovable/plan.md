@@ -1,82 +1,97 @@
 
 
-### ✅ Fase 10 — Sala Pai/Filha + Modal de Explosão Cinematográfico + Room Backgrounds
+## Animação de Transição entre Salas com Imagens de Fundo
 
-- `childRooms` / `parentRoom` nas definições de sala (MASP→Teto/Subsolo, Colégio→Antena)
-- Explosão no pai propaga para filhas (affectedRooms array)
-- `Modals.showExplosion(roomId, title, content)` com imagem de fundo, shake, glow
-- `.room-bg` no `#location-panel` com opacity 0.15, nomenclatura `rooms/{roomId}.webp`
+### Conceito
 
-### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
+Ao mover de uma sala para outra, uma **overlay fullscreen** aparece brevemente mostrando a transição visual: a imagem da sala de origem faz fade-out enquanto a imagem da sala de destino faz fade-in. Tudo isso acontece **antes** do `processAction` (que dispara combates, eventos, etc).
 
-- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
-- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
-- `originalStop()` chamado antes de `audio.play()` para parar MIDI
-- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
-## Refatoração Completa (Fases 1-4)
+### Implementação
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+**1. CSS — Overlay de transição (~após linha 316)**
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+```css
+.room-travel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+}
+.room-travel-overlay .travel-from,
+.room-travel-overlay .travel-to {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.room-travel-overlay .travel-from {
+  opacity: 1;
+}
+.room-travel-overlay .travel-to {
+  opacity: 0;
+}
+.room-travel-overlay.active {
+  opacity: 1;
+  animation: travel-fade 800ms ease-in-out forwards;
+}
+.room-travel-overlay .travel-from {
+  animation: travel-out 800ms ease-in-out forwards;
+}
+.room-travel-overlay .travel-to {
+  animation: travel-in 800ms ease-in-out forwards;
+}
+@keyframes travel-fade {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes travel-out {
+  0% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.05); }
+  100% { opacity: 0; }
+}
+@keyframes travel-in {
+  0% { opacity: 0; transform: scale(1.1); }
+  40% { opacity: 0; }
+  100% { opacity: 0.7; transform: scale(1); }
+}
+```
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+Opacidade máxima de 0.7 para manter o clima escuro/atmosférico. Sobreposição escura sutil via gradiente.
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+**2. JS — Função `RoomTransition.play(fromRoomId, toRoomId, callback)` (novo namespace)**
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+- Cria a overlay com duas divs (from/to), cada uma com `background-image: url('rooms/{id}.webp')`
+- Pré-testa se as imagens existem (`new Image()` com `.onload`/`.onerror`)
+- Se **nenhuma imagem** existir → chama `callback()` imediatamente (fallback para nada)
+- Se pelo menos uma existir → mostra a animação (800ms) e chama `callback()` ao terminar
+- Remove a overlay do DOM após completar
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+**3. JS — Alterar `Game.move()` (~linha 10265-10326)**
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+O fluxo atual:
+1. Adiciona `room-transition-out` ao panel
+2. Espera `delay` ms
+3. Chama `processAction(Actions.moveTo(roomId))`
+4. Adiciona `room-transition-in`
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+Novo fluxo:
+1. Adiciona `room-transition-out`
+2. Chama `RoomTransition.play(prevRoom, roomId, function() { ... })`
+3. Dentro do callback: executa `processAction(Actions.moveTo(roomId))` + `room-transition-in` + glow
+4. A transição especial do Teto do MASP continua funcionando (flash + shake adicionados dentro do callback)
 
-### ✅ Fase 7 — Buff do Café Paulistano
+O delay total será ~800ms para a animação de viagem, substituindo o delay fixo de 160ms atual. Se não houver imagens, o callback é imediato e o comportamento fica idêntico ao atual.
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
+### Fallback
 
-### ✅ Fase 8 — Portrait com Degradê Full-Card
+- Sem imagem de nenhuma sala → callback imediato, zero mudança visual
+- Só uma imagem disponível → mostra fade-in/out só dela
+- Sem internet / imagem falha no load → tratado pelo `.onerror`, considerado como "sem imagem"
 
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
+### Arquivos alterados
+
+Apenas `public/avenida-paulista.html`: CSS novo + namespace `RoomTransition` + ajuste em `Game.move()`.
+
