@@ -2675,6 +2675,26 @@
               color: rgba(128, 64, 160, 0.7);
               animation: hallucinate-wobble 2.5s ease-in-out infinite;
             }
+
+            /* Phantom rooms on minimap */
+            .map-room.phantom-room {
+              opacity: 0.6;
+              animation: hallucinate-wobble 2s ease-in-out infinite;
+              border: 1px dashed rgba(180, 80, 255, 0.6);
+              box-shadow: 0 0 8px rgba(180, 80, 255, 0.4);
+              color: rgba(180, 80, 255, 0.9);
+              cursor: pointer;
+            }
+            .map-room.phantom-room:hover {
+              opacity: 0.8;
+              box-shadow: 0 0 12px rgba(180, 80, 255, 0.6);
+            }
+            .map-connection.phantom-connection {
+              opacity: 0.4;
+              background: rgba(180, 80, 255, 0.3) !important;
+              border-top: 1px dashed rgba(180, 80, 255, 0.5);
+              height: 0 !important;
+            }
     </style>
   </head>
   <body>
