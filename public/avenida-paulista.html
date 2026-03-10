@@ -11110,8 +11110,12 @@
 
             // StartScreen object — captura interação do usuário antes do crawl
             const StartScreen = {
-              start: function() {
+              start: async function() {
                 document.getElementById('start-screen').remove();
+                // Se online, segura até tracks críticas estarem no cache
+                if (navigator.onLine) {
+                  await Mp3Cache.ensureAllCritical();
+                }
                 IntroSystem.init();
               }
             };
