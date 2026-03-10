@@ -1,75 +1,64 @@
 
 
-### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
+## Implementar conceito de Sala Pai/Filha
 
-- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
-- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
-- `originalStop()` chamado antes de `audio.play()` para parar MIDI
-- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
-## Refatoração Completa (Fases 1-4)
+### Conceito
+Adicionar uma propriedade `parentRoom` nas salas filhas e uma propriedade `childRooms` nas salas pai. Quando a bomba explodir em uma sala pai, todas as filhas também são destruídas. Se explodir numa filha, apenas ela é afetada.
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+### Relações
+- **MASP** (`masp`) → filhas: `teto_masp`, `subsolo_masp`
+- **Colégio** (`colegio`) → filha: `antena`
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+### Mudanças em `public/avenida-paulista.html`
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+**1. Adicionar propriedades nas definições de ROOMS_DATA (~linhas 2907-2961)**
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+```js
+// No objeto masp:
+childRooms: ['teto_masp', 'subsolo_masp'],
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+// No objeto teto_masp:
+parentRoom: 'masp',
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+// No objeto subsolo_masp:
+parentRoom: 'masp',
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+// No objeto colegio:
+childRooms: ['antena'],
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+// No objeto antena:
+parentRoom: 'colegio',
+```
 
-### ✅ Fase 7 — Buff do Café Paulistano
+**2. Expandir a lógica de explosão (~linhas 7750-7800)**
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
+Após determinar `bombLocation`, calcular a lista de salas afetadas:
 
-### ✅ Fase 8 — Portrait com Degradê Full-Card
+```js
+// Determinar todas as salas afetadas
+const affectedRooms = [bombLocation];
+const bombRoom = GameState.rooms[bombLocation];
 
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
+// Se é sala pai, incluir filhas
+if (bombRoom.childRooms) {
+  bombRoom.childRooms.forEach(childId => affectedRooms.push(childId));
+}
+// Se é sala filha E a bomba está no pai, já coberto acima
+// Filha sozinha NÃO propaga para pai (apenas pai → filhas)
+```
+
+Depois, substituir todas as checagens `=== bombLocation` por `affectedRooms.includes(...)`:
+- Coleta de itens na sala (linha 7756)
+- Coleta de personagens (linha 7760)
+- Check se player está na zona (linha 7764)
+- Matar personagens (linha 7768)
+- Destruir itens (linha 7786)
+- Transformar salas em ruína (linha 7793) — iterar sobre cada sala afetada
+
+**3. Atualizar o modal de resumo**
+
+Listar todas as salas destruídas no modal (não só uma), ex: "A bomba explodiu no MASP! O Teto do MASP e o Subsolo do MASP também foram destruídos!"
+
+### Resultado
+Quando a bomba explodir no MASP, o Teto e o Subsolo também viram ruínas e tudo dentro deles é destruído. Quando explodir no Colégio, a Antena também é destruída. Explosão numa sala filha afeta apenas ela mesma.
+
