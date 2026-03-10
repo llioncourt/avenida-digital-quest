@@ -5495,32 +5495,38 @@
               introCrawl: 'music/AVP-Intro.mp3'
             };
 
-            const _mp3BlobCache = new Map();
+            const CACHE_NAME = 'avp-music-v1';
+            /** Set de trackKeys já confirmados no cache (evita await em checagens rápidas) */
+            const _cachedTrackKeys = new Set();
 
             /**
              * @namespace Mp3Cache
-             * @description Gerencia cache de MP3s em memória via fetch + blob URLs.
+             * @description Gerencia cache persistente de MP3s via Cache API.
+             * Online → Cache API (persistente entre sessões).
+             * Offline → não tenta carregar, fallback MIDI.
              */
             const Mp3Cache = {
               /**
-               * Carrega MP3 via fetch, retorna blob URL em memória.
+               * Carrega MP3 do cache ou da rede, retorna blob URL.
                * @param {string} url - URL relativa do MP3
-               * @returns {Promise<string|null>} Blob URL para reprodução ou null se falhar
+               * @returns {Promise<string|null>} Blob URL ou null
                */
               async load(url) {
                 if (!url) return null;
-                if (_mp3BlobCache.has(url)) return _mp3BlobCache.get(url);
+                if (!navigator.onLine) return null;
                 try {
-                  const response = await fetch(url);
-                  if (!response.ok) {
-                    console.warn('[Mp3Cache] Fetch failed:', url, response.status);
-                    return null;
+                  const cache = await caches.open(CACHE_NAME);
+                  let response = await cache.match(url);
+                  if (!response) {
+                    response = await fetch(url);
+                    if (!response.ok) {
+                      console.warn('[Mp3Cache] Fetch failed:', url, response.status);
+                      return null;
+                    }
+                    await cache.put(url, response.clone());
                   }
                   const blob = await response.blob();
-                  const blobUrl = URL.createObjectURL(blob);
-                  _mp3BlobCache.set(url, blobUrl);
-                  console.log('[Mp3Cache] Loaded:', url);
-                  return blobUrl;
+                  return URL.createObjectURL(blob);
                 } catch (err) {
                   console.warn('[Mp3Cache] Error:', url, err);
                   return null;
@@ -5528,46 +5534,60 @@
               },
 
               /**
-               * Pré-carrega todos os MP3s definidos em MP3_TRACKS.
+               * Garante que uma track específica está no cache.
+               * @param {string} trackKey - Chave em MP3_TRACKS
+               * @returns {Promise<string|null>} Blob URL ou null
                */
-              async preloadAll() {
-                const urls = Object.values(MP3_TRACKS).filter(u => u);
-                const results = await Promise.all(urls.map(u => this.load(u)));
-                const loaded = results.filter(r => r !== null).length;
-                console.log(`[Mp3Cache] Preload complete: ${loaded}/${results.length} OK`);
+              async ensureTrack(trackKey) {
+                const url = MP3_TRACKS[trackKey];
+                if (!url) return null;
+                const blobUrl = await this.load(url);
+                if (blobUrl) _cachedTrackKeys.add(trackKey);
+                return blobUrl;
+              },
 
-                // Pré-criar Audio elements para playback síncrono
-                for (const [key, trackUrl] of Object.entries(MP3_TRACKS)) {
-                  if (!trackUrl) continue;
-                  const blob = _mp3BlobCache.get(trackUrl);
-                  if (blob) {
-                    const a = new Audio(blob);
-                    a.preload = 'auto';
-                    _mp3AudioElements.set(key, a);
+              /**
+               * Carrega tracks essenciais (exploration + introCrawl). Bloqueia até terminar.
+               * @returns {Promise<void>}
+               */
+              async ensureAllCritical() {
+                console.log('[Mp3Cache] Loading critical tracks...');
+                await Promise.all([
+                  this.ensureTrack('exploration'),
+                  this.ensureTrack('introCrawl')
+                ]);
+                console.log('[Mp3Cache] Critical tracks ready. Cached:', [..._cachedTrackKeys]);
+              },
+
+              /**
+               * Carrega tracks secundárias em background (não bloqueia).
+               */
+              preloadRemaining() {
+                const secondary = ['combat', 'defeat', 'victory', 'gameover', 'witchChanting', 'witchSummon', 'witchWin'];
+                secondary.forEach(key => {
+                  if (!_cachedTrackKeys.has(key)) {
+                    this.ensureTrack(key).then(() => {
+                      console.log('[Mp3Cache] Background loaded:', key);
+                    });
                   }
-                }
-                console.log(`[Mp3Cache] Pre-created ${_mp3AudioElements.size} Audio elements`);
+                });
               }
             };
-
-            /** Map de Audio elements pré-criados por trackKey */
-            const _mp3AudioElements = new Map();
 
             /**
              * @function _addMp3Layer
              * @description Adiciona camada MP3 a um player MIDI existente.
-             * Sobrescreve start() e stop() para priorizar MP3 com fallback para MIDI.
+             * Online → carrega/usa MP3 do cache. Offline → MIDI direto.
              * @param {object} player - Player MIDI criado por createMidiPlayer
-             * @param {string} trackKey - Chave em MP3_TRACKS (exploration, combat, etc.)
+             * @param {string} trackKey - Chave em MP3_TRACKS
              * @param {object} options - { loop: boolean }
              */
             function _addMp3Layer(player, trackKey, options = {}) {
               const url = MP3_TRACKS[trackKey];
-              if (!url) return; // Sem MP3 definido, mantém apenas MIDI
+              if (!url) return;
 
               const loop = options.loop !== false;
               let audio = null;
-              let blobUrl = null;
 
               const originalStart = player.start.bind(player);
               const originalStop = player.stop.bind(player);
@@ -5576,61 +5596,60 @@
               let stoppedManually = false;
 
               player.start = function() {
-                // Se já está tocando MP3, não faz nada
                 if (audio && !audio.paused && player._mp3Active) return;
 
-                SoundSystem.resume(); // Desbloqueia AudioContext
+                SoundSystem.resume();
 
-                // Buscar Audio pré-criado (síncrono, sem await)
-                if (!audio) {
-                  const cached = _mp3AudioElements.get(trackKey);
-                  if (cached) {
-                    audio = cached;
-                    audio.loop = loop;
-                  }
+                // Offline → MIDI direto, sem tentar MP3
+                if (!navigator.onLine) {
+                  player._mp3Active = false;
+                  originalStart();
+                  return;
                 }
 
-                if (audio) {
-                  // PARAR MIDI antes de tocar MP3
-                  originalStop();
+                // Online → garantir track no cache e tocar
+                // Iniciar MIDI como fallback imediato enquanto carrega
+                player._mp3Active = false;
+                originalStart();
 
-                  // Sincronizar volume com musicGain
+                Mp3Cache.ensureTrack(trackKey).then(function(blobUrl) {
+                  if (!blobUrl) return; // Falhou, fica no MIDI
+                  if (!player.isPlaying) return; // Foi parado enquanto carregava
+
+                  audio = new Audio(blobUrl);
+                  audio.loop = loop;
+                  audio.preload = 'auto';
+
                   if (MusicSystem.musicGain) {
                     audio.volume = MusicSystem.musicGain.gain.value;
                   } else {
                     audio.volume = MusicSystem.volume || 1.0;
                   }
 
-                  // Só reinicia do zero se foi parado manualmente ou se já terminou
-                  if (stoppedManually || audio.ended) {
+                  if (stoppedManually || !audio || audio.ended) {
                     audio.currentTime = 0;
                   }
                   stoppedManually = false;
 
+                  // Parar MIDI e trocar para MP3
+                  originalStop();
                   player._mp3Active = true;
                   player.isPlaying = true;
-                  audio.play().then(() => {
-                    console.log('[Mp3Layer] ▶ Playback started:', trackKey);
+                  audio.play().then(function() {
+                    console.log('[Mp3Layer] ▶ Playing MP3:', trackKey);
                     if (player.updateButton) player.updateButton();
-                  }).catch(err => {
-                    console.warn('[Mp3Layer] Fallback MIDI:', err);
+                  }).catch(function(err) {
+                    console.warn('[Mp3Layer] MP3 play failed, keeping MIDI:', err);
                     player._mp3Active = false;
                     originalStart();
                   });
-                } else {
-                  // Nenhum Audio pré-criado → MIDI direto
-                  player._mp3Active = false;
-                  console.log('[Mp3Layer] No pre-created audio, using MIDI:', trackKey);
-                  originalStart();
-                }
+                });
               };
 
               player.pause = function() {
                 if (audio && player._mp3Active) {
                   audio.pause();
-                  // NÃO reseta currentTime — permite retomar
                 } else {
-                  // MIDI fallback: MIDI não tem pause, então stop
                   originalStop();
                 }
                 player.isPlaying = false;
@@ -5647,7 +5666,6 @@
                 originalStop();
               };
 
-              // Atualizar volume do audio quando musicGain mudar
               const originalSetVolume = player.setVolume;
               if (originalSetVolume) {
                 player.setVolume = function(val) {
@@ -5665,18 +5683,6 @@
             _addMp3Layer(CombatMusicSystem, 'combat', { loop: false });
             _addMp3Layer(DefeatMusicSystem, 'defeat', { loop: false });
             _addMp3Layer(VictoryMusicSystem, 'victory', { loop: false });
-
-            // Pré-carregar MP3s ao iniciar
-            Mp3Cache.preloadAll();
-
-            // Fallback: se preload falhou, retry no primeiro clique do usuário
-            document.addEventListener('click', function _retryPreload() {
-              if (_mp3AudioElements.size === 0) {
-                console.log('[Mp3Cache] Retry preload on first click');
-                Mp3Cache.preloadAll();
-              }
-              document.removeEventListener('click', _retryPreload);
-            }, { once: true });
 
             // Indicador online no título (roxo = online, amarelo = offline)
             function updateTitleOnlineStatus() {
@@ -9877,6 +9883,9 @@
                  ClickMusicSystem.init();
                  GameOverMusicSystem.init();
 
+                 // Carregar tracks secundárias em background (combat, witch, etc.)
+                 if (navigator.onLine) Mp3Cache.preloadRemaining();
+
                  // Inicializar controlador do minimapa
                 MinimapController.init();
 
@@ -11015,24 +11024,15 @@
                 // AGORA iniciar a animação via JS (60s para o novo keyframe 3D)
                 crawl.style.animation = 'star-wars-crawl 340s linear forwards';
 
-                // Tocar música da intro (nova track)
-                console.log('[IntroSystem] Loading intro music...');
-                var introBlob = _mp3BlobCache.get(MP3_TRACKS.introCrawl) || null;
-                console.log('[IntroSystem] blobUrl:', introBlob);
-                if (introBlob) {
-                  IntroSystem._introAudio = new Audio(introBlob);
-                  IntroSystem._introAudio.volume = 0.8;
-                  IntroSystem._introAudio.play().catch(function(e) {
-                    console.error('[IntroSystem] Play error:', e);
-                  });
-                } else {
-                  Mp3Cache.load(MP3_TRACKS.introCrawl).then(function(b) {
+                // Tocar música da intro — track já garantida pelo StartScreen se online
+                if (navigator.onLine) {
+                  Mp3Cache.ensureTrack('introCrawl').then(function(blobUrl) {
                     if (IntroSystem.isComplete) return;
-                    if (b) {
-                      IntroSystem._introAudio = new Audio(b);
+                    if (blobUrl) {
+                      IntroSystem._introAudio = new Audio(blobUrl);
                       IntroSystem._introAudio.volume = 0.8;
                       IntroSystem._introAudio.play().catch(function(e) {
-                        console.error('[IntroSystem] Fallback play error:', e);
+                        console.error('[IntroSystem] Play error:', e);
                       });
                     }
                   });
@@ -11113,8 +11113,12 @@
 
             // StartScreen object — captura interação do usuário antes do crawl
             const StartScreen = {
-              start: function() {
+              start: async function() {
                 document.getElementById('start-screen').remove();
+                // Se online, segura até tracks críticas estarem no cache
+                if (navigator.onLine) {
+                  await Mp3Cache.ensureAllCritical();
+                }
                 IntroSystem.init();
               }
             };
