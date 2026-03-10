@@ -1,75 +1,37 @@
 
 
-### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
+## Bug: Personagens fantasmas nunca aparecem (alucinações nível 2+)
 
-- `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
-- `start()` tornado síncrono: usa Audio pré-criado em vez de `await Mp3Cache.load()`
-- `originalStop()` chamado antes de `audio.play()` para parar MIDI
-- Fallback: listener `{ once: true }` no click retenta preload se Map vazio
-## Refatoração Completa (Fases 1-4)
+### Causa raiz
 
-### ✅ Fase 1 — Bugs e segurança
-- Fix `delay` não declarada em `showResult`
-- Fix morte por asa delta sem `gameOver = true` + karma
-- `@keyframes` duplicados removidos (screen-shake, bomb-pulse)
-- `rain-fall` renomeado: `rain-fall-particle` e `rain-fall-overlay`
-- Checagens defensivas `visitedRooms` removidas
-- 13 propriedades não declaradas adicionadas ao GameState
+Os thresholds para nível 2 são **praticamente impossíveis** de atingir em gameplay normal:
 
-### ✅ Fase 2 — Eliminação de duplicação
-- `Actions._setPlayerLocation(roomId)` — centraliza localização
-- `Rules.activateFollow(charId)` — centraliza follow com karma
-- `MusicSystem` refatorado com `createMidiPlayer` como base
+- **Nível 1**: HP < 30% **OU** Energy < 20 → fácil de atingir
+- **Nível 2**: HP < 20% **E** Energy < 15 → precisa ter HP < 20 **e** Energy < 15 ao mesmo tempo
+- **Nível 3**: HP < 10% **E** Energy < 10 → quase impossível
 
-### ✅ Fase 3 — Organização
-- `GAME_CONSTANTS` criado com ~25 constantes nomeadas
-- Magic numbers substituídos em GameState, moveTo, advanceTime, processNPCMovement, Game.init
-- Nota: reorganização de seções e var→const/let adiados (risco alto em arquivo monolítico)
+O problema é o operador **AND** (`&&`). Na prática, quando o HP está abaixo de 20%, o jogador já morreu em combate ou está prestes a morrer. E energia abaixo de 15 é raro porque comida/café são abundantes. A janela onde ambos coexistem é minúscula — o jogador morre ou come algo antes de experimentar o nível 2.
 
-### ✅ Fase 4 — Qualidade de vida
-- `Actions.moveTo` quebrado em 3 subfunções: `_handleDeadlyJump`, `_checkMoveRestrictions`, `_processRoomEntry`
-- JSDoc adicionado em 10 módulos: ScreenEffects, GlitchEffect, RandomEvents, SoundSystem, createMidiPlayer, GameState, Utils, Rules, Karma, Actions
+### Fix proposto
 
-### ✅ Fase 5 — Sistema Híbrido MP3 + MIDI com Cache Offline
+Relaxar os thresholds e trocar AND por OR nos níveis 2 e 3:
 
-- Objeto `MP3_TRACKS` mapeando estados → URLs locais:
-  - `exploration: 'AVP Theme.mp3'`
-  - `gameover: 'AVP Game Over.mp3'`
-  - `combat`, `defeat`, `victory`: placeholders vazios
-- Cache API (`caches.open('avp-music-v1')`) para persistir MP3s offline após primeiro carregamento
-- Wrapper `_addMp3Layer` em cada player MIDI — sobrescreve `start()`/`stop()`:
-  - MP3 disponível (cache ou rede) → toca via `<audio>`
-  - Sem MP3 → fallback automático para MIDI
-- Integração de volume com `musicGain` existente (sliders continuam funcionando)
-- Tudo autocontido no HTML
+```js
+// Antes (quase impossível):
+if (hpPerc < 10 && energy < 10) return 3;
+if (hpPerc < 20 && energy < 15) return 2;
+if (hpPerc < 30 || energy < 20) return 1;
 
-### ✅ Fase 6 — Alucinações da Paulista (Sistema de Sanidade Mental)
+// Depois (alcançável):
+if (hpPerc < 15 || energy < 8)  return 3;
+if (hpPerc < 25 || energy < 15) return 2;
+if (hpPerc < 40 || energy < 25) return 1;
+```
 
-- Namespace `Hallucinations` com ~160 linhas
-- 3 níveis baseados em HP% + Energy: Leve (1), Moderado (2), Severo (3)
-- Nível 1: frases surreais na descrição da sala + CSS wobble/blur
-- Nível 2: NPCs fantasmas + itens fantasmas (não interagíveis)
-- Nível 3: saídas falsas + log mentiroso (15% chance por turno)
-- Interceptação em pickupItem, moveTo, showCharacter para phantoms
-- Cura: notificação ao usar item de cura/comida que reduza o nível
-- Invalidação de renderSig inclui nível de alucinação
-- CSS: `.hallucination-text`, `.phantom-item`, `.phantom-npc`, `@keyframes hallucinate-wobble`
+Isso garante:
+- **Nível 1** (texto surreal + blur): HP < 40 ou Energy < 25 — comum em mid-game
+- **Nível 2** (NPCs/itens fantasmas): HP < 25 ou Energy < 15 — alcançável após combates difíceis
+- **Nível 3** (saídas falsas + logs mentirosos): HP < 15 ou Energy < 8 — raro mas possível
 
-### ✅ Fase 7 — Buff do Café Paulistano
+Mudança de 3 linhas, sem alterar nenhuma outra lógica.
 
-- Substituído `skipNextTimeAdvance` por `caffeinatedTurns` (3 turnos)
-- Efeitos do estado "Cafeinado":
-  - ⏳ Tempo congelado por 3 turnos
-  - ⚡ +20 energia imediata
-  - 🗡️ +2 ataque temporário (em `Rules.getPlayerAttackPower`)
-  - 🧠 Anti-alucinação (bloqueia `Hallucinations.getLevel()`)
-- Mensagens de feedback a cada turno e ao expirar
-- Energético Paulista também ativa 1 turno de cafeína
-
-### ✅ Fase 8 — Portrait com Degradê Full-Card
-
-- `.combat-portrait` agora `position: absolute; inset: 0` cobrindo o card inteiro
-- `mask-image` com gradiente (0.45→0.15→transparent) dissolve a imagem suavemente
-- Conteúdo do card usa `z-index: 1` via seletor `> *:not(.combat-portrait)`
-- Placeholder agora é gradiente sutil sem texto/ícone
-- Animação `portrait-reveal` com scale 1.08→1 para efeito cinematográfico
