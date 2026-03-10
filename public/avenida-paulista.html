@@ -1795,6 +1795,230 @@
               }
             }
 
+            /* ========== ITEM MODAL (Card style) ========== */
+            #item-modal-content {
+              text-align: left;
+              position: relative;
+            }
+
+            #item-modal-content .item-card {
+              position: relative;
+              border-radius: 12px;
+              overflow: hidden;
+              background: linear-gradient(145deg, rgba(20,15,8,0.95), rgba(30,22,10,0.9));
+              border: 1px solid rgba(212,168,70,0.2);
+              box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,168,70,0.1);
+              display: flex;
+              flex-direction: row;
+              min-height: 280px;
+            }
+
+            #item-modal-content .item-card-image {
+              position: relative;
+              width: 50%;
+              min-height: 280px;
+              overflow: hidden;
+              background: linear-gradient(135deg, #0a0806, #1a150c);
+              flex-shrink: 0;
+            }
+
+            #item-modal-content .item-card-image img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              object-position: center;
+              opacity: 0.9;
+              animation: char-portrait-reveal 0.6s ease-out;
+              position: absolute;
+              inset: 0;
+            }
+
+            #item-modal-content .item-card-image::after {
+              content: '';
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(to bottom,
+                transparent 40%,
+                rgba(20,15,8,0.5) 70%,
+                rgba(20,15,8,0.95) 95%,
+                rgba(20,15,8,1) 100%
+              );
+              pointer-events: none;
+            }
+
+            #item-modal-content .item-card-image .item-name-overlay {
+              position: absolute;
+              bottom: 32px;
+              left: 16px;
+              right: 16px;
+              z-index: 2;
+              font-family: var(--font-mono);
+              font-size: 1.2rem;
+              font-weight: 700;
+              color: var(--accent-gold);
+              text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+              letter-spacing: 0.08em;
+            }
+
+            #item-modal-content .item-card-image .item-desc-overlay {
+              position: absolute;
+              bottom: 8px;
+              left: 16px;
+              right: 16px;
+              z-index: 2;
+              color: rgba(255,255,255,0.7);
+              font-size: 0.72rem;
+              line-height: 1.4;
+              text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+            }
+
+            #item-modal-content .item-card-image .item-type-badge {
+              position: absolute;
+              top: 12px;
+              right: 12px;
+              z-index: 2;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-family: var(--font-mono);
+              font-size: 0.65rem;
+              font-weight: 600;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              backdrop-filter: blur(8px);
+              animation: char-portrait-reveal 0.4s ease-out 0.2s both;
+            }
+
+            .item-type-badge.single-use {
+              background: rgba(201,64,64,0.25);
+              color: #ff6b6b;
+              border: 1px solid rgba(201,64,64,0.4);
+            }
+
+            .item-type-badge.reusable {
+              background: rgba(64,160,96,0.25);
+              color: #6bffaa;
+              border: 1px solid rgba(64,160,96,0.4);
+            }
+
+            .item-type-badge.passive {
+              background: rgba(212,168,70,0.2);
+              color: var(--accent-gold);
+              border: 1px solid rgba(212,168,70,0.3);
+            }
+
+            .item-type-badge.crafted {
+              background: rgba(128,64,160,0.25);
+              color: #c08bff;
+              border: 1px solid rgba(128,64,160,0.4);
+            }
+
+            #item-modal-content .item-card-body {
+              width: 50%;
+              padding: 20px;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              gap: 14px;
+            }
+
+            #item-modal-content .item-stats-grid {
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            }
+
+            #item-modal-content .item-stat {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 10px 12px;
+              border-radius: 8px;
+              background: rgba(255,255,255,0.03);
+              border: 1px solid rgba(255,255,255,0.06);
+              transition: background 0.2s;
+            }
+
+            #item-modal-content .item-stat:hover {
+              background: rgba(255,255,255,0.06);
+            }
+
+            #item-modal-content .item-stat .stat-icon {
+              font-size: 1.1rem;
+              width: 24px;
+              text-align: center;
+              flex-shrink: 0;
+            }
+
+            #item-modal-content .item-stat .stat-info {
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              flex: 1;
+            }
+
+            #item-modal-content .item-stat .stat-label {
+              font-size: 0.65rem;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              color: rgba(255,255,255,0.35);
+              font-family: var(--font-mono);
+            }
+
+            #item-modal-content .item-stat .stat-value {
+              font-family: var(--font-mono);
+              font-size: 0.95rem;
+              font-weight: 600;
+              color: var(--text-primary);
+            }
+
+            #item-modal-content .item-effects-list {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 6px;
+            }
+
+            #item-modal-content .item-effect-badge {
+              padding: 4px 10px;
+              border-radius: 12px;
+              font-size: 0.68rem;
+              font-family: var(--font-mono);
+              background: rgba(212,168,70,0.12);
+              color: var(--accent-gold);
+              border: 1px solid rgba(212,168,70,0.25);
+              letter-spacing: 0.04em;
+            }
+
+            #item-modal-content .item-card-actions {
+              display: flex;
+              gap: 8px;
+              flex-wrap: wrap;
+            }
+
+            #item-modal-content .item-card-actions .btn {
+              margin: 0;
+              border-radius: 8px;
+              padding: 8px 16px;
+              font-size: 0.8rem;
+              backdrop-filter: blur(4px);
+              flex: 1;
+              min-width: 0;
+            }
+
+            @media (max-width: 500px) {
+              #item-modal-content .item-card {
+                flex-direction: column;
+                min-height: auto;
+              }
+              #item-modal-content .item-card-image {
+                width: 100%;
+                min-height: 200px;
+                height: 200px;
+              }
+              #item-modal-content .item-card-body {
+                width: 100%;
+              }
+            }
+
             /* No-portrait fallback gradient */
             .char-portrait-fallback {
               width: 100%;
@@ -9279,6 +9503,14 @@
                       actions && actions.appendChild(useBtn);
                     }
 
+                    const infoBtn = document.createElement('button');
+                    infoBtn.className = 'btn btn-small';
+                    infoBtn.title = 'Detalhes';
+                    infoBtn.textContent = '🔍';
+                    infoBtn.dataset.action = 'info';
+                    infoBtn.dataset.itemId = item.id;
+                    actions && actions.appendChild(infoBtn);
+
                     const dropBtn = document.createElement('button');
                     dropBtn.className = 'btn btn-small';
                     dropBtn.title = 'Largar';
@@ -10099,6 +10331,76 @@
                   if (btn) btn.style.display = '';
                 }, (GameOverMusicSystem.duration || 10) * 1000);
                 this.show(title, content);
+              },
+
+              showItem: function(itemId) {
+                const item = GameState.items[itemId];
+                if (!item) return;
+
+                const EFFECT_LABELS = {
+                  flight: '🕊️ Voo',
+                  windVulnerable: '🌬️ Vulnerável ao vento',
+                  gasImmunity: '🧪 Imunidade a gás',
+                  nightVision: '🌙 Visão noturna',
+                  revealAdjacent: '🔭 Revelar adjacentes',
+                  revealTraps: '⚠️ Revelar armadilhas',
+                  rainProtection: '☂️ Proteção contra chuva',
+                  safeJump: '🪂 Salto seguro',
+                  weightBonus: '🎒 Bônus de peso',
+                  regen: '💚 Regeneração'
+                };
+
+                const imgUrl = 'textures/bg_' + itemId + '.webp';
+
+                // Type badge
+                let typeBadge = '';
+                let typeClass = '';
+                let typeText = '';
+                if (item.isCrafted) { typeClass = 'crafted'; typeText = 'Fabricado'; }
+                else if (item.singleUse) { typeClass = 'single-use'; typeText = 'Uso único'; }
+                else if (item.isUsable) { typeClass = 'reusable'; typeText = 'Reutilizável'; }
+                else if (item.passiveEffects && item.passiveEffects.length) { typeClass = 'passive'; typeText = 'Passivo'; }
+                if (typeText) typeBadge = '<span class="item-type-badge ' + typeClass + '">' + typeText + '</span>';
+
+                // Stats
+                let statsHtml = '';
+                if (item.attackPower > 0) {
+                  statsHtml += '<div class="item-stat"><span class="stat-icon">⚔️</span><div class="stat-info"><span class="stat-label">Ataque</span><span class="stat-value" style="color:#ff6b6b;">+' + item.attackPower + '</span></div></div>';
+                }
+                if (item.defensePower > 0) {
+                  statsHtml += '<div class="item-stat"><span class="stat-icon">🛡️</span><div class="stat-info"><span class="stat-label">Defesa</span><span class="stat-value" style="color:#6baaff;">+' + item.defensePower + '</span></div></div>';
+                }
+                statsHtml += '<div class="item-stat"><span class="stat-icon">⚖️</span><div class="stat-info"><span class="stat-label">Peso</span><span class="stat-value">' + item.weight + ' kg</span></div></div>';
+
+                // Effects
+                let effectsHtml = '';
+                if (item.passiveEffects && item.passiveEffects.length) {
+                  effectsHtml = '<div class="item-effects-list">';
+                  item.passiveEffects.forEach(function(eff) {
+                    effectsHtml += '<span class="item-effect-badge">' + (EFFECT_LABELS[eff] || eff) + '</span>';
+                  });
+                  effectsHtml += '</div>';
+                }
+
+                const content = '\
+                  <div id="item-modal-content">\
+                    <div class="item-card">\
+                      <div class="item-card-image">\
+                        <img src="' + imgUrl + '" alt="' + item.name + '" onerror="this.style.display=\'none\'">\
+                        ' + typeBadge + '\
+                        <span class="item-name-overlay">' + item.name + '</span>\
+                        <span class="item-desc-overlay">' + item.description + '</span>\
+                      </div>\
+                      <div class="item-card-body">\
+                        <div class="item-stats-grid">' + statsHtml + '</div>\
+                        ' + effectsHtml + '\
+                        <div class="item-card-actions">\
+                          <button class="btn" onclick="Modals.hide()">Fechar</button>\
+                        </div>\
+                      </div>\
+                    </div>\
+                  </div>';
+                this.show('', content);
               },
 
               showCharacter: function(charId) {
@@ -11608,6 +11910,11 @@
                 const action = el.dataset.action;
                 const itemId = el.dataset.itemId || (el.closest('[data-item-id]') ? el.closest('[data-item-id]').dataset.itemId : null);
 
+                if (action === 'info' && itemId) {
+                  e.preventDefault();
+                  Modals.showItem(itemId);
+                  return;
+                }
                 if (action === 'use' && itemId) {
                   e.preventDefault();
                   Game.use(itemId);
