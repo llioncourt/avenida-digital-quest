@@ -1,5 +1,12 @@
 
 
+### ✅ Fase 10 — Sala Pai/Filha + Modal de Explosão Cinematográfico + Room Backgrounds
+
+- `childRooms` / `parentRoom` nas definições de sala (MASP→Teto/Subsolo, Colégio→Antena)
+- Explosão no pai propaga para filhas (affectedRooms array)
+- `Modals.showExplosion(roomId, title, content)` com imagem de fundo, shake, glow
+- `.room-bg` no `#location-panel` com opacity 0.15, nomenclatura `rooms/{roomId}.webp`
+
 ### ✅ Fase 9 — Fix MP3 + MIDI tocando juntas
 
 - `_mp3AudioElements` Map pré-cria Audio elements no `preloadAll()` (síncrono)
