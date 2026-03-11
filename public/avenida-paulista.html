@@ -11993,6 +11993,20 @@
                     minimapBg;
                   mc.style.backgroundSize = '20px 20px, 20px 20px, 100% 100%';
                 }
+
+                // Modal
+                var modal = document.getElementById('modal');
+                if (modal) modal.style.background = glassBg;
+
+                // Itens do inventário
+                document.querySelectorAll('.inventory-item').forEach(function(el) {
+                  el.style.background = glassBg;
+                });
+
+                // Cards de combate
+                document.querySelectorAll('.combat-card').forEach(function(el) {
+                  el.style.background = glassBg;
+                });
               }
             };
 
