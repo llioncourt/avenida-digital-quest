@@ -11819,16 +11819,16 @@
                 const paths = [
                   ...['antena','avenida_brigadeiro','avenida_paulista_leste','avenida_paulista_oeste',
                       'avenida_santos','ceu_cidade','cinema','colegio','distrito_italiano','livraria',
-                      'masp','nove_julho_norte','nove_julho_sul','rua_augusta','shopping','subsolo_masp','tunel']
+                      'masp','nove_julho_norte','nove_julho_sul','rua_augusta','shopping','subsolo_masp','teto_masp','tunel']
                     .map(r => 'rooms/' + r + '.webp'),
                   ...['acai','asa_delta','bomba','cafe','cera_magica','conjunto_musical','coxinha','detector',
                       'energetico','escudo','escudo_grafitado','espada','espada_encantada','grafite',
                       'guarda_chuva','hipnodisco','inv','kit_bomba','kit_saude','lanterna','livro',
-                      'mapa_antigo','mascara_gas','mochila','pandeiro','pastel','reliquia','seta_mortal','violao']
+                      'mapa_antigo','mascara_gas','mochila','pandeiro','pastel','reliquia','seta_mortal','traje_protetor','violao']
                     .map(t => 'textures/bg_' + t + '.webp'),
-                  ...['01_player','02_feiticeiro','03_aguia','04_bombardeador','05_bruxa',
+                  ...['01_player','01_player_traje_protetor','02_feiticeiro','03_aguia','04_bombardeador','05_bruxa',
                       '06_demonio','07_coruja','08_cachorro','09_vendedor']
-                    .map(p => 'portraits/' + p + '_neutro.webp')
+                    .map(p => 'portraits/' + p + '.webp')
                 ];
                 console.log('[ImagePreloader] Pré-carregando ' + paths.length + ' imagens...');
                 return Promise.allSettled(paths.map(function(src) {
