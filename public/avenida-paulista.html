@@ -11804,23 +11804,60 @@
             // INICIALIZAÇÃO
             // ============================================================================
 
+            // ImagePreloader — pré-carrega todas as imagens .webp no cache do browser
+            const ImagePreloader = {
+              preloadAll: function() {
+                const paths = [
+                  ...['antena','avenida_brigadeiro','avenida_paulista_leste','avenida_paulista_oeste',
+                      'avenida_santos','ceu_cidade','cinema','colegio','distrito_italiano','livraria',
+                      'masp','nove_julho_norte','nove_julho_sul','rua_augusta','shopping','subsolo_masp','tunel']
+                    .map(r => 'rooms/' + r + '.webp'),
+                  ...['acai','asa_delta','bomba','cafe','cera_magica','conjunto_musical','coxinha','detector',
+                      'energetico','escudo','escudo_grafitado','espada','espada_encantada','grafite',
+                      'guarda_chuva','hipnodisco','inv','kit_bomba','kit_saude','lanterna','livro',
+                      'mapa_antigo','mascara_gas','mochila','pandeiro','pastel','reliquia','seta_mortal','violao']
+                    .map(t => 'textures/bg_' + t + '.webp'),
+                  ...['01_player','02_feiticeiro','03_aguia','04_bombardeador','05_bruxa',
+                      '06_demonio','07_coruja','08_cachorro','09_vendedor']
+                    .map(p => 'portraits/' + p + '_neutro.webp')
+                ];
+                console.log('[ImagePreloader] Pré-carregando ' + paths.length + ' imagens...');
+                return Promise.allSettled(paths.map(function(src) {
+                  return new Promise(function(resolve) {
+                    var img = new Image();
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                    img.src = src;
+                  });
+                })).then(function(results) {
+                  var ok = results.filter(function(r) { return r.status === 'fulfilled'; }).length;
+                  console.log('[ImagePreloader] ' + ok + '/' + paths.length + ' imagens carregadas');
+                });
+              }
+            };
+
             // StartScreen object — captura interação do usuário antes do crawl
             const StartScreen = {
               start: async function() {
                 var screen = document.getElementById('start-screen');
 
-                if (navigator.onLine) {
-                  // Mostrar spinner e carregar TODAS as MP3s
-                  screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">' +
-                    '<div style="width:48px;height:48px;border:4px solid #FFD70044;border-top-color:#FFD700;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
-                    '<p style="color:#FFD700;font-family:\'Press Start 2P\',monospace;font-size:0.8rem;">Carregando áudio...</p></div>';
+                // Mostrar spinner genérico
+                screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">' +
+                  '<div style="width:48px;height:48px;border:4px solid #FFD70044;border-top-color:#FFD700;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
+                  '<p style="color:#FFD700;font-family:\'Press Start 2P\',monospace;font-size:0.8rem;">Carregando...</p></div>';
 
+                // Iniciar preload de imagens imediatamente (paralelo ao áudio)
+                var imageLoad = ImagePreloader.preloadAll();
+
+                if (navigator.onLine) {
                   await Mp3Cache.ensureAll();
                   window._useMP3 = true;
                   console.log('[StartScreen] MP3 engine ativado');
                 } else {
                   console.log('[StartScreen] Offline — MIDI engine ativado');
                 }
+
+                await imageLoad;
 
                 screen.remove();
                 IntroSystem.init();
