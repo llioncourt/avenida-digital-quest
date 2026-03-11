@@ -3073,6 +3073,26 @@
                     <span class="vol-pct">100%</span>
                   </div>
                 </div>
+                <div class="volume-control">
+                  <button
+                    id="glass-toggle"
+                    class="vol-btn"
+                    onclick="GlassControl.toggleSlider()"
+                    title="Transparência do glassmorphism"
+                  >
+                    🪟
+                  </button>
+                  <div class="vol-slider" id="glass-slider">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="55"
+                      oninput="GlassControl.set(this.value); this.nextElementSibling.textContent=this.value+'%'"
+                    />
+                    <span class="vol-pct">55%</span>
+                  </div>
+                </div>
                 <button
                   id="particles-toggle"
                   onclick="AmbientParticles.toggle()"
@@ -3097,26 +3117,6 @@
                 >
                   🎬
                 </button>
-                <div class="volume-control">
-                  <button
-                    id="glass-toggle"
-                    class="vol-btn"
-                    onclick="GlassControl.toggleSlider()"
-                    title="Transparência do glassmorphism"
-                  >
-                    🪟
-                  </button>
-                  <div class="vol-slider" id="glass-slider">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value="55"
-                      oninput="GlassControl.set(this.value); this.nextElementSibling.textContent=this.value+'%'"
-                    />
-                    <span class="vol-pct">55%</span>
-                  </div>
-                </div>
               </div>
             </div>
             <div id="log-container" class="scroll-indicator-container"></div>
