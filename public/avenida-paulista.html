@@ -11920,10 +11920,11 @@
                 console.log('[ImagePreloader] Pré-carregando ' + paths.length + ' imagens...');
                 return Promise.allSettled(paths.map(function(src) {
                   return new Promise(function(resolve) {
+                    var done = false;
                     var img = new Image();
-                    img.onload = resolve;
-                    img.onerror = resolve;
+                    img.onload = img.onerror = function() { if (!done) { done = true; resolve(); } };
                     img.src = src;
+                    setTimeout(function() { if (!done) { done = true; resolve(); } }, 5000);
                   });
                 })).then(function(results) {
                   var ok = results.filter(function(r) { return r.status === 'fulfilled'; }).length;
