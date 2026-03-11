@@ -137,8 +137,10 @@
 
             /* ========== HEADER (compacto, dentro do game-panel) ========== */
             #header {
-              background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
-              border: 1px solid var(--border-color);
+              background: rgba(20, 20, 35, 0.55);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
+              border: 1px solid rgba(255, 255, 255, 0.08);
               border-radius: var(--radius);
               padding: 0.4rem 0.6rem;
               box-shadow: var(--shadow);
@@ -219,7 +221,9 @@
               e removemos max-height fixo.
             */
             #log-panel {
-              background: linear-gradient(135deg, #1a1a2e, #16213e);
+              background: rgba(26, 26, 46, 0.55);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
               border: 1px solid var(--accent-blue);
               flex: 1; /* Ocupa espaço flexível */
               min-height: 0; /* Permite scroll interno */
@@ -1084,11 +1088,12 @@
             /* ========== MINIMAP (estilos internos) ========== */
             #minimap-container {
               background:
-                /* Grid sutil de quadras da cidade */
                 linear-gradient(rgba(40, 40, 55, 0.3) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(40, 40, 55, 0.3) 1px, transparent 1px),
-                linear-gradient(180deg, #0a0a12 0%, #08080d 100%);
+                rgba(10, 10, 18, 0.5);
               background-size: 20px 20px, 20px 20px, 100% 100%;
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
               border-radius: var(--radius);
               padding: 0.75rem;
               position: relative;
