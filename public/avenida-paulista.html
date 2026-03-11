@@ -995,9 +995,11 @@
               justify-content: space-between;
               align-items: center;
               padding: 0.6rem 0.5rem;
-              background: var(--bg-tertiary);
+              background: rgba(20, 20, 35, 0.55);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
               border-radius: var(--radius);
-              border: 1px solid var(--border-color);
+              border: 1px solid rgba(255, 255, 255, 0.08);
               overflow: hidden;
               min-width: 0;
               position: relative;
@@ -1463,7 +1465,9 @@
 
             #modal {
               position: relative;
-              background: var(--bg-secondary);
+              background: rgba(20, 20, 35, 0.55);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
               border: 2px solid var(--accent-gold);
               border-radius: var(--radius);
               padding: 2rem;
@@ -2571,7 +2575,9 @@
 
             .combat-card {
               flex: 1;
-              background: var(--bg-secondary);
+              background: rgba(20, 20, 35, 0.55);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
               border: 2px solid var(--border-color);
               border-radius: var(--radius);
               padding: 1.5rem;
@@ -3087,10 +3093,10 @@
                       type="range"
                       min="0"
                       max="100"
-                      value="55"
+                      value="0"
                       oninput="GlassControl.set(this.value); this.nextElementSibling.textContent=this.value+'%'"
                     />
-                    <span class="vol-pct">55%</span>
+                    <span class="vol-pct">0%</span>
                   </div>
                 </div>
                 <button
@@ -11987,11 +11993,26 @@
                     minimapBg;
                   mc.style.backgroundSize = '20px 20px, 20px 20px, 100% 100%';
                 }
+
+                // Modal
+                var modal = document.getElementById('modal');
+                if (modal) modal.style.background = glassBg;
+
+                // Itens do inventário
+                document.querySelectorAll('.inventory-item').forEach(function(el) {
+                  el.style.background = glassBg;
+                });
+
+                // Cards de combate
+                document.querySelectorAll('.combat-card').forEach(function(el) {
+                  el.style.background = glassBg;
+                });
               }
             };
 
             document.addEventListener('DOMContentLoaded', function() {
-              // Aguarda clique no StartScreen — não inicia IntroSystem automaticamente
+              // Aplica estado inicial do glassmorphism (opaco)
+              GlassControl.set(0);
 
               // Fechar sliders de volume ao clicar fora
               document.addEventListener('click', function(e) {
