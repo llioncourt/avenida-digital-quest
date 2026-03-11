@@ -71,6 +71,7 @@
 
             /* ========== LAYOUT ========== */
             #game-container {
+              position: relative;
               display: flex;
               flex-direction: column;
               height: 100vh;
@@ -81,6 +82,24 @@
               transition: --bg-primary 0.5s ease, --bg-secondary 0.5s ease, --bg-tertiary 0.5s ease,
                           --text-primary 0.5s ease, --text-secondary 0.5s ease, --border-color 0.5s ease,
                           --accent-gold 0.5s ease;
+            }
+            .game-room-bg {
+              position: absolute;
+              inset: 0;
+              background-size: cover;
+              background-position: center;
+              opacity: 0;
+              filter: blur(2px);
+              pointer-events: none;
+              transition: opacity 0.8s ease;
+              z-index: 0;
+            }
+            .game-room-bg.loaded {
+              opacity: 0.12;
+            }
+            #game-container > *:not(.game-room-bg) {
+              position: relative;
+              z-index: 1;
             }
 
             /* Sala destruida - tons avermelhados/cinzentos */
