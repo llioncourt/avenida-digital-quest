@@ -7600,6 +7600,15 @@
                 div.className = 'combat-portrait';
                 var specificUrl = this.buildUrl(charId, moveName);
                 var neutralUrl = this.buildUrl(charId, 'neutro');
+
+                // Player com traje protetor usa portrait especial
+                if (charId === 'player' && GameState.playerInventory.includes('traje_protetor')) {
+                  neutralUrl = 'portraits/01_player_traje_protetor.webp';
+                  if (!moveName || moveName === 'neutro') {
+                    specificUrl = neutralUrl;
+                  }
+                }
+
                 var img = document.createElement('img');
                 img.src = specificUrl;
                 img.alt = charId;
