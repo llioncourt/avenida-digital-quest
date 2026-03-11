@@ -9166,6 +9166,29 @@
                   testImg.src = imgUrl;
                 }
 
+                // Global room background behind all cards
+                var gc = document.getElementById('game-container');
+                var globalBg = gc.querySelector('.game-room-bg');
+                if (!globalBg) {
+                  globalBg = document.createElement('div');
+                  globalBg.className = 'game-room-bg';
+                  gc.insertBefore(globalBg, gc.firstChild);
+                }
+                if (globalBg._currentRoom !== roomId) {
+                  globalBg._currentRoom = roomId;
+                  globalBg.classList.remove('loaded');
+                  var gImg = new Image();
+                  gImg.onload = function() {
+                    globalBg.style.backgroundImage = 'url(' + imgUrl + ')';
+                    requestAnimationFrame(function() { globalBg.classList.add('loaded'); });
+                  };
+                  gImg.onerror = function() {
+                    globalBg.style.backgroundImage = '';
+                    globalBg.classList.remove('loaded');
+                  };
+                  gImg.src = imgUrl;
+                }
+
                 let desc = room.description;
 
                 // Lanterna: ícone com tooltip no canto do painel
