@@ -12011,7 +12011,8 @@
             };
 
             document.addEventListener('DOMContentLoaded', function() {
-              // Aguarda clique no StartScreen — não inicia IntroSystem automaticamente
+              // Aplica estado inicial do glassmorphism (opaco)
+              GlassControl.set(0);
 
               // Fechar sliders de volume ao clicar fora
               document.addEventListener('click', function(e) {

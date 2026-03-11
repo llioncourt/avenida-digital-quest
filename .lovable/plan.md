@@ -1,5 +1,13 @@
 
 
+### ✅ Fase 11 — Glassmorphism expandido + Controle de transparência
+
+- Glassmorphism aplicado em: `#modal`, `.inventory-item`, `.combat-card`
+- `GlassControl.set()` atualiza todos os elementos dinamicamente
+- Slider padrão em 0 (totalmente opaco); usuário ajusta em tempo real
+- Cobre modals de personagem, item, combate e itens do inventário
+
+
 ### ✅ Fase 10 — Sala Pai/Filha + Modal de Explosão Cinematográfico + Room Backgrounds
 
 - `childRooms` / `parentRoom` nas definições de sala (MASP→Teto/Subsolo, Colégio→Antena)
