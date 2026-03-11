@@ -1846,12 +1846,18 @@
               pointer-events: none;
             }
 
-            #item-modal-content .item-card-image .item-name-overlay {
+            #item-modal-content .item-card-image .item-text-overlay {
               position: absolute;
-              bottom: 56px;
+              bottom: 8px;
               left: 16px;
               right: 16px;
               z-index: 2;
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+            }
+
+            #item-modal-content .item-card-image .item-name-overlay {
               font-family: var(--font-mono);
               font-size: 1.2rem;
               font-weight: 700;
@@ -1861,11 +1867,6 @@
             }
 
             #item-modal-content .item-card-image .item-desc-overlay {
-              position: absolute;
-              bottom: 8px;
-              left: 16px;
-              right: 16px;
-              z-index: 2;
               color: rgba(255,255,255,0.7);
               font-size: 0.72rem;
               line-height: 1.4;
@@ -10388,8 +10389,10 @@
                       <div class="item-card-image">\
                         <img src="' + imgUrl + '" alt="' + item.name + '" onerror="this.style.display=\'none\'">\
                         ' + typeBadge + '\
-                        <span class="item-name-overlay">' + item.name + '</span>\
-                        <span class="item-desc-overlay">' + item.description + '</span>\
+                        <div class="item-text-overlay">\
+                          <span class="item-name-overlay">' + item.name + '</span>\
+                          <span class="item-desc-overlay">' + item.description + '</span>\
+                        </div>\
                       </div>\
                       <div class="item-card-body">\
                         <div class="item-stats-grid">' + statsHtml + '</div>\
