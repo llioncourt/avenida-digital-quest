@@ -302,6 +302,20 @@
               box-shadow: var(--shadow);
             }
 
+            /* Glassmorphism para location e inventory */
+            #location-panel.panel {
+              background: rgba(20, 20, 35, 0.55);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
+              border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            #inventory-panel.panel {
+              background: rgba(20, 20, 35, 0.55);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
+              border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
             #location-panel {
               flex-shrink: 0;
               position: relative;
@@ -3083,6 +3097,26 @@
                 >
                   🎬
                 </button>
+                <div class="volume-control">
+                  <button
+                    id="glass-toggle"
+                    class="vol-btn"
+                    onclick="GlassControl.toggleSlider()"
+                    title="Transparência do glassmorphism"
+                  >
+                    🪟
+                  </button>
+                  <div class="vol-slider" id="glass-slider">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="55"
+                      oninput="GlassControl.set(this.value); this.nextElementSibling.textContent=this.value+'%'"
+                    />
+                    <span class="vol-pct">55%</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div id="log-container" class="scroll-indicator-container"></div>
@@ -11917,6 +11951,42 @@
 
                 screen.remove();
                 IntroSystem.init();
+              }
+            };
+
+            /* ========== GLASS TRANSPARENCY CONTROL ========== */
+            var GlassControl = {
+              toggleSlider: function() {
+                var slider = document.getElementById('glass-slider');
+                if (slider) slider.classList.toggle('active');
+              },
+              set: function(val) {
+                var opacity = val / 100;
+                var glassBg = 'rgba(20, 20, 35, ' + opacity + ')';
+                var logBg = 'rgba(26, 26, 46, ' + opacity + ')';
+                var logInnerBg = 'rgba(10, 10, 15, ' + (opacity * 0.7) + ')';
+                var minimapBg = 'rgba(10, 10, 18, ' + (opacity * 0.9) + ')';
+                var headerBg = 'rgba(20, 20, 35, ' + opacity + ')';
+
+                var lp = document.getElementById('location-panel');
+                var ip = document.getElementById('inventory-panel');
+                var logP = document.getElementById('log-panel');
+                var logC = document.getElementById('log-container');
+                var mc = document.getElementById('minimap-container');
+                var hd = document.getElementById('header');
+
+                if (lp) lp.style.background = glassBg;
+                if (ip) ip.style.background = glassBg;
+                if (logP) logP.style.background = logBg;
+                if (logC) logC.style.background = logInnerBg;
+                if (hd) hd.style.background = headerBg;
+                if (mc) {
+                  mc.style.background =
+                    'linear-gradient(rgba(40, 40, 55, 0.3) 1px, transparent 1px), ' +
+                    'linear-gradient(90deg, rgba(40, 40, 55, 0.3) 1px, transparent 1px), ' +
+                    minimapBg;
+                  mc.style.backgroundSize = '20px 20px, 20px 20px, 100% 100%';
+                }
               }
             };
 
