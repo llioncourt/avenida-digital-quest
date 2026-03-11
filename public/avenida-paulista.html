@@ -11944,7 +11944,7 @@
                   '<p style="color:#FFD700;font-family:\'Press Start 2P\',monospace;font-size:0.8rem;">Carregando...</p></div>';
 
                 // Iniciar preload de imagens imediatamente (paralelo ao áudio)
-                var imageLoad = ImagePreloader.preloadAll();
+                var imageLoad = navigator.onLine ? ImagePreloader.preloadAll() : Promise.resolve();
 
                 if (navigator.onLine) {
                   await Mp3Cache.ensureAll();
