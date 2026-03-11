@@ -11954,6 +11954,42 @@
               }
             };
 
+            /* ========== GLASS TRANSPARENCY CONTROL ========== */
+            var GlassControl = {
+              toggleSlider: function() {
+                var slider = document.getElementById('glass-slider');
+                if (slider) slider.classList.toggle('active');
+              },
+              set: function(val) {
+                var opacity = val / 100;
+                var glassBg = 'rgba(20, 20, 35, ' + opacity + ')';
+                var logBg = 'rgba(26, 26, 46, ' + opacity + ')';
+                var logInnerBg = 'rgba(10, 10, 15, ' + (opacity * 0.7) + ')';
+                var minimapBg = 'rgba(10, 10, 18, ' + (opacity * 0.9) + ')';
+                var headerBg = 'rgba(20, 20, 35, ' + opacity + ')';
+
+                var lp = document.getElementById('location-panel');
+                var ip = document.getElementById('inventory-panel');
+                var logP = document.getElementById('log-panel');
+                var logC = document.getElementById('log-container');
+                var mc = document.getElementById('minimap-container');
+                var hd = document.getElementById('header');
+
+                if (lp) lp.style.background = glassBg;
+                if (ip) ip.style.background = glassBg;
+                if (logP) logP.style.background = logBg;
+                if (logC) logC.style.background = logInnerBg;
+                if (hd) hd.style.background = headerBg;
+                if (mc) {
+                  mc.style.background =
+                    'linear-gradient(rgba(40, 40, 55, 0.3) 1px, transparent 1px), ' +
+                    'linear-gradient(90deg, rgba(40, 40, 55, 0.3) 1px, transparent 1px), ' +
+                    minimapBg;
+                  mc.style.backgroundSize = '20px 20px, 20px 20px, 100% 100%';
+                }
+              }
+            };
+
             document.addEventListener('DOMContentLoaded', function() {
               // Aguarda clique no StartScreen — não inicia IntroSystem automaticamente
 
