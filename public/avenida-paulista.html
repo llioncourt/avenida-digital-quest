@@ -10389,8 +10389,10 @@
                       <div class="item-card-image">\
                         <img src="' + imgUrl + '" alt="' + item.name + '" onerror="this.style.display=\'none\'">\
                         ' + typeBadge + '\
-                        <span class="item-name-overlay">' + item.name + '</span>\
-                        <span class="item-desc-overlay">' + item.description + '</span>\
+                        <div class="item-text-overlay">\
+                          <span class="item-name-overlay">' + item.name + '</span>\
+                          <span class="item-desc-overlay">' + item.description + '</span>\
+                        </div>\
                       </div>\
                       <div class="item-card-body">\
                         <div class="item-stats-grid">' + statsHtml + '</div>\
